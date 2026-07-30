@@ -1,397 +1,482 @@
 {
-    "batch":  "PALWAKF_WORKSPACE_MANAGER_SELF_HOSTING_OPERATIONAL_LOOP_V1",
-    "status":  "CANDIDATE_SELF_HOSTING_LOOP_VERIFIED_WITH_PROBE_RUNTIME_BLOCKER",
-    "file_count":  78,
-    "files":  [
-                  {
-                      "path":  ".gitattributes",
-                      "sha256":  "1D5D71DCC6CCD28AB46A335349ECC74742CA4B81F4FCAD212F8D134F70F1F13E",
-                      "size":  17
-                  },
-                  {
-                      "path":  ".github/workflows/flutter_ci.yml",
-                      "sha256":  "4C3B0F3E5BEB571460EB4BFA58FD6ADEBAE5B6FAC1F1A9D6FD6E02D570ADA8EB",
-                      "size":  1530
-                  },
-                  {
-                      "path":  ".gitignore",
-                      "sha256":  "4BA3EC37817EE5842B656B3DE8F9F081F70F09F78470D7D7622F0420E852A0C2",
-                      "size":  384
-                  },
-                  {
-                      "path":  "analysis_options.yaml",
-                      "sha256":  "2E82528FC8CC686D51111C248CF10B5CCCB373B8804D22B25DC2697A1C9BED3F",
-                      "size":  167
-                  },
-                  {
-                      "path":  "baselines/PALWAKF_WORKSPACE_MANAGER_FOUNDATION_V1_BASELINE.json",
-                      "sha256":  "152A230B86632991A0A51FF11FD9E80E1C11A98DA92128FFBEF5EBE5F2A31603",
-                      "size":  590
-                  },
-                  {
-                      "path":  "CHANGELOG.md",
-                      "sha256":  "5281B10C5D6A22D9C2B4493A6D36C9890CF38D74CF75ECC505A04F9B4DE82135",
-                      "size":  2098
-                  },
-                  {
-                      "path":  "CURRENT_TASK.md",
-                      "sha256":  "8D386D22A3DDDF9AD96FF10AA43E716708181B12491FFC385AD5662D96D85634",
-                      "size":  1671
-                  },
-                  {
-                      "path":  "docs/architecture/CONTROL_PLANE_ARCHITECTURE_V1.md",
-                      "sha256":  "453CDAAF30594A93853474DC5C5296C4CF8868504E891F72BDE1D338FF8C4292",
-                      "size":  1908
-                  },
-                  {
-                      "path":  "docs/contracts/RESUME_PROTOCOL_V1.md",
-                      "sha256":  "53616AA6804A7E44C681C280D821814BCEF4B6643D050C79BF9560974810DE5E",
-                      "size":  1179
-                  },
-                  {
-                      "path":  "docs/contracts/SELF_HOSTING_OPERATIONAL_LOOP_V1.md",
-                      "sha256":  "37DDA6E2039C27C9015BF90A9B1F93EA8D2AD1FE29BCBC43F814CE25A398A098",
-                      "size":  1743
-                  },
-                  {
-                      "path":  "docs/governance/AUTHORITY_AND_SOURCE_OF_TRUTH.md",
-                      "sha256":  "B3C072431A991EF2EEE9B06C56014EAFA3AFF9003BE4021E8A08989A73B618BA",
-                      "size":  1310
-                  },
-                  {
-                      "path":  "docs/governance/PLATFORM_GUIDE_PIN.md",
-                      "sha256":  "6EF03585174BD301DEF049927615256B7AF3716935326DCA094496BFB43FA81C",
-                      "size":  862
-                  },
-                  {
-                      "path":  "docs/handoffs/SESSION_HANDOFF_FOUNDATION_V1_20260729.md",
-                      "sha256":  "D01556155FE20CDA50404306223ED70781CE75FCED64832AB771BEDC1AAADDFF",
-                      "size":  1142
-                  },
-                  {
-                      "path":  "ERROR_RECORD.md",
-                      "sha256":  "424CE9D5259A081E78481BD9B7FC02377450844D9CA5BF3A3EEF447407486652",
-                      "size":  3859
-                  },
-                  {
-                      "path":  "evidence/ORCHESTRATOR_BACKEND_AGENTS_CODEX_MCP_V1.json",
-                      "sha256":  "44C36677783D77C95856594FF23BD0E75F94D8CA10BB5528817EEFF45057415B",
-                      "size":  1607
-                  },
-                  {
-                      "path":  "evidence/PALWAKF_ORCHESTRATOR_AGENTS_RUNTIME_KEY_INHERITANCE_AND_LIVE_DISPATCH_CLOSURE_V1.json",
-                      "sha256":  "8AD46ED661F0501918CCB11E18DF129CF6314BD0F6CCE104E3986240038AA20E",
-                      "size":  1861
-                  },
-                  {
-                      "path":  "evidence/PALWAKF_WORKSPACE_MANAGER_SELF_HOSTING_OPERATIONAL_LOOP_V1.json",
-                      "sha256":  "9439DAC0850DFD0332D2B27D087C80CC11CB9ED893092E962BF6A5FB8880D754",
-                      "size":  3764
-                  },
-                  {
-                      "path":  "evidence/SELF_HOSTING_CHECKPOINT_V1.json",
-                      "sha256":  "BF7CA7C4F4FEAD73B97537574A5A3B7884FEB71980705050C657F81F51B724FD",
-                      "size":  1074
-                  },
-                  {
-                      "path":  "evidence/VERCEL_FLUTTER_BUILD_CONFIGURATION_V1.json",
-                      "sha256":  "0B33995C9803C420D1AB3F7E145B25FE45778E8300C529DB2EBABD1F35690AE6",
-                      "size":  1003
-                  },
-                  {
-                      "path":  "lib/main.dart",
-                      "sha256":  "FF0D35DEA11088EFB0F7296E0CB2DE0FF98A69871E939BD0F2BA4EB571D45F42",
-                      "size":  266
-                  },
-                  {
-                      "path":  "lib/src/app/workspace_manager_app.dart",
-                      "sha256":  "0EC3B9607C95BBB7E9C8A616F9AB2C74044DB99D8E8EEBBD6D7D28E5EE1100F4",
-                      "size":  1581
-                  },
-                  {
-                      "path":  "lib/src/core/theme/palwakf_theme.dart",
-                      "sha256":  "4DC05ED1312B4C8363E988B48AC4376AE628E034E7310B99E360C193D3C278B4",
-                      "size":  1162
-                  },
-                  {
-                      "path":  "lib/src/features/control_plane/application/gates.dart",
-                      "sha256":  "48045AC948FFFA7DE5567D9A89F9ACCA229922AEBF1E7F60FFA5D4138027515C",
-                      "size":  1406
-                  },
-                  {
-                      "path":  "lib/src/features/control_plane/application/resume_engine.dart",
-                      "sha256":  "41D5D9E598FAFD557E04C6A63C1A4B9CDF78C833825E56FAC93E0DE4A8F0AB93",
-                      "size":  1385
-                  },
-                  {
-                      "path":  "lib/src/features/control_plane/domain/control_plane_models.dart",
-                      "sha256":  "76C22B54086EEFA609D9AD6F6C0C4980354FDC4E7C939646CC2AAD1D8C91BD98",
-                      "size":  2380
-                  },
-                  {
-                      "path":  "lib/src/features/control_plane/domain/control_plane_repository.dart",
-                      "sha256":  "7450292424245EEF0C2EFFD336F29BE12656A6E94A75ADC76F018DD6D6E750F5",
-                      "size":  474
-                  },
-                  {
-                      "path":  "lib/src/features/dashboard/presentation/workspace_dashboard_page.dart",
-                      "sha256":  "D66C0E46C9A439A5AF40A4D2DC1B77835D15DA5DFA365109C2DBACECA4AE281A",
-                      "size":  6139
-                  },
-                  {
-                      "path":  "lib/src/features/orchestrator/application/orchestrator_controller.dart",
-                      "sha256":  "632F170DBA732FCCCD46089FF4C28BEFED98145155825D235D2902C21CDEE507",
-                      "size":  10065
-                  },
-                  {
-                      "path":  "lib/src/features/orchestrator/data/orchestrator_api_client.dart",
-                      "sha256":  "165BA826E897AFFF65C1C72312038B1FEE797B6DAEBC16AD331051CEC91CBA3B",
-                      "size":  8631
-                  },
-                  {
-                      "path":  "lib/src/features/orchestrator/domain/orchestrator_models.dart",
-                      "sha256":  "02DB7CE4AB0A60DBAEF479A047F94F8FE62503C59764E5774CFCD79F6BCCC84C",
-                      "size":  13946
-                  },
-                  {
-                      "path":  "lib/src/features/orchestrator/presentation/orchestrator_workspace_page.dart",
-                      "sha256":  "33CF54C5899585654A624DA43F78B57F8DA821085ED7495383AE15D7FB1C4B77",
-                      "size":  45123
-                  },
-                  {
-                      "path":  "LICENSE_OR_PRIVATE_POLICY.md",
-                      "sha256":  "3F002B452D26741C4036383D0F98AEF5ED914CF6FDC983F52F5CA3F861C3D3DD",
-                      "size":  710
-                  },
-                  {
-                      "path":  "orchestrator/data/PALWAKF_TOOL_ROLE_AND_INVOCATION_REGISTRY_R1_20260729.json",
-                      "sha256":  "8FB51C324D3AC237E1C8C5463E02306C461106F8057B1E187AFD2F01A20100E6",
-                      "size":  3519
-                  },
-                  {
-                      "path":  "orchestrator/data/read_only_dispatch.example.json",
-                      "sha256":  "BEBC3602F223FF44679BA6740E5CE5FB64975320A1F5D53CA9741A066EDBEBA0",
-                      "size":  509
-                  },
-                  {
-                      "path":  "orchestrator/docs/prompt.md",
-                      "sha256":  "B4F9AC7AA39D2DF055A52E10B989EB12CD093D249A9832CF8DFA5CB7E76C73E8",
-                      "size":  553
-                  },
-                  {
-                      "path":  "orchestrator/main.py",
-                      "sha256":  "4C1066141BC2EB39EC19516E96AB26307F33D83B32D767980AD425FD2AA1EA15",
-                      "size":  82
-                  },
-                  {
-                      "path":  "orchestrator/pyproject.toml",
-                      "sha256":  "915840D65EB0F863227A0357BE44009907933BFB0DA9FF2B3590F0D321681EC5",
-                      "size":  1104
-                  },
-                  {
-                      "path":  "orchestrator/README.md",
-                      "sha256":  "419F04A5DD127EA01A6B45F82433433CC0814F521EB1A5103821A060D7CD7665",
-                      "size":  1962
-                  },
-                  {
-                      "path":  "orchestrator/scripts/live_dispatch.py",
-                      "sha256":  "E72889F9423E82FFBEE34A481576A46CE9A62B4B501E6E7A24F984565658E407",
-                      "size":  4000
-                  },
-                  {
-                      "path":  "orchestrator/src/palwakf_orchestrator/__init__.py",
-                      "sha256":  "182E494AA276315C37F173F9CC9A9B97CDAE2293E9CADD714A19C01B291A00E6",
-                      "size":  69
-                  },
-                  {
-                      "path":  "orchestrator/src/palwakf_orchestrator/api.py",
-                      "sha256":  "572BD5EDF106D337BEB3584FBC1ADFF06DB3323DDDB7C134F30BDC3881235A83",
-                      "size":  8600
-                  },
-                  {
-                      "path":  "orchestrator/src/palwakf_orchestrator/capability_router.py",
-                      "sha256":  "FEFA1AF26E50F2BAD85BD2B6EAE7409C48E108F2D5306D75A74545103C28BE8F",
-                      "size":  12923
-                  },
-                  {
-                      "path":  "orchestrator/src/palwakf_orchestrator/config.py",
-                      "sha256":  "1651ADAF0A6A7474D64F56D72B9A1229141CCDDC317A3DD05883625B40AD2811",
-                      "size":  1105
-                  },
-                  {
-                      "path":  "orchestrator/src/palwakf_orchestrator/contracts.py",
-                      "sha256":  "AF3611DAC3457300754E49CF976983117861FA297C27E94987A6981DB4BD61B3",
-                      "size":  2328
-                  },
-                  {
-                      "path":  "orchestrator/src/palwakf_orchestrator/credentials.py",
-                      "sha256":  "79159FE6367B71281D915B8312A8229B48EAA9EBCFAFD805B7D0BC979FC831F5",
-                      "size":  999
-                  },
-                  {
-                      "path":  "orchestrator/src/palwakf_orchestrator/errors.py",
-                      "sha256":  "098E917EC5E08C39E6F451C6A7A76983E41680DE6B951B1A1A3CB5487F6141D8",
-                      "size":  293
-                  },
-                  {
-                      "path":  "orchestrator/src/palwakf_orchestrator/gateways.py",
-                      "sha256":  "644E29259FD40D94678C2D54C00CF96ED1C45A7EF012E6FB7E7E5BE6F1BF7836",
-                      "size":  4599
-                  },
-                  {
-                      "path":  "orchestrator/src/palwakf_orchestrator/governance.py",
-                      "sha256":  "853B411B8A11EB24188D431919AAD4EDE4B8B5BB8335CFC2DD31EE97A054C59A",
-                      "size":  2803
-                  },
-                  {
-                      "path":  "orchestrator/src/palwakf_orchestrator/main.py",
-                      "sha256":  "2AA560626179A9FF74EDD4EAFB95F5576D17EF6BF6B3731B15736EA74C407C4D",
-                      "size":  1382
-                  },
-                  {
-                      "path":  "orchestrator/src/palwakf_orchestrator/operator_contracts.py",
-                      "sha256":  "F47AC684E0F6389B5CACCB81F6CABF5B27280202DFA8874403971E6567D11450",
-                      "size":  7378
-                  },
-                  {
-                      "path":  "orchestrator/src/palwakf_orchestrator/operator_service.py",
-                      "sha256":  "F4ACE388CFD78541D475A06E0D896E3C2D72CB5B84045EDF14363EAAB67CE1FF",
-                      "size":  19324
-                  },
-                  {
-                      "path":  "orchestrator/src/palwakf_orchestrator/planner.py",
-                      "sha256":  "CF12AE87A398713AD2664CB53386CB013A4E7029D72164B13F08DE9D07A1D2AA",
-                      "size":  2320
-                  },
-                  {
-                      "path":  "orchestrator/src/palwakf_orchestrator/service.py",
-                      "sha256":  "686826E326BF3297AA055BC609F921F76ED6BE33305C239B188ED7E10715D4F5",
-                      "size":  3312
-                  },
-                  {
-                      "path":  "orchestrator/tests/__init__.py",
-                      "sha256":  "5A3C50AD3016154C21E7E96C12F3871559974FFF95BE2C07AC5F1EF40FAF64E0",
-                      "size":  26
-                  },
-                  {
-                      "path":  "orchestrator/tests/test_capability_router.py",
-                      "sha256":  "F5862257852CB6D54CE384E81BF1554328B63C17CCAA395EA696F1B69E55EF2F",
-                      "size":  6018
-                  },
-                  {
-                      "path":  "orchestrator/tests/test_contracts.py",
-                      "sha256":  "98B70FE2D5FC00996011C2FFB4A74E2A23C7461BB122B8F97821B883450532E4",
-                      "size":  1270
-                  },
-                  {
-                      "path":  "orchestrator/tests/test_governance.py",
-                      "sha256":  "DDDE46D997BD148182CD54D2FBD9A036A71729960884435478055C9CF721B38C",
-                      "size":  2252
-                  },
-                  {
-                      "path":  "orchestrator/tests/test_operator_service.py",
-                      "sha256":  "7C7832573B42704D0BC4E311D1B534E04502BC0383FA820D79D6241105139257",
-                      "size":  7784
-                  },
-                  {
-                      "path":  "orchestrator/tests/test_planner.py",
-                      "sha256":  "1FB7132D53BC37311D373D4B285F11A92FE605FB02F9F7D4B183042D0878F039",
-                      "size":  1913
-                  },
-                  {
-                      "path":  "orchestrator/tests/test_service.py",
-                      "sha256":  "32C3E47FBCD35136FAC6A597F5FFD6BB4E6BCD5832DB534E24995670FACD2355",
-                      "size":  6094
-                  },
-                  {
-                      "path":  "pubspec.lock",
-                      "sha256":  "9FF7C19301B48B7599AB5A6CDFBBF43283A66F1CF2A397F8C09A8A669CCB8199",
-                      "size":  8347
-                  },
-                  {
-                      "path":  "pubspec.yaml",
-                      "sha256":  "D352B204E6BD69D31163CA09CEC3616A9FCAF7158486D438DC8F753475A0AA2F",
-                      "size":  496
-                  },
-                  {
-                      "path":  "README.md",
-                      "sha256":  "56207B7DC14B49FEC58BDD10B488E7678E52BB39BCE504CFB9BA0511F6222FAF",
-                      "size":  3473
-                  },
-                  {
-                      "path":  "schemas/control_plane_foundation.schema.json",
-                      "sha256":  "1234D334B2C1E1EC9B656EB51B8BC38F2D99FFD35B0D310558032421A00CBF80",
-                      "size":  5686
-                  },
-                  {
-                      "path":  "schemas/self_hosting_checkpoint_v1.schema.json",
-                      "sha256":  "532239B697F3D2C0E22EC8E8FAEC41E74D845FEAB9FA065F2DC53BF35E9C0E52",
-                      "size":  1542
-                  },
-                  {
-                      "path":  "scripts/orchestrator_runtime_env.ps1",
-                      "sha256":  "C92659B333008FED282F1EE9AB73CC587F3A44ABCE773FAC77C969806185868A",
-                      "size":  790
-                  },
-                  {
-                      "path":  "scripts/start_orchestrator.ps1",
-                      "sha256":  "EA59CA0E85A0A30DF2DB45A5EB7520298088E63358D5492E8DDE8976DF58246E",
-                      "size":  617
-                  },
-                  {
-                      "path":  "scripts/test_orchestrator.ps1",
-                      "sha256":  "DDFCE205A30FD71930E15F600E577694DE039D00A8D62F9DE554E6B0D15B5E2D",
-                      "size":  1563
-                  },
-                  {
-                      "path":  "scripts/vercel_build.sh",
-                      "sha256":  "BF513DA0E67C384782B3FB49169BBB36891A9E1FE61DA0D5349DD498E96B9E02",
-                      "size":  832
-                  },
-                  {
-                      "path":  "STATE.md",
-                      "sha256":  "762FC9F826E84DE22842487684D234CAC6FC5351B29E8E56B4E8A8B222552845",
-                      "size":  1729
-                  },
-                  {
-                      "path":  "test/governance_contract_test.dart",
-                      "sha256":  "9F342E4B5B579FB81CD9389A9D7A462D211DEA10F80B1007EE4BBA1832E4E763",
-                      "size":  1181
-                  },
-                  {
-                      "path":  "test/orchestrator_api_client_test.dart",
-                      "sha256":  "99FCE938CFC6095545F028966DF181AC07295C53D8E65E1B8C0C92C00C48F66B",
-                      "size":  1787
-                  },
-                  {
-                      "path":  "test/orchestrator_models_test.dart",
-                      "sha256":  "7C96076B1B2975401EC329C391AD1B65DDBCC8C3E0BA8F8B6C5BA9F43240BF52",
-                      "size":  2088
-                  },
-                  {
-                      "path":  "test/orchestrator_workspace_test.dart",
-                      "sha256":  "E2B70D4803B7865238C6A9FEA308D82D6A5B985D1354B93ED971606CD4615766",
-                      "size":  4001
-                  },
-                  {
-                      "path":  "test/resume_engine_test.dart",
-                      "sha256":  "80D4D27E32167CF658476897473236AEB003DD9ED2E58F8DEB55CFFB6A2A4370",
-                      "size":  3407
-                  },
-                  {
-                      "path":  "vercel.json",
-                      "sha256":  "EDD2CF44BE19C54FEC64E65AE795E2A33BC0550BC98702DA432E1C12FEA9D6E1",
-                      "size":  186
-                  },
-                  {
-                      "path":  "web/index.html",
-                      "sha256":  "DF686EFB230141CF29049CDED56813365C626853F4B3B7CDA463F0B719994B12",
-                      "size":  530
-                  },
-                  {
-                      "path":  "web/manifest.json",
-                      "sha256":  "84AE855FCE8ED536F2CA7220499ADEF944586E5B3BE535C1479F251F11178481",
-                      "size":  340
-                  }
-              ]
+  "batch": "PALWAKF_WORKSPACE_MANAGER_CONNECTED_SERVICE_AND_CHATGPT_MCP_V1",
+  "status": "CONNECTED_SERVICE_SOURCE_VERIFIED_LOCAL_SECURE_MODE",
+  "file_count": 95,
+  "files": [
+    {
+      "path": ".gitattributes",
+      "sha256": "1D5D71DCC6CCD28AB46A335349ECC74742CA4B81F4FCAD212F8D134F70F1F13E",
+      "size": 17
+    },
+    {
+      "path": ".github/workflows/flutter_ci.yml",
+      "sha256": "81FDBFB7FA0226C8E35349FD02457BF09D26F3A75533D7071627F9772095B766",
+      "size": 1739
+    },
+    {
+      "path": ".gitignore",
+      "sha256": "D4F7F3E883ED1C62496E654E1BC646BC717F462DD8DECD194EC06AA530530CF5",
+      "size": 394
+    },
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "474ACF8FA5C876654CA4B040AEBD0486777288DAFC436CD624CE8980C1C57342",
+      "size": 2865
+    },
+    {
+      "path": "CURRENT_TASK.md",
+      "sha256": "14AADB59F25BD7ED7B5298D74A6A61F5A111B0CCABD299524A3085C0BB65123C",
+      "size": 1613
+    },
+    {
+      "path": "ERROR_RECORD.md",
+      "sha256": "424CE9D5259A081E78481BD9B7FC02377450844D9CA5BF3A3EEF447407486652",
+      "size": 3859
+    },
+    {
+      "path": "LICENSE_OR_PRIVATE_POLICY.md",
+      "sha256": "3F002B452D26741C4036383D0F98AEF5ED914CF6FDC983F52F5CA3F861C3D3DD",
+      "size": 710
+    },
+    {
+      "path": "README.md",
+      "sha256": "421F7F14F25C3120F7C524DECCBB0D282FA0B43920C00B654B368974B9CBA1DE",
+      "size": 3811
+    },
+    {
+      "path": "STATE.md",
+      "sha256": "762FC9F826E84DE22842487684D234CAC6FC5351B29E8E56B4E8A8B222552845",
+      "size": 1729
+    },
+    {
+      "path": "analysis_options.yaml",
+      "sha256": "2E82528FC8CC686D51111C248CF10B5CCCB373B8804D22B25DC2697A1C9BED3F",
+      "size": 167
+    },
+    {
+      "path": "baselines/PALWAKF_WORKSPACE_MANAGER_FOUNDATION_V1_BASELINE.json",
+      "sha256": "152A230B86632991A0A51FF11FD9E80E1C11A98DA92128FFBEF5EBE5F2A31603",
+      "size": 590
+    },
+    {
+      "path": "docs/architecture/CONTROL_PLANE_ARCHITECTURE_V1.md",
+      "sha256": "453CDAAF30594A93853474DC5C5296C4CF8868504E891F72BDE1D338FF8C4292",
+      "size": 1908
+    },
+    {
+      "path": "docs/contracts/CONNECTED_SERVICE_AND_CHATGPT_MCP_V1.md",
+      "sha256": "D4F2348A52B250FC2A45B3291F79951AD2ED9512CB6E524F6C4D17FF3EBD36ED",
+      "size": 3879
+    },
+    {
+      "path": "docs/contracts/RESUME_PROTOCOL_V1.md",
+      "sha256": "53616AA6804A7E44C681C280D821814BCEF4B6643D050C79BF9560974810DE5E",
+      "size": 1179
+    },
+    {
+      "path": "docs/contracts/SELF_HOSTING_OPERATIONAL_LOOP_V1.md",
+      "sha256": "37DDA6E2039C27C9015BF90A9B1F93EA8D2AD1FE29BCBC43F814CE25A398A098",
+      "size": 1743
+    },
+    {
+      "path": "docs/governance/AUTHORITY_AND_SOURCE_OF_TRUTH.md",
+      "sha256": "B3C072431A991EF2EEE9B06C56014EAFA3AFF9003BE4021E8A08989A73B618BA",
+      "size": 1310
+    },
+    {
+      "path": "docs/governance/PLATFORM_GUIDE_PIN.md",
+      "sha256": "6EF03585174BD301DEF049927615256B7AF3716935326DCA094496BFB43FA81C",
+      "size": 862
+    },
+    {
+      "path": "docs/handoffs/SESSION_HANDOFF_FOUNDATION_V1_20260729.md",
+      "sha256": "D01556155FE20CDA50404306223ED70781CE75FCED64832AB771BEDC1AAADDFF",
+      "size": 1142
+    },
+    {
+      "path": "evidence/ORCHESTRATOR_BACKEND_AGENTS_CODEX_MCP_V1.json",
+      "sha256": "44C36677783D77C95856594FF23BD0E75F94D8CA10BB5528817EEFF45057415B",
+      "size": 1607
+    },
+    {
+      "path": "evidence/PALWAKF_ORCHESTRATOR_AGENTS_RUNTIME_KEY_INHERITANCE_AND_LIVE_DISPATCH_CLOSURE_V1.json",
+      "sha256": "8AD46ED661F0501918CCB11E18DF129CF6314BD0F6CCE104E3986240038AA20E",
+      "size": 1861
+    },
+    {
+      "path": "evidence/PALWAKF_WORKSPACE_MANAGER_CONNECTED_SERVICE_AND_CHATGPT_MCP_V1.json",
+      "sha256": "7D3F046A582EA4F56B963907C6B0619BA0C0889BD2606EA29E18C90C9610353C",
+      "size": 3494
+    },
+    {
+      "path": "evidence/PALWAKF_WORKSPACE_MANAGER_SELF_HOSTING_OPERATIONAL_LOOP_V1.json",
+      "sha256": "9439DAC0850DFD0332D2B27D087C80CC11CB9ED893092E962BF6A5FB8880D754",
+      "size": 3764
+    },
+    {
+      "path": "evidence/SELF_HOSTING_CHECKPOINT_V1.json",
+      "sha256": "BF7CA7C4F4FEAD73B97537574A5A3B7884FEB71980705050C657F81F51B724FD",
+      "size": 1074
+    },
+    {
+      "path": "evidence/VERCEL_FLUTTER_BUILD_CONFIGURATION_V1.json",
+      "sha256": "0B33995C9803C420D1AB3F7E145B25FE45778E8300C529DB2EBABD1F35690AE6",
+      "size": 1003
+    },
+    {
+      "path": "lib/main.dart",
+      "sha256": "FF0D35DEA11088EFB0F7296E0CB2DE0FF98A69871E939BD0F2BA4EB571D45F42",
+      "size": 266
+    },
+    {
+      "path": "lib/src/app/workspace_manager_app.dart",
+      "sha256": "2499F11380D64C02349389304C024FFF8286FDB796EBE5835931C24BC59B5513",
+      "size": 1996
+    },
+    {
+      "path": "lib/src/core/theme/palwakf_theme.dart",
+      "sha256": "4DC05ED1312B4C8363E988B48AC4376AE628E034E7310B99E360C193D3C278B4",
+      "size": 1162
+    },
+    {
+      "path": "lib/src/features/control_plane/application/gates.dart",
+      "sha256": "48045AC948FFFA7DE5567D9A89F9ACCA229922AEBF1E7F60FFA5D4138027515C",
+      "size": 1406
+    },
+    {
+      "path": "lib/src/features/control_plane/application/resume_engine.dart",
+      "sha256": "41D5D9E598FAFD557E04C6A63C1A4B9CDF78C833825E56FAC93E0DE4A8F0AB93",
+      "size": 1385
+    },
+    {
+      "path": "lib/src/features/control_plane/domain/control_plane_models.dart",
+      "sha256": "76C22B54086EEFA609D9AD6F6C0C4980354FDC4E7C939646CC2AAD1D8C91BD98",
+      "size": 2380
+    },
+    {
+      "path": "lib/src/features/control_plane/domain/control_plane_repository.dart",
+      "sha256": "7450292424245EEF0C2EFFD336F29BE12656A6E94A75ADC76F018DD6D6E750F5",
+      "size": 474
+    },
+    {
+      "path": "lib/src/features/dashboard/presentation/workspace_dashboard_page.dart",
+      "sha256": "D66C0E46C9A439A5AF40A4D2DC1B77835D15DA5DFA365109C2DBACECA4AE281A",
+      "size": 6139
+    },
+    {
+      "path": "lib/src/features/orchestrator/application/orchestrator_controller.dart",
+      "sha256": "D839DFF17813941D46CE78927C89AC6A8AB982728EB0C874F86E54939BA4B179",
+      "size": 11111
+    },
+    {
+      "path": "lib/src/features/orchestrator/data/orchestrator_api_client.dart",
+      "sha256": "AE5789389978243617DB49B9821DBB64653EB125A2A6F7787C4114B82BAD63D6",
+      "size": 10208
+    },
+    {
+      "path": "lib/src/features/orchestrator/domain/orchestrator_models.dart",
+      "sha256": "FE2754F644712021E96AAB1AD5785C94E0C803891A1B8FDBB67142093B00C4AD",
+      "size": 17833
+    },
+    {
+      "path": "lib/src/features/orchestrator/presentation/orchestrator_workspace_page.dart",
+      "sha256": "C5218ADCDDFAD52683183639E2CEFDCDA90ED4CDFE7621947FF302A1817F16C7",
+      "size": 45621
+    },
+    {
+      "path": "lib/src/features/orchestrator/presentation/service_auth_dialog.dart",
+      "sha256": "BFE23D277ACB395DBC9AC6FC4AFF302016D348706FA9E050E77DE099854F3E83",
+      "size": 1487
+    },
+    {
+      "path": "lib/src/features/orchestrator/presentation/tool_health_page.dart",
+      "sha256": "74AA4638F924E07F10E3A1EACFCEF1A25D355EA902AD29E7F98258441178E88D",
+      "size": 13356
+    },
+    {
+      "path": "orchestrator/README.md",
+      "sha256": "136798CFAFC536281EF026733695012A6E93975CB1B220E49AFCC455A7CF77D9",
+      "size": 1901
+    },
+    {
+      "path": "orchestrator/data/PALWAKF_TOOL_ROLE_AND_INVOCATION_REGISTRY_R1_20260729.json",
+      "sha256": "8FB51C324D3AC237E1C8C5463E02306C461106F8057B1E187AFD2F01A20100E6",
+      "size": 3519
+    },
+    {
+      "path": "orchestrator/data/read_only_dispatch.example.json",
+      "sha256": "BEBC3602F223FF44679BA6740E5CE5FB64975320A1F5D53CA9741A066EDBEBA0",
+      "size": 509
+    },
+    {
+      "path": "orchestrator/docs/prompt.md",
+      "sha256": "B4F9AC7AA39D2DF055A52E10B989EB12CD093D249A9832CF8DFA5CB7E76C73E8",
+      "size": 553
+    },
+    {
+      "path": "orchestrator/main.py",
+      "sha256": "4C1066141BC2EB39EC19516E96AB26307F33D83B32D767980AD425FD2AA1EA15",
+      "size": 82
+    },
+    {
+      "path": "orchestrator/pyproject.toml",
+      "sha256": "13948B5557956ECBA917EA992A4B8AECADE0DD6293E3FDD0838E6012A54F9396",
+      "size": 1148
+    },
+    {
+      "path": "orchestrator/scripts/connected_service_smoke.py",
+      "sha256": "D1874CDCDBFF964EE524DECADE8A38C05806892C6B986FFD91963DB50670A03E",
+      "size": 10782
+    },
+    {
+      "path": "orchestrator/scripts/live_dispatch.py",
+      "sha256": "E72889F9423E82FFBEE34A481576A46CE9A62B4B501E6E7A24F984565658E407",
+      "size": 4000
+    },
+    {
+      "path": "orchestrator/src/palwakf_orchestrator/__init__.py",
+      "sha256": "182E494AA276315C37F173F9CC9A9B97CDAE2293E9CADD714A19C01B291A00E6",
+      "size": 69
+    },
+    {
+      "path": "orchestrator/src/palwakf_orchestrator/api.py",
+      "sha256": "C77099AD57D77C8E7E42845CE8BC92AA3AD8D3E58E89E2C03D5E728D5E3F7A9C",
+      "size": 16323
+    },
+    {
+      "path": "orchestrator/src/palwakf_orchestrator/auth.py",
+      "sha256": "5D01D59D157B0AE61E33BDD52130AD3AB43CC5AEA7485B49EFB820114EF51874",
+      "size": 4927
+    },
+    {
+      "path": "orchestrator/src/palwakf_orchestrator/capability_router.py",
+      "sha256": "FEFA1AF26E50F2BAD85BD2B6EAE7409C48E108F2D5306D75A74545103C28BE8F",
+      "size": 12923
+    },
+    {
+      "path": "orchestrator/src/palwakf_orchestrator/config.py",
+      "sha256": "FFE698A895F44BE915047BEF10B7231ECD534FCF94C57CF00AB91238B5D47AA6",
+      "size": 2891
+    },
+    {
+      "path": "orchestrator/src/palwakf_orchestrator/connected_contracts.py",
+      "sha256": "67C3A966BA5E31012C88A478BA2D727B24ACD588B176CAE3E9BF574B7879BF67",
+      "size": 4469
+    },
+    {
+      "path": "orchestrator/src/palwakf_orchestrator/connected_service.py",
+      "sha256": "12869E4D7EF9D1DFA3D91D3CCD77565D699F57D87298034E0D2E7175FC6257D7",
+      "size": 14781
+    },
+    {
+      "path": "orchestrator/src/palwakf_orchestrator/contracts.py",
+      "sha256": "AF3611DAC3457300754E49CF976983117861FA297C27E94987A6981DB4BD61B3",
+      "size": 2328
+    },
+    {
+      "path": "orchestrator/src/palwakf_orchestrator/credentials.py",
+      "sha256": "79159FE6367B71281D915B8312A8229B48EAA9EBCFAFD805B7D0BC979FC831F5",
+      "size": 999
+    },
+    {
+      "path": "orchestrator/src/palwakf_orchestrator/errors.py",
+      "sha256": "098E917EC5E08C39E6F451C6A7A76983E41680DE6B951B1A1A3CB5487F6141D8",
+      "size": 293
+    },
+    {
+      "path": "orchestrator/src/palwakf_orchestrator/gateways.py",
+      "sha256": "644E29259FD40D94678C2D54C00CF96ED1C45A7EF012E6FB7E7E5BE6F1BF7836",
+      "size": 4599
+    },
+    {
+      "path": "orchestrator/src/palwakf_orchestrator/governance.py",
+      "sha256": "853B411B8A11EB24188D431919AAD4EDE4B8B5BB8335CFC2DD31EE97A054C59A",
+      "size": 2803
+    },
+    {
+      "path": "orchestrator/src/palwakf_orchestrator/main.py",
+      "sha256": "75D4E230CF0CE0807184BB13F7E7797D9C9CA8DBCBAF6CBF3A70D12FF7053DFB",
+      "size": 1482
+    },
+    {
+      "path": "orchestrator/src/palwakf_orchestrator/mcp_server.py",
+      "sha256": "DE86613C2FC9EB3C5AD2B6C429F85D25FCDA8485E9258CC58E7B62C11FA03242",
+      "size": 4553
+    },
+    {
+      "path": "orchestrator/src/palwakf_orchestrator/operator_contracts.py",
+      "sha256": "B91064C4C937D27F4B407B4E3F7F4B5FD1140AD03F6D888F0CCB9EC72547EAFA",
+      "size": 7876
+    },
+    {
+      "path": "orchestrator/src/palwakf_orchestrator/operator_service.py",
+      "sha256": "4A1F1A8240660E135D172C3392441F2E733ABA187FAF7C239F470ACD05C5AB88",
+      "size": 25385
+    },
+    {
+      "path": "orchestrator/src/palwakf_orchestrator/persistence.py",
+      "sha256": "3F43822DC5F272FB42DB9E013773766C6F80365986BBEC92B8B6EEAD9C229A2B",
+      "size": 6478
+    },
+    {
+      "path": "orchestrator/src/palwakf_orchestrator/planner.py",
+      "sha256": "CF12AE87A398713AD2664CB53386CB013A4E7029D72164B13F08DE9D07A1D2AA",
+      "size": 2320
+    },
+    {
+      "path": "orchestrator/src/palwakf_orchestrator/safe_logging.py",
+      "sha256": "276B22036F766045CBA530F5EB1A80D5A13400E625811B067D58DC86EE96FE4E",
+      "size": 1288
+    },
+    {
+      "path": "orchestrator/src/palwakf_orchestrator/service.py",
+      "sha256": "686826E326BF3297AA055BC609F921F76ED6BE33305C239B188ED7E10715D4F5",
+      "size": 3312
+    },
+    {
+      "path": "orchestrator/src/palwakf_orchestrator/tool_health.py",
+      "sha256": "D9BA6FBD8805E2E1BC2BA0A6AEE33A88466E7919FC86AE18CAC07062C72D3272",
+      "size": 6689
+    },
+    {
+      "path": "orchestrator/tests/__init__.py",
+      "sha256": "5A3C50AD3016154C21E7E96C12F3871559974FFF95BE2C07AC5F1EF40FAF64E0",
+      "size": 26
+    },
+    {
+      "path": "orchestrator/tests/test_capability_router.py",
+      "sha256": "F5862257852CB6D54CE384E81BF1554328B63C17CCAA395EA696F1B69E55EF2F",
+      "size": 6018
+    },
+    {
+      "path": "orchestrator/tests/test_connected_security.py",
+      "sha256": "4B95EFF2A83388930AF806463F67E09389F3DB6E8FDA3591556A1363A50910E1",
+      "size": 2059
+    },
+    {
+      "path": "orchestrator/tests/test_connected_service.py",
+      "sha256": "3EAD8AACC369EE1A0325B5A677D5A6DEB26416F1E2F70FC23124901D5E94F99E",
+      "size": 7224
+    },
+    {
+      "path": "orchestrator/tests/test_contracts.py",
+      "sha256": "98B70FE2D5FC00996011C2FFB4A74E2A23C7461BB122B8F97821B883450532E4",
+      "size": 1270
+    },
+    {
+      "path": "orchestrator/tests/test_governance.py",
+      "sha256": "DDDE46D997BD148182CD54D2FBD9A036A71729960884435478055C9CF721B38C",
+      "size": 2252
+    },
+    {
+      "path": "orchestrator/tests/test_operator_service.py",
+      "sha256": "7C7832573B42704D0BC4E311D1B534E04502BC0383FA820D79D6241105139257",
+      "size": 7784
+    },
+    {
+      "path": "orchestrator/tests/test_planner.py",
+      "sha256": "1FB7132D53BC37311D373D4B285F11A92FE605FB02F9F7D4B183042D0878F039",
+      "size": 1913
+    },
+    {
+      "path": "orchestrator/tests/test_service.py",
+      "sha256": "F4C1D17CA4849E78BEF0802D96EDEAF36DC7EFC3409E3E47DC52B972D2707468",
+      "size": 7426
+    },
+    {
+      "path": "pubspec.lock",
+      "sha256": "9FF7C19301B48B7599AB5A6CDFBBF43283A66F1CF2A397F8C09A8A669CCB8199",
+      "size": 8347
+    },
+    {
+      "path": "pubspec.yaml",
+      "sha256": "D352B204E6BD69D31163CA09CEC3616A9FCAF7158486D438DC8F753475A0AA2F",
+      "size": 496
+    },
+    {
+      "path": "schemas/control_plane_foundation.schema.json",
+      "sha256": "1234D334B2C1E1EC9B656EB51B8BC38F2D99FFD35B0D310558032421A00CBF80",
+      "size": 5686
+    },
+    {
+      "path": "schemas/self_hosting_checkpoint_v1.schema.json",
+      "sha256": "532239B697F3D2C0E22EC8E8FAEC41E74D845FEAB9FA065F2DC53BF35E9C0E52",
+      "size": 1542
+    },
+    {
+      "path": "scripts/orchestrator_runtime_env.ps1",
+      "sha256": "C92659B333008FED282F1EE9AB73CC587F3A44ABCE773FAC77C969806185868A",
+      "size": 790
+    },
+    {
+      "path": "scripts/secret_scan.py",
+      "sha256": "653A4A052CE066EADD036F248677E2E30C864EB3361E2210089235B046722DDE",
+      "size": 1863
+    },
+    {
+      "path": "scripts/smoke_connected_service.ps1",
+      "sha256": "C8182CCD3BE7F53A3B9D941704024AC702C65C0BE9033F2EB43594D2B4EF2F30",
+      "size": 447
+    },
+    {
+      "path": "scripts/start_orchestrator.ps1",
+      "sha256": "A6543C385330AA22B108145B3E4FDE5015DB95DE661C82EDB53F9953649B4986",
+      "size": 1044
+    },
+    {
+      "path": "scripts/test_orchestrator.ps1",
+      "sha256": "DDFCE205A30FD71930E15F600E577694DE039D00A8D62F9DE554E6B0D15B5E2D",
+      "size": 1563
+    },
+    {
+      "path": "scripts/update_manifest.py",
+      "sha256": "8597AEF0F49C99E0BAC105C4C1F9BD64BF2391086C0C517DCF628FE015C2897F",
+      "size": 1422
+    },
+    {
+      "path": "scripts/vercel_build.sh",
+      "sha256": "BF513DA0E67C384782B3FB49169BBB36891A9E1FE61DA0D5349DD498E96B9E02",
+      "size": 832
+    },
+    {
+      "path": "test/governance_contract_test.dart",
+      "sha256": "9F342E4B5B579FB81CD9389A9D7A462D211DEA10F80B1007EE4BBA1832E4E763",
+      "size": 1181
+    },
+    {
+      "path": "test/orchestrator_api_client_test.dart",
+      "sha256": "7C114F6EE0C7288796B607A2D03F8C11E2E065846BD4053C0AC61209ADF24519",
+      "size": 2391
+    },
+    {
+      "path": "test/orchestrator_models_test.dart",
+      "sha256": "755AB07958C5B05EA3154F8EF2230EDFAD4478470C8828D96C9F7387E55B16E3",
+      "size": 2607
+    },
+    {
+      "path": "test/orchestrator_workspace_test.dart",
+      "sha256": "D55A4D561DA3AE43A2A68234720753EB9B76607EF2414B4E5CE7F72C3CC83A2F",
+      "size": 5336
+    },
+    {
+      "path": "test/resume_engine_test.dart",
+      "sha256": "80D4D27E32167CF658476897473236AEB003DD9ED2E58F8DEB55CFFB6A2A4370",
+      "size": 3407
+    },
+    {
+      "path": "vercel.json",
+      "sha256": "EDD2CF44BE19C54FEC64E65AE795E2A33BC0550BC98702DA432E1C12FEA9D6E1",
+      "size": 186
+    },
+    {
+      "path": "web/index.html",
+      "sha256": "DF686EFB230141CF29049CDED56813365C626853F4B3B7CDA463F0B719994B12",
+      "size": 530
+    },
+    {
+      "path": "web/manifest.json",
+      "sha256": "84AE855FCE8ED536F2CA7220499ADEF944586E5B3BE535C1479F251F11178481",
+      "size": 340
+    }
+  ]
 }

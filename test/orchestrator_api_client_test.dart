@@ -49,4 +49,23 @@ void main() {
     expect(captured.headers.keys, isNot(contains('x-api-key')));
     expect(captured.body, isEmpty);
   });
+
+  test('client sends only the configured service bearer token', () async {
+    late http.Request captured;
+    final client = MockClient((request) async {
+      captured = request;
+      return http.Response('[]', 200);
+    });
+    final api = HttpOrchestratorApiClient(
+      client: client,
+      baseUrl: 'http://127.0.0.1:8421',
+      bearerToken: 'operator-session-token',
+    );
+
+    await api.toolsHealth();
+
+    expect(captured.headers['authorization'], 'Bearer operator-session-token');
+    expect(captured.headers.keys, isNot(contains('x-api-key')));
+    expect(captured.body, isEmpty);
+  });
 }

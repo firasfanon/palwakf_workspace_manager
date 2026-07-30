@@ -9,6 +9,7 @@ import uvicorn
 from palwakf_orchestrator.api import create_app
 from palwakf_orchestrator.config import get_settings
 from palwakf_orchestrator.credentials import probe_openai_api_key, require_openai_api_key
+from palwakf_orchestrator.safe_logging import configure_safe_logging
 from palwakf_orchestrator.service import OrchestratorService
 
 
@@ -25,6 +26,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    configure_safe_logging()
     args = build_parser().parse_args()
     if args.command == "credential-probe":
         print(json.dumps(probe_openai_api_key().as_safe_dict(), sort_keys=True))
@@ -37,7 +39,7 @@ def main() -> None:
         print(json.dumps(service.health().model_dump(mode="json"), sort_keys=True))
         return
 
-    settings.assert_local_only()
+    settings.assert_safe_binding()
     port = int(os.environ.get("PORT", settings.port))
     uvicorn.run(
         create_app(settings, service),

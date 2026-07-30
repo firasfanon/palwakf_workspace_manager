@@ -5,6 +5,7 @@ void main() {
   test('parses every orchestrator task state', () {
     const values = <String>[
       'pending',
+      'queued',
       'running',
       'awaiting_approval',
       'failed',
@@ -20,6 +21,22 @@ void main() {
       expect(status.wireValue, value);
       expect(status.arabicLabel, isNotEmpty);
     }
+  });
+
+  test('health facts preserve unknown provider values and provenance', () {
+    final fact = HealthFact.fromJson(
+      <String, dynamic>{
+        'value': null,
+        'provenance': 'NOT_EXPOSED_BY_PROVIDER',
+        'observed_at': null,
+        'unit': null,
+        'note': 'Provider does not expose a verified value',
+      },
+    );
+
+    expect(fact.value, isNull);
+    expect(fact.displayValue, 'غير متاح من المزود');
+    expect(fact.provenance, 'NOT_EXPOSED_BY_PROVIDER');
   });
 
   test('task draft rejects missing governed fields', () {

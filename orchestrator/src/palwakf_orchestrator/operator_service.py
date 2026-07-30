@@ -34,6 +34,7 @@ from palwakf_orchestrator.operator_contracts import (
     ToolReconciliation,
     VerificationRequest,
 )
+from palwakf_orchestrator.persistence import MemoryStateStore, StateStore
 from palwakf_orchestrator.service import OrchestratorService
 
 SECRET_PATTERN = re.compile(
@@ -93,6 +94,7 @@ class OperatorService:
         verifier: RepositoryVerifier | None = None,
         registry: CapabilityRegistry | None = None,
         automatic_agents_available: bool = False,
+        state_store: StateStore | None = None,
     ) -> None:
         self._workspace = workspace.resolve()
         self._orchestrator = orchestrator
@@ -100,11 +102,13 @@ class OperatorService:
         self._registry = registry or CapabilityRegistry()
         self._router = CapabilityRouter(self._registry)
         self._automatic_agents_available = automatic_agents_available
+        self._state_store = state_store or MemoryStateStore()
         self._tasks: dict[str, OperatorTaskRecord] = {}
         self._idempotency_tasks: dict[str, str] = {}
         self._manual_packages: dict[str, ManualDispatchPackage] = {}
         self._tool_plans: dict[str, ToolPlanResponse] = {}
         self._invocations: dict[str, list[ToolInvocationReceipt]] = {}
+        self._restore()
 
     def capabilities(self) -> RuntimeCapabilities:
         return RuntimeCapabilities(
@@ -154,6 +158,7 @@ class OperatorService:
         )
         self._tasks[request.task_id] = record
         self._idempotency_tasks[request.idempotency_key] = request.task_id
+        self._persist()
         return record
 
     def list_tasks(self) -> list[OperatorTaskRecord]:
@@ -168,6 +173,82 @@ class OperatorService:
             return self._tasks[task_id]
         except KeyError as exc:
             raise GovernanceError(f"unknown task: {task_id}") from exc
+
+    def bind_client(
+        self,
+        task_id: str,
+        *,
+        client_id: str,
+        correlation_id: str,
+        execution_host_id: str,
+        tool_executor_id: str,
+    ) -> OperatorTaskRecord:
+        task = self.get_task(task_id)
+        if task.execution_host_id and task.execution_host_id != execution_host_id:
+            raise GovernanceError(
+                "cross-host resume rejected: explicit migration handshake is required"
+            )
+        if task.tool_executor_id and task.tool_executor_id != tool_executor_id:
+            raise GovernanceError(
+                "cross-executor resume rejected: explicit migration handshake is required"
+            )
+        task.client_id = client_id
+        task.correlation_id = correlation_id
+        task.execution_host_id = execution_host_id
+        task.tool_executor_id = tool_executor_id
+        self._persist()
+        return task
+
+    def queue_task(self, task_id: str) -> OperatorTaskRecord:
+        task = self.get_task(task_id)
+        if task.status == OperatorTaskStatus.queued:
+            return task
+        task.queued_at = datetime.now(UTC)
+        return self._transition(
+            task,
+            OperatorTaskStatus.queued,
+            "TASK_QUEUED",
+            "Task accepted into the bounded dispatch queue",
+            blocker=None,
+        )
+
+    def start_task(self, task_id: str) -> OperatorTaskRecord:
+        task = self.get_task(task_id)
+        task.started_at = datetime.now(UTC)
+        if task.queued_at:
+            task.dispatch_latency_ms = int(
+                (task.started_at - task.queued_at).total_seconds() * 1000
+            )
+        return self._transition(
+            task,
+            OperatorTaskStatus.running,
+            "TASK_EXECUTION_STARTED",
+            "A bounded worker started task execution",
+            blocker=None,
+        )
+
+    def recover_interrupted_tasks(self) -> list[str]:
+        recovered: list[str] = []
+        for task in self._tasks.values():
+            if task.status in {OperatorTaskStatus.queued, OperatorTaskStatus.running}:
+                task.status = OperatorTaskStatus.failed
+                task.blocker = "SERVICE_RESTART_INTERRUPTED_EXECUTION"
+                task.updated_at = datetime.now(UTC)
+                task.last_event = "TASK_RECOVERED_AFTER_RESTART"
+                task.events.append(
+                    TaskEvent(
+                        event_type=task.last_event,
+                        status=task.status,
+                        message="Interrupted task recovered without duplicate execution",
+                        occurred_at=task.updated_at,
+                        correlation_id=task.correlation_id,
+                        client_id=task.client_id,
+                    )
+                )
+                recovered.append(task.task_id)
+        if recovered:
+            self._persist()
+        return recovered
 
     async def dispatch_task(self, task_id: str) -> OperatorTaskRecord:
         task = self.get_task(task_id)
@@ -246,6 +327,22 @@ class OperatorService:
             blocker=None,
         )
 
+    def fail_task(
+        self,
+        task_id: str,
+        code: str,
+        *,
+        timed_out: bool = False,
+    ) -> OperatorTaskRecord:
+        task = self.get_task(task_id)
+        return self._transition(
+            task,
+            OperatorTaskStatus.timed_out if timed_out else OperatorTaskStatus.failed,
+            "TASK_TIMED_OUT" if timed_out else "TASK_EXECUTION_FAILED",
+            code,
+            blocker=code,
+        )
+
     def verify_task(
         self,
         task_id: str,
@@ -260,13 +357,20 @@ class OperatorService:
             raise GovernanceError("independent CI verification has not succeeded")
         self._assert_secret_free(request.model_dump(mode="json"))
         task.verification_receipt = request.verification_receipt
-        return self._transition(
+        execution_completed_at = task.completed_at
+        verified = self._transition(
             task,
             OperatorTaskStatus.verified,
             "TASK_INDEPENDENTLY_VERIFIED",
             "Independent verification receipt persisted",
             blocker=None,
         )
+        if execution_completed_at:
+            verified.verification_duration_ms = int(
+                (verified.updated_at - execution_completed_at).total_seconds() * 1000
+            )
+            self._persist()
+        return verified
 
     def generate_manual_package(self, task_id: str) -> ManualDispatchPackage:
         task = self.get_task(task_id)
@@ -493,9 +597,60 @@ class OperatorService:
                 status=status,
                 message=message,
                 occurred_at=now,
+                correlation_id=task.correlation_id,
+                client_id=task.client_id,
             )
         )
+        if status in {
+            OperatorTaskStatus.failed,
+            OperatorTaskStatus.pending_verification,
+            OperatorTaskStatus.verified,
+            OperatorTaskStatus.cancelled,
+            OperatorTaskStatus.timed_out,
+        }:
+            task.completed_at = now
+            if task.started_at:
+                task.executor_duration_ms = int((now - task.started_at).total_seconds() * 1000)
+        self._persist()
         return task
+
+    def _restore(self) -> None:
+        state = self._state_store.load().get("operator", {})
+        self._tasks = {
+            task_id: OperatorTaskRecord.model_validate(value)
+            for task_id, value in state.get("tasks", {}).items()
+        }
+        self._idempotency_tasks = dict(state.get("idempotency_tasks", {}))
+        self._manual_packages = {
+            key: ManualDispatchPackage.model_validate(value)
+            for key, value in state.get("manual_packages", {}).items()
+        }
+        self._tool_plans = {
+            task_id: ToolPlanResponse.model_validate(value)
+            for task_id, value in state.get("tool_plans", {}).items()
+        }
+        self._invocations = {
+            task_id: [ToolInvocationReceipt.model_validate(item) for item in values]
+            for task_id, values in state.get("invocations", {}).items()
+        }
+
+    def _persist(self) -> None:
+        state = self._state_store.load()
+        state["operator"] = {
+            "tasks": {key: value.model_dump(mode="json") for key, value in self._tasks.items()},
+            "idempotency_tasks": self._idempotency_tasks,
+            "manual_packages": {
+                key: value.model_dump(mode="json") for key, value in self._manual_packages.items()
+            },
+            "tool_plans": {
+                key: value.model_dump(mode="json") for key, value in self._tool_plans.items()
+            },
+            "invocations": {
+                key: [item.model_dump(mode="json") for item in values]
+                for key, values in self._invocations.items()
+            },
+        }
+        self._state_store.save(state)
 
     @staticmethod
     def _assert_secret_free(value: object) -> None:

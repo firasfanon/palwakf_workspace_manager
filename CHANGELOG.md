@@ -33,6 +33,19 @@
   persisted selection reasons, invocation receipts, and reconciliation.
 - Deterministic runtime capabilities endpoint and operator capability card.
 - Self-hosting checkpoint schema and machine-readable operational evidence.
+- Authenticated durable connected Orchestrator with SQLite restart recovery,
+  bounded workers, rate limits, cancellation, audit events, and one active
+  repository writer.
+- HTTP and Streamable HTTP MCP parity for dispatch, status, continue, cancel,
+  verify, and recent-task listing.
+- Local SHA-256 bearer registry and remote OAuth JWT/JWKS verification with
+  separate client identity and authority scopes.
+- Persisted Codex execution-host and tool-executor binding with incompatible
+  cross-host resume rejection.
+- Arabic RTL Tool Operational Health dashboard and detail routes with explicit
+  fact provenance, freshness, alerts, and no invented provider values.
+- Deterministic authenticated HTTP/MCP fake-executor smoke and repository
+  secret scanner in CI.
 
 ### Boundaries
 

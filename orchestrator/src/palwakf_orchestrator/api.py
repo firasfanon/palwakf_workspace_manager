@@ -1,11 +1,32 @@
 from __future__ import annotations
 
+import os
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, Response
+from starlette.middleware.base import RequestResponseEndpoint
 
+from palwakf_orchestrator.auth import AuthRegistry, BoundedRateLimiter, JwtAuthConfig
 from palwakf_orchestrator.config import Settings, get_settings
-from palwakf_orchestrator.contracts import DispatchRequest, DispatchResponse, HealthResponse
-from palwakf_orchestrator.errors import GatewayError, GovernanceError
+from palwakf_orchestrator.connected_contracts import (
+    ConnectedDispatchRequest,
+    ConnectedTaskReceipt,
+    ContinueTaskRequest,
+    OperationalMetrics,
+    QueueSnapshot,
+    ServiceReadiness,
+    ServiceScope,
+    ToolHealthAlert,
+    ToolOperationalHealth,
+    ToolProbeRequest,
+    VerifyCommand,
+)
+from palwakf_orchestrator.connected_service import ConnectedApplicationService
+from palwakf_orchestrator.errors import GovernanceError
+from palwakf_orchestrator.mcp_server import create_mcp_server
 from palwakf_orchestrator.operator_contracts import (
     CreateOperatorTaskRequest,
     ManualAcknowledgementRequest,
@@ -22,6 +43,7 @@ from palwakf_orchestrator.operator_contracts import (
     VerificationRequest,
 )
 from palwakf_orchestrator.operator_service import OperatorService
+from palwakf_orchestrator.persistence import SQLiteStateStore, StateStore
 from palwakf_orchestrator.service import OrchestratorService
 
 
@@ -29,188 +51,385 @@ def create_app(
     settings: Settings | None = None,
     service: OrchestratorService | None = None,
     operator_service: OperatorService | None = None,
+    *,
+    state_store: StateStore | None = None,
+    auth_registry: AuthRegistry | None = None,
+    connected_service: ConnectedApplicationService | None = None,
 ) -> FastAPI:
     resolved_settings = settings or get_settings()
+    resolved_settings.assert_safe_binding()
     resolved_service = service or OrchestratorService(resolved_settings)
+    resolved_store = state_store or SQLiteStateStore(resolved_settings.resolved_state_db_path)
+    jwt_config = (
+        JwtAuthConfig(
+            issuer=resolved_settings.oauth_authorization_server,
+            audience=resolved_settings.oauth_audience,
+            jwks_url=resolved_settings.oauth_jwks_url,
+        )
+        if resolved_settings.oauth_authorization_server
+        and resolved_settings.oauth_audience
+        and resolved_settings.oauth_jwks_url
+        else None
+    )
+    resolved_auth = auth_registry or AuthRegistry.from_json(
+        resolved_settings.auth_clients_json,
+        jwt_config=jwt_config,
+    )
     resolved_operator = operator_service or OperatorService(
         resolved_settings.workspace_root,
         orchestrator=resolved_service,
+        automatic_agents_available=bool(os.environ.get("OPENAI_API_KEY")),
+        state_store=resolved_store,
     )
+    connected = connected_service or ConnectedApplicationService(
+        resolved_settings,
+        resolved_operator,
+        resolved_store,
+        authentication_configured=resolved_auth.configured,
+    )
+    limiter = BoundedRateLimiter(resolved_settings.requests_per_minute)
+    mcp_http_app = create_mcp_server(
+        connected,
+        resolved_auth,
+    ).streamable_http_app()
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        await connected.start()
+        try:
+            async with mcp_http_app.router.lifespan_context(mcp_http_app):
+                yield
+        finally:
+            await connected.stop()
+
     app = FastAPI(
-        title="PalWakf Sovereign Orchestrator",
-        version="0.1.0",
+        title="PalWakf Connected Sovereign Orchestrator",
+        version="1.0.0",
         docs_url=None,
         redoc_url=None,
+        lifespan=lifespan,
     )
+    app.state.connected_service = connected
     app.add_middleware(
         CORSMiddleware,
         allow_origin_regex=r"^https?://(127\.0\.0\.1|localhost)(:\d+)?$",
         allow_credentials=False,
         allow_methods=["GET", "POST", "OPTIONS"],
-        allow_headers=["Accept", "Content-Type"],
+        allow_headers=["Accept", "Authorization", "Content-Type", "X-Correlation-ID"],
     )
 
-    @app.get("/health", response_model=HealthResponse)
-    async def health() -> HealthResponse:
-        return resolved_service.health()
+    @app.middleware("http")
+    async def authenticate(
+        request: Request,
+        call_next: RequestResponseEndpoint,
+    ) -> Response:
+        if request.url.path.startswith("/mcp"):
+            return await call_next(request)
+        if request.method == "OPTIONS":
+            return await call_next(request)
+        scope = _scope_for(request)
+        try:
+            principal = resolved_auth.require(request, scope)
+            limiter.require(principal.client_id)
+        except HTTPException as exc:
+            return JSONResponse(
+                status_code=exc.status_code,
+                content={"detail": exc.detail},
+                headers=exc.headers,
+            )
+        request.state.principal = principal
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
+    @app.get("/health", response_model=ServiceReadiness)
+    async def health() -> ServiceReadiness:
+        return connected.readiness()
+
+    @app.get("/ready", response_model=ServiceReadiness)
+    async def ready() -> ServiceReadiness:
+        readiness = connected.readiness()
+        if not readiness.ready:
+            raise HTTPException(status_code=503, detail=readiness.model_dump(mode="json"))
+        return readiness
+
+    @app.get("/v1/metrics", response_model=OperationalMetrics)
+    async def metrics() -> OperationalMetrics:
+        return connected.metrics()
+
+    @app.get("/v1/queue", response_model=QueueSnapshot)
+    async def queue() -> QueueSnapshot:
+        return connected.queue_snapshot()
+
+    @app.post("/v1/connected/tasks/dispatch", response_model=ConnectedTaskReceipt)
+    async def connected_dispatch(
+        command: ConnectedDispatchRequest,
+        request: Request,
+    ) -> ConnectedTaskReceipt:
+        try:
+            return await connected.dispatch(
+                command,
+                request.state.principal,
+                transport="http",
+                correlation_id=request.headers.get("X-Correlation-ID"),
+            )
+        except GovernanceError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    @app.post(
+        "/v1/connected/tasks/{task_id}/continue",
+        response_model=ConnectedTaskReceipt,
+    )
+    async def connected_continue(
+        task_id: str,
+        command: ContinueTaskRequest,
+        request: Request,
+    ) -> ConnectedTaskReceipt:
+        try:
+            return await connected.continue_task(
+                task_id, command, request.state.principal, transport="http"
+            )
+        except GovernanceError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    @app.get(
+        "/v1/connected/tasks/{task_id}/status",
+        response_model=ConnectedTaskReceipt,
+    )
+    async def connected_status(task_id: str, request: Request) -> ConnectedTaskReceipt:
+        try:
+            return connected.status(task_id, request.state.principal, transport="http")
+        except GovernanceError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    @app.post(
+        "/v1/connected/tasks/{task_id}/cancel",
+        response_model=ConnectedTaskReceipt,
+    )
+    async def connected_cancel(task_id: str, request: Request) -> ConnectedTaskReceipt:
+        try:
+            return connected.cancel(task_id, request.state.principal, transport="http")
+        except GovernanceError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    @app.post(
+        "/v1/connected/tasks/{task_id}/verify",
+        response_model=ConnectedTaskReceipt,
+    )
+    async def connected_verify(
+        task_id: str,
+        command: VerifyCommand,
+        request: Request,
+    ) -> ConnectedTaskReceipt:
+        try:
+            return connected.verify(task_id, command, request.state.principal, transport="http")
+        except GovernanceError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    @app.get("/v1/tools/health", response_model=list[ToolOperationalHealth])
+    async def tools_health() -> list[ToolOperationalHealth]:
+        return connected.tool_health.list_health()
+
+    @app.get(
+        "/v1/tools/{adapter_id}/health",
+        response_model=ToolOperationalHealth,
+    )
+    async def tool_health(adapter_id: str) -> ToolOperationalHealth:
+        try:
+            return connected.tool_health.get(adapter_id)
+        except GovernanceError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    @app.get("/v1/tools/alerts", response_model=list[ToolHealthAlert])
+    async def tool_alerts() -> list[ToolHealthAlert]:
+        return connected.tool_health.alerts()
+
+    @app.post(
+        "/v1/tools/{adapter_id}/probe",
+        response_model=ToolOperationalHealth,
+    )
+    async def probe_tool(
+        adapter_id: str,
+        _: ToolProbeRequest,
+    ) -> ToolOperationalHealth:
+        try:
+            return connected.tool_health.probe(adapter_id)
+        except GovernanceError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    _add_legacy_routes(app, resolved_operator, connected)
+    app.mount("/mcp", mcp_http_app, name="mcp")
+    return app
+
+
+def _scope_for(request: Request) -> ServiceScope:
+    path = request.url.path
+    if request.method in {"GET", "HEAD", "OPTIONS"}:
+        return ServiceScope.read
+    if path.endswith("/continue"):
+        return ServiceScope.continue_task
+    if path.endswith("/cancel"):
+        return ServiceScope.cancel
+    if path.endswith("/verify"):
+        return ServiceScope.verify
+    if path.endswith("/probe"):
+        return ServiceScope.probe
+    return ServiceScope.dispatch
+
+
+def _add_legacy_routes(
+    app: FastAPI,
+    operator: OperatorService,
+    connected: ConnectedApplicationService,
+) -> None:
+    def conflict(exc: GovernanceError) -> HTTPException:
+        return HTTPException(status_code=409, detail=str(exc))
 
     @app.get("/v1/capabilities", response_model=RuntimeCapabilities)
     async def capabilities() -> RuntimeCapabilities:
-        return resolved_operator.capabilities()
+        return operator.capabilities()
 
     @app.get("/v1/capability-registry")
     async def capability_registry() -> dict[str, object]:
-        return resolved_operator.registry_snapshot()
+        return operator.registry_snapshot()
 
     @app.get("/v1/projects/{project_id}/tool-profile")
     async def project_tool_profile(project_id: str) -> ProjectCapabilityProfile:
         try:
-            return resolved_operator.project_profile(project_id)
+            return operator.project_profile(project_id)
         except GovernanceError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
 
     @app.post("/v1/tasks", response_model=OperatorTaskRecord)
-    async def create_task(request: CreateOperatorTaskRequest) -> OperatorTaskRecord:
+    async def create_task(command: CreateOperatorTaskRequest) -> OperatorTaskRecord:
         try:
-            return resolved_operator.create_task(request)
+            return operator.create_task(command)
         except GovernanceError as exc:
-            raise HTTPException(status_code=409, detail=str(exc)) from exc
+            raise conflict(exc) from exc
 
     @app.get("/v1/tasks", response_model=list[OperatorTaskRecord])
     async def list_tasks() -> list[OperatorTaskRecord]:
-        return resolved_operator.list_tasks()
+        return operator.list_tasks()
 
     @app.get("/v1/tasks/{task_id}", response_model=OperatorTaskRecord)
     async def task_status(task_id: str) -> OperatorTaskRecord:
         try:
-            return resolved_operator.get_task(task_id)
+            return operator.get_task(task_id)
         except GovernanceError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
 
     @app.post("/v1/tasks/{task_id}/dispatch", response_model=OperatorTaskRecord)
-    async def dispatch_task(task_id: str) -> OperatorTaskRecord:
+    async def dispatch_task(task_id: str, request: Request) -> OperatorTaskRecord:
         try:
-            return await resolved_operator.dispatch_task(task_id)
+            receipt = await connected.dispatch_existing(
+                task_id,
+                request.state.principal,
+                transport="http",
+                correlation_id=request.headers.get("X-Correlation-ID"),
+            )
+            return receipt.task
         except GovernanceError as exc:
-            raise HTTPException(status_code=409, detail=str(exc)) from exc
+            raise conflict(exc) from exc
 
     @app.post("/v1/tasks/{task_id}/continue", response_model=OperatorTaskRecord)
-    async def continue_task(task_id: str) -> OperatorTaskRecord:
+    async def continue_task(task_id: str, request: Request) -> OperatorTaskRecord:
         try:
-            return resolved_operator.continue_task(task_id)
+            receipt = await connected.continue_task(
+                task_id,
+                ContinueTaskRequest(
+                    execution_host_id=connected.settings.execution_host_id,
+                    tool_executor_id=connected.settings.tool_executor_id,
+                ),
+                request.state.principal,
+                transport="http",
+            )
+            return receipt.task
         except GovernanceError as exc:
-            raise HTTPException(status_code=409, detail=str(exc)) from exc
+            raise conflict(exc) from exc
 
     @app.post("/v1/tasks/{task_id}/cancel", response_model=OperatorTaskRecord)
-    async def cancel_task(task_id: str) -> OperatorTaskRecord:
+    async def cancel_task(task_id: str, request: Request) -> OperatorTaskRecord:
         try:
-            return resolved_operator.cancel_task(task_id)
+            return connected.cancel(
+                task_id,
+                request.state.principal,
+                transport="http",
+            ).task
         except GovernanceError as exc:
-            raise HTTPException(status_code=409, detail=str(exc)) from exc
+            raise conflict(exc) from exc
 
     @app.post("/v1/tasks/{task_id}/verify", response_model=OperatorTaskRecord)
     async def verify_task(
         task_id: str,
-        request: VerificationRequest,
+        command: VerificationRequest,
+        request: Request,
     ) -> OperatorTaskRecord:
         try:
-            return resolved_operator.verify_task(task_id, request)
+            return connected.verify(
+                task_id,
+                VerifyCommand(
+                    request=command,
+                    execution_host_id=connected.settings.execution_host_id,
+                    tool_executor_id=connected.settings.tool_executor_id,
+                ),
+                request.state.principal,
+                transport="http",
+            ).task
         except GovernanceError as exc:
-            raise HTTPException(status_code=409, detail=str(exc)) from exc
+            raise conflict(exc) from exc
 
-    @app.post(
-        "/v1/tasks/{task_id}/manual-package",
-        response_model=ManualDispatchPackage,
-    )
+    @app.post("/v1/tasks/{task_id}/manual-package", response_model=ManualDispatchPackage)
     async def manual_package(task_id: str) -> ManualDispatchPackage:
         try:
-            return resolved_operator.generate_manual_package(task_id)
+            return operator.generate_manual_package(task_id)
         except GovernanceError as exc:
-            raise HTTPException(status_code=409, detail=str(exc)) from exc
+            raise conflict(exc) from exc
 
-    @app.post(
-        "/v1/tasks/{task_id}/manual-dispatched",
-        response_model=OperatorTaskRecord,
-    )
+    @app.post("/v1/tasks/{task_id}/manual-dispatched", response_model=OperatorTaskRecord)
     async def manual_dispatched(
-        task_id: str,
-        request: ManualDispatchMarkRequest,
+        task_id: str, command: ManualDispatchMarkRequest
     ) -> OperatorTaskRecord:
         try:
-            return resolved_operator.mark_manual_dispatched(task_id, request)
+            return operator.mark_manual_dispatched(task_id, command)
         except GovernanceError as exc:
-            raise HTTPException(status_code=409, detail=str(exc)) from exc
+            raise conflict(exc) from exc
 
     @app.post("/v1/tasks/{task_id}/manual-ack", response_model=OperatorTaskRecord)
-    async def manual_ack(
-        task_id: str,
-        request: ManualAcknowledgementRequest,
-    ) -> OperatorTaskRecord:
+    async def manual_ack(task_id: str, command: ManualAcknowledgementRequest) -> OperatorTaskRecord:
         try:
-            return resolved_operator.record_manual_ack(task_id, request)
+            return operator.record_manual_ack(task_id, command)
         except GovernanceError as exc:
-            raise HTTPException(status_code=409, detail=str(exc)) from exc
+            raise conflict(exc) from exc
 
     @app.post("/v1/tasks/{task_id}/manual-result", response_model=OperatorTaskRecord)
-    async def manual_result(
-        task_id: str,
-        request: ManualResultRequest,
-    ) -> OperatorTaskRecord:
+    async def manual_result(task_id: str, command: ManualResultRequest) -> OperatorTaskRecord:
         try:
-            return resolved_operator.import_manual_result(task_id, request)
+            return operator.import_manual_result(task_id, command)
         except GovernanceError as exc:
-            raise HTTPException(status_code=409, detail=str(exc)) from exc
+            raise conflict(exc) from exc
 
     @app.post("/v1/tasks/{task_id}/tool-plan", response_model=ToolPlanResponse)
-    async def tool_plan(
-        task_id: str,
-        request: TaskCapabilityRequest,
-    ) -> ToolPlanResponse:
+    async def tool_plan(task_id: str, command: TaskCapabilityRequest) -> ToolPlanResponse:
         try:
-            return resolved_operator.plan_tools(task_id, request)
+            return operator.plan_tools(task_id, command)
         except GovernanceError as exc:
-            raise HTTPException(status_code=409, detail=str(exc)) from exc
+            raise conflict(exc) from exc
 
     @app.get("/v1/tasks/{task_id}/tool-decisions", response_model=ToolPlanResponse)
     async def tool_decisions(task_id: str) -> ToolPlanResponse:
-        try:
-            return resolved_operator.tool_decisions(task_id)
-        except GovernanceError as exc:
-            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        return operator.tool_decisions(task_id)
 
     @app.get(
         "/v1/tasks/{task_id}/tool-invocations",
         response_model=list[ToolInvocationReceipt],
     )
     async def tool_invocations(task_id: str) -> list[ToolInvocationReceipt]:
-        try:
-            return resolved_operator.tool_invocations(task_id)
-        except GovernanceError as exc:
-            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        return operator.tool_invocations(task_id)
 
     @app.get(
         "/v1/tasks/{task_id}/tool-reconciliation",
         response_model=ToolReconciliation,
     )
     async def tool_reconciliation(task_id: str) -> ToolReconciliation:
-        try:
-            return resolved_operator.reconcile_tools(task_id)
-        except GovernanceError as exc:
-            raise HTTPException(status_code=409, detail=str(exc)) from exc
-
-    @app.post("/v1/dispatch", response_model=DispatchResponse)
-    async def dispatch(
-        dispatch_request: DispatchRequest,
-        http_request: Request,
-    ) -> DispatchResponse:
-        host = http_request.url.hostname or ""
-        if host not in {"127.0.0.1", "localhost", "::1", "testserver"}:
-            raise HTTPException(status_code=403, detail="V1 dispatch is local-only")
-        try:
-            return await resolved_service.dispatch(dispatch_request)
-        except GovernanceError as exc:
-            raise HTTPException(status_code=409, detail=str(exc)) from exc
-        except GatewayError as exc:
-            raise HTTPException(status_code=502, detail=str(exc)) from exc
-
-    return app
+        return operator.reconcile_tools(task_id)

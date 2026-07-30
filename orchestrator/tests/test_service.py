@@ -3,7 +3,9 @@ from pathlib import Path
 from httpx import ASGITransport, AsyncClient
 
 from palwakf_orchestrator.api import create_app
+from palwakf_orchestrator.auth import AuthRegistry
 from palwakf_orchestrator.config import Settings
+from palwakf_orchestrator.connected_contracts import ServiceScope
 from palwakf_orchestrator.contracts import (
     DispatchPlan,
     DispatchRequest,
@@ -13,10 +15,13 @@ from palwakf_orchestrator.contracts import (
     Transport,
 )
 from palwakf_orchestrator.operator_service import OperatorService
+from palwakf_orchestrator.persistence import MemoryStateStore
 from palwakf_orchestrator.service import OrchestratorService
 from tests.test_contracts import valid_request
 
 FULL_HEAD = "a312d498bf89c509ae04a6c2eaa476de0a7c39bc"
+TOKEN = "test-service-token"
+AUTHORIZATION = {"Authorization": f"Bearer {TOKEN}"}
 
 
 class FakeGate:
@@ -76,6 +81,21 @@ def build_service(tmp_path: Path) -> OrchestratorService:
     )
 
 
+def build_app(
+    tmp_path: Path,
+    *,
+    operator: OperatorService | None = None,
+    scopes: tuple[ServiceScope, ...] = tuple(ServiceScope),
+):
+    return create_app(
+        Settings(workspace_root=tmp_path),
+        build_service(tmp_path),
+        operator,
+        state_store=MemoryStateStore(),
+        auth_registry=AuthRegistry.for_testing("test-client", TOKEN, scopes),
+    )
+
+
 async def test_dispatch_uses_planner_and_selected_gateway(tmp_path: Path) -> None:
     request = DispatchRequest.model_validate(valid_request())
 
@@ -109,30 +129,32 @@ async def test_duplicate_idempotency_reuses_execution(tmp_path: Path) -> None:
 
 
 async def test_health_endpoint_is_local_read_only_contract(tmp_path: Path) -> None:
-    app = create_app(Settings(workspace_root=tmp_path), build_service(tmp_path))
+    app = build_app(tmp_path)
 
     async with AsyncClient(
         transport=ASGITransport(app=app),
         base_url="http://testserver",
     ) as client:
-        response = await client.get("/health")
+        unauthorized = await client.get("/health")
+        response = await client.get("/health", headers=AUTHORIZATION)
 
+    assert unauthorized.status_code == 401
     assert response.status_code == 200
-    assert response.json()["remote_deployment"] is False
-    assert response.json()["boundaries"]["workspace_write"] is False
+    assert response.json()["public_unauthenticated_endpoint"] is False
+    assert response.json()["authentication_configured"] is True
 
 
-async def test_dispatch_endpoint_rejects_remote_host(tmp_path: Path) -> None:
-    app = create_app(Settings(workspace_root=tmp_path), build_service(tmp_path))
+async def test_dispatch_endpoint_rejects_unauthenticated_client(tmp_path: Path) -> None:
+    app = build_app(tmp_path)
 
     async with AsyncClient(
         transport=ASGITransport(app=app),
         base_url="http://orchestrator.example",
     ) as client:
-        response = await client.post("/v1/dispatch", json=valid_request())
+        response = await client.post("/v1/connected/tasks/dispatch", json={})
 
-    assert response.status_code == 403
-    assert response.json()["detail"] == "V1 dispatch is local-only"
+    assert response.status_code == 401
+    assert response.json()["detail"] == "valid bearer authentication is required"
 
 
 async def test_capabilities_endpoint_contains_flags_not_environment_values(
@@ -142,13 +164,19 @@ async def test_capabilities_endpoint_contains_flags_not_environment_values(
     monkeypatch.setenv("OPENAI_API_KEY", "dummy-secret-value")
     settings = Settings(workspace_root=tmp_path)
     operator = OperatorService(tmp_path, automatic_agents_available=False)
-    app = create_app(settings, build_service(tmp_path), operator)
+    app = create_app(
+        settings,
+        build_service(tmp_path),
+        operator,
+        state_store=MemoryStateStore(),
+        auth_registry=AuthRegistry.for_testing("test-client", TOKEN),
+    )
 
     async with AsyncClient(
         transport=ASGITransport(app=app),
         base_url="http://testserver",
     ) as client:
-        response = await client.get("/v1/capabilities")
+        response = await client.get("/v1/capabilities", headers=AUTHORIZATION)
 
     assert response.status_code == 200
     payload = response.json()
@@ -160,7 +188,7 @@ async def test_capabilities_endpoint_contains_flags_not_environment_values(
 
 
 async def test_cors_allows_loopback_flutter_client_only(tmp_path: Path) -> None:
-    app = create_app(Settings(workspace_root=tmp_path), build_service(tmp_path))
+    app = build_app(tmp_path)
     async with AsyncClient(
         transport=ASGITransport(app=app),
         base_url="http://testserver",
@@ -182,3 +210,19 @@ async def test_cors_allows_loopback_flutter_client_only(tmp_path: Path) -> None:
 
     assert local.headers["access-control-allow-origin"] == "http://localhost:8080"
     assert "access-control-allow-origin" not in remote.headers
+
+
+async def test_read_scope_cannot_dispatch(tmp_path: Path) -> None:
+    app = build_app(tmp_path, scopes=(ServiceScope.read,))
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://testserver",
+    ) as client:
+        response = await client.post(
+            "/v1/connected/tasks/dispatch",
+            json={},
+            headers=AUTHORIZATION,
+        )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "missing scope: tasks:dispatch"

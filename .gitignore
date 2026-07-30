@@ -31,6 +31,7 @@ reports/
 
 # Python orchestrator
 .venv/
+.palwakf/
 __pycache__/
 *.py[cod]
 *.egg-info/

@@ -5,8 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/orchestrator_api_client.dart';
 import '../domain/orchestrator_models.dart';
 
+final orchestratorTokenProvider = StateProvider<String?>((ref) => null);
+
 final orchestratorApiProvider = Provider<OrchestratorApi>((ref) {
-  return HttpOrchestratorApiClient();
+  return HttpOrchestratorApiClient(
+    bearerToken: ref.watch(orchestratorTokenProvider),
+  );
 });
 
 final orchestratorControllerProvider =
@@ -19,6 +23,8 @@ class OrchestratorWorkspaceState {
   const OrchestratorWorkspaceState({
     this.capabilities,
     this.tasks = const <OperatorTask>[],
+    this.tools = const <ToolOperationalHealth>[],
+    this.toolAlerts = const <ToolHealthAlert>[],
     this.selectedTaskId,
     this.toolPlan,
     this.invocations = const <ToolInvocation>[],
@@ -31,6 +37,8 @@ class OrchestratorWorkspaceState {
 
   final RuntimeCapabilities? capabilities;
   final List<OperatorTask> tasks;
+  final List<ToolOperationalHealth> tools;
+  final List<ToolHealthAlert> toolAlerts;
   final String? selectedTaskId;
   final ToolPlan? toolPlan;
   final List<ToolInvocation> invocations;
@@ -50,6 +58,8 @@ class OrchestratorWorkspaceState {
   OrchestratorWorkspaceState copyWith({
     RuntimeCapabilities? capabilities,
     List<OperatorTask>? tasks,
+    List<ToolOperationalHealth>? tools,
+    List<ToolHealthAlert>? toolAlerts,
     String? selectedTaskId,
     bool clearSelection = false,
     ToolPlan? toolPlan,
@@ -67,6 +77,8 @@ class OrchestratorWorkspaceState {
     return OrchestratorWorkspaceState(
       capabilities: capabilities ?? this.capabilities,
       tasks: tasks ?? this.tasks,
+      tools: tools ?? this.tools,
+      toolAlerts: toolAlerts ?? this.toolAlerts,
       selectedTaskId:
           clearSelection ? null : selectedTaskId ?? this.selectedTaskId,
       toolPlan: clearToolPlan ? null : toolPlan ?? this.toolPlan,
@@ -95,17 +107,34 @@ class OrchestratorController extends StateNotifier<OrchestratorWorkspaceState> {
       final results = await Future.wait<dynamic>(<Future<dynamic>>[
         _api.capabilities(),
         _api.listTasks(),
+        _api.toolsHealth(),
+        _api.toolAlerts(),
       ]);
       final tasks = results[1] as List<OperatorTask>;
       state = state.copyWith(
         capabilities: results[0] as RuntimeCapabilities,
         tasks: tasks,
+        tools: results[2] as List<ToolOperationalHealth>,
+        toolAlerts: results[3] as List<ToolHealthAlert>,
         selectedTaskId:
             state.selectedTaskId ?? (tasks.isEmpty ? null : tasks.first.taskId),
       );
       if (state.selectedTaskId != null) {
         await _loadToolTrace(state.selectedTaskId!);
       }
+    });
+  }
+
+  Future<void> probeTool(String adapterId) async {
+    await _guard(() async {
+      final updated = await _api.probeTool(adapterId);
+      final alerts = await _api.toolAlerts();
+      state = state.copyWith(
+        tools: state.tools
+            .map((tool) => tool.adapterId == adapterId ? updated : tool)
+            .toList(growable: false),
+        toolAlerts: alerts,
+      );
     });
   }
 

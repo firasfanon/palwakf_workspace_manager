@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class OperatorTaskStatus(StrEnum):
     pending = "pending"
+    queued = "queued"
     running = "running"
     awaiting_approval = "awaiting_approval"
     failed = "failed"
@@ -36,6 +37,8 @@ class TaskEvent(BaseModel):
     status: OperatorTaskStatus
     message: str
     occurred_at: datetime
+    correlation_id: str | None = None
+    client_id: str | None = None
 
 
 class CreateOperatorTaskRequest(BaseModel):
@@ -88,6 +91,16 @@ class OperatorTaskRecord(BaseModel):
     tests: list[str] = Field(default_factory=list)
     evidence: list[str] = Field(default_factory=list)
     verification_receipt: str | None = None
+    client_id: str | None = None
+    correlation_id: str | None = None
+    execution_host_id: str | None = None
+    tool_executor_id: str | None = None
+    queued_at: datetime | None = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    dispatch_latency_ms: int | None = None
+    executor_duration_ms: int | None = None
+    verification_duration_ms: int | None = None
     events: list[TaskEvent] = Field(default_factory=list)
 
 

@@ -25,6 +25,14 @@ abstract interface class OrchestratorApi {
 
   Future<List<OperatorTask>> listTasks();
 
+  Future<List<ToolOperationalHealth>> toolsHealth();
+
+  Future<ToolOperationalHealth> toolHealth(String adapterId);
+
+  Future<List<ToolHealthAlert>> toolAlerts();
+
+  Future<ToolOperationalHealth> probeTool(String adapterId);
+
   Future<OperatorTask> createTask(TaskDraft draft);
 
   Future<OperatorTask> taskStatus(String taskId);
@@ -72,6 +80,7 @@ class HttpOrchestratorApiClient implements OrchestratorApi {
   HttpOrchestratorApiClient({
     http.Client? client,
     String? baseUrl,
+    this.bearerToken,
     this.timeout = const Duration(seconds: 15),
   })  : _client = client ?? http.Client(),
         baseUrl = (baseUrl ??
@@ -83,6 +92,7 @@ class HttpOrchestratorApiClient implements OrchestratorApi {
 
   final http.Client _client;
   final String baseUrl;
+  final String? bearerToken;
   final Duration timeout;
 
   @override
@@ -99,6 +109,44 @@ class HttpOrchestratorApiClient implements OrchestratorApi {
     return values
         .map((value) => OperatorTask.fromJson(value as Map<String, dynamic>))
         .toList(growable: false);
+  }
+
+  @override
+  Future<List<ToolOperationalHealth>> toolsHealth() async {
+    final response = await _request('GET', '/v1/tools/health');
+    return (jsonDecode(response.body) as List<dynamic>)
+        .map(
+          (value) =>
+              ToolOperationalHealth.fromJson(value as Map<String, dynamic>),
+        )
+        .toList(growable: false);
+  }
+
+  @override
+  Future<ToolOperationalHealth> toolHealth(String adapterId) async {
+    return ToolOperationalHealth.fromJson(
+      await _getObject('/v1/tools/$adapterId/health'),
+    );
+  }
+
+  @override
+  Future<List<ToolHealthAlert>> toolAlerts() async {
+    final response = await _request('GET', '/v1/tools/alerts');
+    return (jsonDecode(response.body) as List<dynamic>)
+        .map(
+          (value) => ToolHealthAlert.fromJson(value as Map<String, dynamic>),
+        )
+        .toList(growable: false);
+  }
+
+  @override
+  Future<ToolOperationalHealth> probeTool(String adapterId) async {
+    return ToolOperationalHealth.fromJson(
+      await _postObject(
+        '/v1/tools/$adapterId/probe',
+        const <String, dynamic>{'requested_evidence': <String>[]},
+      ),
+    );
   }
 
   @override
@@ -270,6 +318,10 @@ class HttpOrchestratorApiClient implements OrchestratorApi {
     try {
       final request = http.Request(method, Uri.parse('$baseUrl$path'))
         ..headers['Accept'] = 'application/json';
+      final token = bearerToken?.trim();
+      if (token != null && token.isNotEmpty) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
       if (body != null) {
         request.headers['Content-Type'] = 'application/json';
         request.body = jsonEncode(body);

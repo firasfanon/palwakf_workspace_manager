@@ -26,6 +26,21 @@ class FakeOrchestratorApi implements OrchestratorApi {
   Future<List<OperatorTask>> listTasks() async => const <OperatorTask>[];
 
   @override
+  Future<List<ToolOperationalHealth>> toolsHealth() async =>
+      const <ToolOperationalHealth>[];
+
+  @override
+  Future<ToolOperationalHealth> toolHealth(String adapterId) =>
+      throw UnimplementedError();
+
+  @override
+  Future<List<ToolHealthAlert>> toolAlerts() async => const <ToolHealthAlert>[];
+
+  @override
+  Future<ToolOperationalHealth> probeTool(String adapterId) =>
+      throw UnimplementedError();
+
+  @override
   Future<OperatorTask> cancel(String taskId) => throw UnimplementedError();
 
   @override
@@ -120,5 +135,29 @@ void main() {
     expect(find.byTooltip('مهمة جديدة'), findsOneWidget);
     expect(find.text('Merge'), findsNothing);
     expect(find.text('Production'), findsNothing);
+  });
+
+  testWidgets('tool operational health dashboard is reachable', (tester) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: <Override>[
+          orchestratorApiProvider.overrideWithValue(FakeOrchestratorApi()),
+        ],
+        child: const WorkspaceManagerApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('الصحة التشغيلية للأدوات'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('الصحة التشغيلية للأدوات'), findsOneWidget);
+    expect(find.text('سجل الأدوات'), findsOneWidget);
+    expect(find.text('لا توجد بيانات مصادق عليها'), findsOneWidget);
   });
 }

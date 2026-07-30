@@ -98,3 +98,9 @@ PRODUCTION_ACTIONS=ABSENT
 The Flutter client reads its non-secret API base URL from
 `ORCHESTRATOR_API_BASE_URL` through `--dart-define`. The default is the local
 loopback service at `http://127.0.0.1:8421`.
+
+Service bearer values are entered at runtime and remain in Flutter application
+memory. They are not accepted through `--dart-define` and are not embedded in
+`build/web`. The connected service, OAuth/JWKS remote gate, MCP tools, and Tool
+Operational Health model are specified in
+`docs/contracts/CONNECTED_SERVICE_AND_CHATGPT_MCP_V1.md`.

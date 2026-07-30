@@ -1,66 +1,58 @@
-# PalWakf Orchestrator Backend V1
+# PalWakf Connected Orchestrator V1
 
-Local, fail-closed communication plane between an OpenAI Agents SDK planner and
-Codex through either the Python SDK or the Codex MCP server.
+Fail-closed communication plane between authenticated HTTP or Streamable HTTP
+MCP clients, an OpenAI Agents SDK planner, and Codex.
 
-## V1 boundaries
+## Boundaries
 
 ```text
-NO_DATABASE_WRITE=TRUE
-NO_PRODUCTION_MUTATION=TRUE
-NO_SECRET_ACCESS=TRUE
-CODEX_SANDBOX=READ_ONLY
-CODEX_APPROVALS=DENY_ALL
-REMOTE_DEPLOYMENT=DISABLED
+SUPABASE_CONNECTED=FALSE
+PRODUCTION_MUTATION=FALSE
+SECRET_VALUES_PERSISTED=FALSE
+PUBLIC_UNAUTHENTICATED_ENDPOINT=FALSE
+LOCAL_OPERATIONAL_STATE=SQLITE
 ```
 
-The service verifies the governed repository, branch, clean worktree, local
-HEAD, and remote HEAD before dispatch. Any mismatch blocks execution.
+The service verifies governed repository state before Codex execution. Source
+mutation still requires the task authority envelope and all repository gates.
 
 ## Runtime
 
-Python 3.12 is required. Install the project into an isolated environment:
+Python 3.12 is required:
 
 ```bash
 python -m pip install -e "./orchestrator[dev]"
 ```
 
-`OPENAI_API_KEY` must be supplied by the process environment or Windows
-User/Machine environment. It is never read from repository files, returned by
-the API, or written by this project. The governed PowerShell launchers inherit
-the Windows value into their own process memory when the parent environment is
-stale.
+`OPENAI_API_KEY` is inherited from the process environment and is never
+returned, persisted, or read from repository files. Connected clients also
+require scoped service authentication. Local opaque bearer values are
+configured by SHA-256 digest only in `PALWAKF_AUTH_CLIENTS_JSON`.
 
-Safe credential-presence probe:
+```bash
+python orchestrator/main.py serve --live-agents
+```
+
+The default is `LOCAL_SECURE_MODE` on `127.0.0.1:8421`. Readiness fails when
+client authentication is absent. Remote mode requires a stable HTTPS resource,
+OAuth issuer, audience, and JWKS endpoint. See
+`docs/contracts/CONNECTED_SERVICE_AND_CHATGPT_MCP_V1.md`.
+
+## Contracts
+
+- `GET /health` and `GET /ready`: authenticated lifecycle state.
+- `POST /v1/connected/tasks/dispatch`: bounded governed dispatch.
+- `GET /v1/tools/health`: evidence-backed tool operational health.
+- `/mcp/`: authenticated Streamable HTTP MCP with six lifecycle tools.
+
+HTTP and MCP share the same application service, SQLite persistence,
+idempotency records, queue limits, one-writer repository locks, host binding,
+authorization, and audit events. Repeating an idempotency key across process
+restarts returns the persisted task without silently creating another
+execution.
+
+Run the deterministic transport acceptance:
 
 ```powershell
-.\scripts\test_orchestrator.ps1
+.\scripts\smoke_connected_service.ps1
 ```
-
-Health check:
-
-```bash
-python orchestrator/main.py health
-```
-
-Local server:
-
-```bash
-python orchestrator/main.py serve
-```
-
-The server binds to `127.0.0.1:8421` by default. Remote binding is rejected in
-V1. `scripts/start_orchestrator.ps1` starts live Agents mode and fails before
-binding when the credential is unavailable.
-
-## API
-
-- `GET /health`: static readiness and sovereignty boundaries.
-- `POST /v1/dispatch`: governed read-only dispatch.
-
-See `data/read_only_dispatch.example.json` for the request contract. Replace
-the fail-closed `0000000` placeholder with the currently governed Git SHA
-before dispatch. The `expected_head` field accepts a 7-40 character SHA prefix.
-Both SDK and MCP transports use an ephemeral Codex thread and prohibit approval
-prompts. Repeating an `idempotency_key` in the same orchestrator process returns
-the original receipt and thread without creating another execution.

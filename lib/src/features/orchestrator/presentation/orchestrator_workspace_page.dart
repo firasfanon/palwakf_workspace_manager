@@ -3,12 +3,14 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/palwakf_theme.dart';
 import '../application/orchestrator_controller.dart';
 import '../data/orchestrator_api_client.dart';
 import '../domain/orchestrator_models.dart';
+import 'service_auth_dialog.dart';
 
 class OrchestratorWorkspacePage extends ConsumerStatefulWidget {
   const OrchestratorWorkspacePage({super.key});
@@ -45,6 +47,16 @@ class _OrchestratorWorkspacePageState
           ],
         ),
         actions: <Widget>[
+          IconButton(
+            tooltip: 'الصحة التشغيلية للأدوات',
+            onPressed: () => context.go('/tools'),
+            icon: const Icon(Icons.health_and_safety_outlined),
+          ),
+          IconButton(
+            tooltip: 'مصادقة الخدمة',
+            onPressed: () => showServiceAuthDialog(context, ref),
+            icon: const Icon(Icons.lock_outline),
+          ),
           IconButton(
             tooltip: 'تحديث',
             onPressed: state.loading ? null : controller.load,

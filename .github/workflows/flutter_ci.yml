@@ -72,3 +72,10 @@ jobs:
 
       - name: Test orchestrator
         run: python -m pytest orchestrator
+
+      - name: Connected HTTP and MCP smoke
+        working-directory: orchestrator
+        run: python scripts/connected_service_smoke.py
+
+      - name: Secret scan
+        run: python scripts/secret_scan.py

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/theme/palwakf_theme.dart';
 import '../features/orchestrator/presentation/orchestrator_workspace_page.dart';
+import '../features/orchestrator/presentation/tool_health_page.dart';
 
 final workspaceRouterProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
@@ -13,6 +14,18 @@ final workspaceRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/',
         builder: (context, state) => const OrchestratorWorkspacePage(),
+      ),
+      GoRoute(
+        path: '/tools',
+        builder: (context, state) => const ToolHealthPage(),
+        routes: <RouteBase>[
+          GoRoute(
+            path: ':adapterId',
+            builder: (context, state) => ToolHealthPage(
+              adapterId: state.pathParameters['adapterId'],
+            ),
+          ),
+        ],
       ),
     ],
   );

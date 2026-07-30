@@ -1,5 +1,6 @@
 enum OrchestratorTaskStatus {
   pending,
+  queued,
   running,
   awaitingApproval,
   failed,
@@ -12,6 +13,7 @@ enum OrchestratorTaskStatus {
   static OrchestratorTaskStatus fromWire(String value) {
     return switch (value) {
       'pending' => pending,
+      'queued' => queued,
       'running' => running,
       'awaiting_approval' => awaitingApproval,
       'failed' => failed,
@@ -26,6 +28,7 @@ enum OrchestratorTaskStatus {
 
   String get wireValue => switch (this) {
         pending => 'pending',
+        queued => 'queued',
         running => 'running',
         awaitingApproval => 'awaiting_approval',
         failed => 'failed',
@@ -38,6 +41,7 @@ enum OrchestratorTaskStatus {
 
   String get arabicLabel => switch (this) {
         pending => 'بانتظار الإرسال',
+        queued => 'في صف التنفيذ',
         running => 'قيد التنفيذ',
         awaitingApproval => 'بانتظار الموافقة',
         failed => 'فشل',
@@ -47,6 +51,139 @@ enum OrchestratorTaskStatus {
         timedOut => 'انتهت المهلة',
         cancelled => 'ملغاة',
       };
+}
+
+class HealthFact {
+  const HealthFact({
+    required this.value,
+    required this.provenance,
+    this.observedAt,
+    this.unit,
+    this.note,
+  });
+
+  factory HealthFact.fromJson(Map<String, dynamic> json) {
+    return HealthFact(
+      value: json['value'],
+      provenance: json['provenance'] as String,
+      observedAt: json['observed_at'] == null
+          ? null
+          : DateTime.parse(json['observed_at'] as String),
+      unit: json['unit'] as String?,
+      note: json['note'] as String?,
+    );
+  }
+
+  final Object? value;
+  final String provenance;
+  final DateTime? observedAt;
+  final String? unit;
+  final String? note;
+
+  String get displayValue {
+    if (value == null) return 'غير متاح من المزود';
+    return unit == null ? '$value' : '$value $unit';
+  }
+}
+
+class ToolOperationalHealth {
+  const ToolOperationalHealth({
+    required this.adapterId,
+    required this.displayName,
+    required this.requiredAdapter,
+    required this.connection,
+    required this.authentication,
+    required this.permission,
+    required this.entitlement,
+    required this.quota,
+    required this.usage,
+    required this.cost,
+    required this.balance,
+    required this.creditExpiry,
+    required this.renewal,
+    required this.rateLimit,
+    required this.freshness,
+    required this.operatorActions,
+    required this.evidence,
+  });
+
+  factory ToolOperationalHealth.fromJson(Map<String, dynamic> json) {
+    HealthFact fact(String key) =>
+        HealthFact.fromJson(json[key] as Map<String, dynamic>);
+    List<String> strings(String key) => (json[key] as List<dynamic>)
+        .map((value) => value as String)
+        .toList(growable: false);
+
+    return ToolOperationalHealth(
+      adapterId: json['adapter_id'] as String,
+      displayName: json['display_name'] as String,
+      requiredAdapter: json['required'] as bool,
+      connection: fact('connection'),
+      authentication: fact('authentication'),
+      permission: fact('permission'),
+      entitlement: fact('entitlement'),
+      quota: fact('quota'),
+      usage: fact('usage'),
+      cost: fact('cost'),
+      balance: fact('balance'),
+      creditExpiry: fact('credit_expiry'),
+      renewal: fact('renewal'),
+      rateLimit: fact('rate_limit'),
+      freshness: fact('freshness'),
+      operatorActions: strings('operator_actions'),
+      evidence: strings('evidence'),
+    );
+  }
+
+  final String adapterId;
+  final String displayName;
+  final bool requiredAdapter;
+  final HealthFact connection;
+  final HealthFact authentication;
+  final HealthFact permission;
+  final HealthFact entitlement;
+  final HealthFact quota;
+  final HealthFact usage;
+  final HealthFact cost;
+  final HealthFact balance;
+  final HealthFact creditExpiry;
+  final HealthFact renewal;
+  final HealthFact rateLimit;
+  final HealthFact freshness;
+  final List<String> operatorActions;
+  final List<String> evidence;
+}
+
+class ToolHealthAlert {
+  const ToolHealthAlert({
+    required this.alertId,
+    required this.adapterId,
+    required this.severity,
+    required this.code,
+    required this.message,
+    required this.operatorAction,
+    required this.observedAt,
+  });
+
+  factory ToolHealthAlert.fromJson(Map<String, dynamic> json) {
+    return ToolHealthAlert(
+      alertId: json['alert_id'] as String,
+      adapterId: json['adapter_id'] as String,
+      severity: json['severity'] as String,
+      code: json['code'] as String,
+      message: json['message'] as String,
+      operatorAction: json['operator_action'] as String,
+      observedAt: DateTime.parse(json['observed_at'] as String),
+    );
+  }
+
+  final String alertId;
+  final String adapterId;
+  final String severity;
+  final String code;
+  final String message;
+  final String operatorAction;
+  final DateTime observedAt;
 }
 
 class RuntimeCapabilities {
