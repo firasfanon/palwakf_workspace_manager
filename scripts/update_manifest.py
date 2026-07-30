@@ -42,7 +42,7 @@ def main() -> None:
             "PALWAKF_WORKSPACE_MANAGER_EXTERNAL_PROJECT_INTAKE_"
             "AND_REALITY_ADAPTER_V1"
         ),
-        "status": "EXTERNAL_PROJECT_INTAKE_LOCAL_VERIFIED_PENDING_REMOTE_CI",
+        "status": "EXTERNAL_PROJECT_INTAKE_VERIFIED_REMOTE_CI",
         "file_count": len(files),
         "files": files,
     }
