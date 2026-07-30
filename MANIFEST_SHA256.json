@@ -1,152 +1,177 @@
 {
-  "batch": "MEGA_BATCH_PALWAKF_WORKSPACE_MANAGER_AND_SOVEREIGN_CONTROL_PLANE_FOUNDATION_V1",
-  "status": "CANDIDATE_PENDING_CI",
-  "file_count": 29,
-  "files": [
-    {
-      "path": ".github/workflows/flutter_ci.yml",
-      "sha256": "DA1BEE858A58067D9BF32A87C865F75E62DA14EEF79541F787427AA1B46F0584",
-      "size": 805
-    },
-    {
-      "path": ".gitignore",
-      "sha256": "269993840B4BFBB330AF55A014AE518CA3804C145AA53AB983CC16619755E74C",
-      "size": 291
-    },
-    {
-      "path": "CHANGELOG.md",
-      "sha256": "8FC6CD1C8DBA3851DD9EC5950C8ED4DB7859D9EC5D16DFED2FD880B233C76806",
-      "size": 695
-    },
-    {
-      "path": "CURRENT_TASK.md",
-      "sha256": "B2DE0F57D752722F432E119CD18D5A578FE4634F33F56D1C925DD917B6EBF11D",
-      "size": 826
-    },
-    {
-      "path": "ERROR_RECORD.md",
-      "sha256": "3DF28A048EEF595F61F248E66488E2FFA1D3F729BD5CC91FDA92597D1FE21FAF",
-      "size": 760
-    },
-    {
-      "path": "LICENSE_OR_PRIVATE_POLICY.md",
-      "sha256": "3F002B452D26741C4036383D0F98AEF5ED914CF6FDC983F52F5CA3F861C3D3DD",
-      "size": 710
-    },
-    {
-      "path": "README.md",
-      "sha256": "6B5FB50283FF8D1DB5A853DC7B5C57E664556804F7310D9A4DA22C9220D78AAA",
-      "size": 2311
-    },
-    {
-      "path": "STATE.md",
-      "sha256": "E6F9DD63679C6558D44CC6B1604BC28DA427A7CB78B52AA4F789E1567FC9A54B",
-      "size": 641
-    },
-    {
-      "path": "analysis_options.yaml",
-      "sha256": "2E82528FC8CC686D51111C248CF10B5CCCB373B8804D22B25DC2697A1C9BED3F",
-      "size": 167
-    },
-    {
-      "path": "baselines/PALWAKF_WORKSPACE_MANAGER_FOUNDATION_V1_BASELINE.json",
-      "sha256": "152A230B86632991A0A51FF11FD9E80E1C11A98DA92128FFBEF5EBE5F2A31603",
-      "size": 590
-    },
-    {
-      "path": "docs/architecture/CONTROL_PLANE_ARCHITECTURE_V1.md",
-      "sha256": "453CDAAF30594A93853474DC5C5296C4CF8868504E891F72BDE1D338FF8C4292",
-      "size": 1908
-    },
-    {
-      "path": "docs/contracts/RESUME_PROTOCOL_V1.md",
-      "sha256": "53616AA6804A7E44C681C280D821814BCEF4B6643D050C79BF9560974810DE5E",
-      "size": 1179
-    },
-    {
-      "path": "docs/governance/AUTHORITY_AND_SOURCE_OF_TRUTH.md",
-      "sha256": "B3C072431A991EF2EEE9B06C56014EAFA3AFF9003BE4021E8A08989A73B618BA",
-      "size": 1310
-    },
-    {
-      "path": "docs/governance/PLATFORM_GUIDE_PIN.md",
-      "sha256": "6EF03585174BD301DEF049927615256B7AF3716935326DCA094496BFB43FA81C",
-      "size": 862
-    },
-    {
-      "path": "docs/handoffs/SESSION_HANDOFF_FOUNDATION_V1_20260729.md",
-      "sha256": "D01556155FE20CDA50404306223ED70781CE75FCED64832AB771BEDC1AAADDFF",
-      "size": 1142
-    },
-    {
-      "path": "lib/main.dart",
-      "sha256": "FF0D35DEA11088EFB0F7296E0CB2DE0FF98A69871E939BD0F2BA4EB571D45F42",
-      "size": 266
-    },
-    {
-      "path": "lib/src/app/workspace_manager_app.dart",
-      "sha256": "04477150AD16F46317AB7E2E690F0FDA6C40A266AB30508FB58B36596175F3AF",
-      "size": 1572
-    },
-    {
-      "path": "lib/src/core/theme/palwakf_theme.dart",
-      "sha256": "3AC07BEF4FFCC64D6B2858B1178CCA164473AF2F9CCF9B9F8CA8112D8EFD4A38",
-      "size": 1108
-    },
-    {
-      "path": "lib/src/features/control_plane/application/gates.dart",
-      "sha256": "48045AC948FFFA7DE5567D9A89F9ACCA229922AEBF1E7F60FFA5D4138027515C",
-      "size": 1406
-    },
-    {
-      "path": "lib/src/features/control_plane/application/resume_engine.dart",
-      "sha256": "41D5D9E598FAFD557E04C6A63C1A4B9CDF78C833825E56FAC93E0DE4A8F0AB93",
-      "size": 1385
-    },
-    {
-      "path": "lib/src/features/control_plane/domain/control_plane_models.dart",
-      "sha256": "76C22B54086EEFA609D9AD6F6C0C4980354FDC4E7C939646CC2AAD1D8C91BD98",
-      "size": 2380
-    },
-    {
-      "path": "lib/src/features/control_plane/domain/control_plane_repository.dart",
-      "sha256": "7450292424245EEF0C2EFFD336F29BE12656A6E94A75ADC76F018DD6D6E750F5",
-      "size": 474
-    },
-    {
-      "path": "lib/src/features/dashboard/presentation/workspace_dashboard_page.dart",
-      "sha256": "D66C0E46C9A439A5AF40A4D2DC1B77835D15DA5DFA365109C2DBACECA4AE281A",
-      "size": 6139
-    },
-    {
-      "path": "pubspec.yaml",
-      "sha256": "D3ED26E219283A36EE97199AB1A5BD344B23FEED6683FCCA6CBA765BB730EAF4",
-      "size": 481
-    },
-    {
-      "path": "schemas/control_plane_foundation.schema.json",
-      "sha256": "1234D334B2C1E1EC9B656EB51B8BC38F2D99FFD35B0D310558032421A00CBF80",
-      "size": 5686
-    },
-    {
-      "path": "test/governance_contract_test.dart",
-      "sha256": "85F24601468F199E61D1508F7C85528CFF5E233493C4837AFB736FBB57A69E6A",
-      "size": 778
-    },
-    {
-      "path": "test/resume_engine_test.dart",
-      "sha256": "80D4D27E32167CF658476897473236AEB003DD9ED2E58F8DEB55CFFB6A2A4370",
-      "size": 3407
-    },
-    {
-      "path": "web/index.html",
-      "sha256": "DF686EFB230141CF29049CDED56813365C626853F4B3B7CDA463F0B719994B12",
-      "size": 530
-    },
-    {
-      "path": "web/manifest.json",
-      "sha256": "84AE855FCE8ED536F2CA7220499ADEF944586E5B3BE535C1479F251F11178481",
-      "size": 340
-    }
-  ]
+    "batch":  "MEGA_BATCH_PALWAKF_WORKSPACE_MANAGER_AND_SOVEREIGN_CONTROL_PLANE_FOUNDATION_V1",
+    "status":  "CANDIDATE_PENDING_REMOTE_CI_AND_PREVIEW",
+    "file_count":  34,
+    "files":  [
+                  {
+                      "path":  ".gitattributes",
+                      "sha256":  "1D5D71DCC6CCD28AB46A335349ECC74742CA4B81F4FCAD212F8D134F70F1F13E",
+                      "size":  17
+                  },
+                  {
+                      "path":  ".github/workflows/flutter_ci.yml",
+                      "sha256":  "218966A80097C7DAB004E12DBA5994C1D72F3B2194B3E2793296DCE81E7CB6B3",
+                      "size":  839
+                  },
+                  {
+                      "path":  ".gitignore",
+                      "sha256":  "269993840B4BFBB330AF55A014AE518CA3804C145AA53AB983CC16619755E74C",
+                      "size":  291
+                  },
+                  {
+                      "path":  "analysis_options.yaml",
+                      "sha256":  "2E82528FC8CC686D51111C248CF10B5CCCB373B8804D22B25DC2697A1C9BED3F",
+                      "size":  167
+                  },
+                  {
+                      "path":  "baselines/PALWAKF_WORKSPACE_MANAGER_FOUNDATION_V1_BASELINE.json",
+                      "sha256":  "152A230B86632991A0A51FF11FD9E80E1C11A98DA92128FFBEF5EBE5F2A31603",
+                      "size":  590
+                  },
+                  {
+                      "path":  "CHANGELOG.md",
+                      "sha256":  "E2DBFBDC32161195132BF77563C12696DDAFC1879EFD2A7978FABD214145921D",
+                      "size":  825
+                  },
+                  {
+                      "path":  "CURRENT_TASK.md",
+                      "sha256":  "28AD989ACDA2BF2D331A366D40FEBDADC8CF558229AAF2C2FCB66A01A8C04845",
+                      "size":  926
+                  },
+                  {
+                      "path":  "docs/architecture/CONTROL_PLANE_ARCHITECTURE_V1.md",
+                      "sha256":  "453CDAAF30594A93853474DC5C5296C4CF8868504E891F72BDE1D338FF8C4292",
+                      "size":  1908
+                  },
+                  {
+                      "path":  "docs/contracts/RESUME_PROTOCOL_V1.md",
+                      "sha256":  "53616AA6804A7E44C681C280D821814BCEF4B6643D050C79BF9560974810DE5E",
+                      "size":  1179
+                  },
+                  {
+                      "path":  "docs/governance/AUTHORITY_AND_SOURCE_OF_TRUTH.md",
+                      "sha256":  "B3C072431A991EF2EEE9B06C56014EAFA3AFF9003BE4021E8A08989A73B618BA",
+                      "size":  1310
+                  },
+                  {
+                      "path":  "docs/governance/PLATFORM_GUIDE_PIN.md",
+                      "sha256":  "6EF03585174BD301DEF049927615256B7AF3716935326DCA094496BFB43FA81C",
+                      "size":  862
+                  },
+                  {
+                      "path":  "docs/handoffs/SESSION_HANDOFF_FOUNDATION_V1_20260729.md",
+                      "sha256":  "D01556155FE20CDA50404306223ED70781CE75FCED64832AB771BEDC1AAADDFF",
+                      "size":  1142
+                  },
+                  {
+                      "path":  "ERROR_RECORD.md",
+                      "sha256":  "86AF8AE2D3342D383E7E4DBD6A528AB36FEDD9EDF021929DC60D030D919900CF",
+                      "size":  1017
+                  },
+                  {
+                      "path":  "evidence/VERCEL_FLUTTER_BUILD_CONFIGURATION_V1.json",
+                      "sha256":  "0B33995C9803C420D1AB3F7E145B25FE45778E8300C529DB2EBABD1F35690AE6",
+                      "size":  1003
+                  },
+                  {
+                      "path":  "lib/main.dart",
+                      "sha256":  "FF0D35DEA11088EFB0F7296E0CB2DE0FF98A69871E939BD0F2BA4EB571D45F42",
+                      "size":  266
+                  },
+                  {
+                      "path":  "lib/src/app/workspace_manager_app.dart",
+                      "sha256":  "04477150AD16F46317AB7E2E690F0FDA6C40A266AB30508FB58B36596175F3AF",
+                      "size":  1572
+                  },
+                  {
+                      "path":  "lib/src/core/theme/palwakf_theme.dart",
+                      "sha256":  "3AC07BEF4FFCC64D6B2858B1178CCA164473AF2F9CCF9B9F8CA8112D8EFD4A38",
+                      "size":  1108
+                  },
+                  {
+                      "path":  "lib/src/features/control_plane/application/gates.dart",
+                      "sha256":  "48045AC948FFFA7DE5567D9A89F9ACCA229922AEBF1E7F60FFA5D4138027515C",
+                      "size":  1406
+                  },
+                  {
+                      "path":  "lib/src/features/control_plane/application/resume_engine.dart",
+                      "sha256":  "41D5D9E598FAFD557E04C6A63C1A4B9CDF78C833825E56FAC93E0DE4A8F0AB93",
+                      "size":  1385
+                  },
+                  {
+                      "path":  "lib/src/features/control_plane/domain/control_plane_models.dart",
+                      "sha256":  "76C22B54086EEFA609D9AD6F6C0C4980354FDC4E7C939646CC2AAD1D8C91BD98",
+                      "size":  2380
+                  },
+                  {
+                      "path":  "lib/src/features/control_plane/domain/control_plane_repository.dart",
+                      "sha256":  "7450292424245EEF0C2EFFD336F29BE12656A6E94A75ADC76F018DD6D6E750F5",
+                      "size":  474
+                  },
+                  {
+                      "path":  "lib/src/features/dashboard/presentation/workspace_dashboard_page.dart",
+                      "sha256":  "D66C0E46C9A439A5AF40A4D2DC1B77835D15DA5DFA365109C2DBACECA4AE281A",
+                      "size":  6139
+                  },
+                  {
+                      "path":  "LICENSE_OR_PRIVATE_POLICY.md",
+                      "sha256":  "3F002B452D26741C4036383D0F98AEF5ED914CF6FDC983F52F5CA3F861C3D3DD",
+                      "size":  710
+                  },
+                  {
+                      "path":  "pubspec.lock",
+                      "sha256":  "484683ABE502E009209EAC40762A41146BFAFD0AB3DCDA8596B8F8BC39BC19C6",
+                      "size":  7446
+                  },
+                  {
+                      "path":  "pubspec.yaml",
+                      "sha256":  "D3ED26E219283A36EE97199AB1A5BD344B23FEED6683FCCA6CBA765BB730EAF4",
+                      "size":  481
+                  },
+                  {
+                      "path":  "README.md",
+                      "sha256":  "6B5FB50283FF8D1DB5A853DC7B5C57E664556804F7310D9A4DA22C9220D78AAA",
+                      "size":  2311
+                  },
+                  {
+                      "path":  "schemas/control_plane_foundation.schema.json",
+                      "sha256":  "1234D334B2C1E1EC9B656EB51B8BC38F2D99FFD35B0D310558032421A00CBF80",
+                      "size":  5686
+                  },
+                  {
+                      "path":  "scripts/vercel_build.sh",
+                      "sha256":  "BF513DA0E67C384782B3FB49169BBB36891A9E1FE61DA0D5349DD498E96B9E02",
+                      "size":  832
+                  },
+                  {
+                      "path":  "STATE.md",
+                      "sha256":  "EECE390A43A79B77A05DA71DE48BAAECDCF19C90854D09FCC75C777D3E14F38D",
+                      "size":  836
+                  },
+                  {
+                      "path":  "test/governance_contract_test.dart",
+                      "sha256":  "85F24601468F199E61D1508F7C85528CFF5E233493C4837AFB736FBB57A69E6A",
+                      "size":  778
+                  },
+                  {
+                      "path":  "test/resume_engine_test.dart",
+                      "sha256":  "80D4D27E32167CF658476897473236AEB003DD9ED2E58F8DEB55CFFB6A2A4370",
+                      "size":  3407
+                  },
+                  {
+                      "path":  "vercel.json",
+                      "sha256":  "EDD2CF44BE19C54FEC64E65AE795E2A33BC0550BC98702DA432E1C12FEA9D6E1",
+                      "size":  186
+                  },
+                  {
+                      "path":  "web/index.html",
+                      "sha256":  "DF686EFB230141CF29049CDED56813365C626853F4B3B7CDA463F0B719994B12",
+                      "size":  530
+                  },
+                  {
+                      "path":  "web/manifest.json",
+                      "sha256":  "84AE855FCE8ED536F2CA7220499ADEF944586E5B3BE535C1479F251F11178481",
+                      "size":  340
+                  }
+              ]
 }

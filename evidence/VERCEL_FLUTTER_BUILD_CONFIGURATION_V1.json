@@ -1,0 +1,36 @@
+{
+  "evidence_id": "VERCEL_FLUTTER_BUILD_CONFIGURATION_V1_20260730",
+  "repository": "firasfanon/palwakf_workspace_manager",
+  "branch": "agent/workspace-manager-foundation-v1",
+  "source_head_before_change": "9b5215b6a3b16068753c48830ab643fd4a52e7da",
+  "toolchain": {
+    "channel": "stable",
+    "flutter_version": "3.44.1",
+    "flutter_revision": "924134a44c189315be2148659913dda1671cbe99",
+    "dart_version": "3.12.1"
+  },
+  "vercel": {
+    "build_command": "bash scripts/vercel_build.sh",
+    "output_directory": "build/web",
+    "target": "preview",
+    "production_promotion": false
+  },
+  "boundaries": {
+    "database_write": false,
+    "supabase_connection": false,
+    "production_mutation": false,
+    "secret_values": false
+  },
+  "validation": {
+    "dart_format": "PASS",
+    "flutter_analyze": "PASS",
+    "flutter_test": {
+      "status": "PASS",
+      "tests": 6
+    },
+    "flutter_build_web_release": {
+      "status": "PASS",
+      "artifact": "build/web/index.html"
+    }
+  }
+}

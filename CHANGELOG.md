@@ -13,6 +13,8 @@
 - GitHub Actions Flutter CI.
 - Governance pin to the authoritative PalWakf Platform guide.
 - Baseline, state, current task, error record, and session handoff.
+- Deterministic Vercel Flutter Web build configuration pinned to Flutter 3.44.1.
+- Vercel static output contract for `build/web`.
 
 ### Boundaries
 
