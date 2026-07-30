@@ -44,3 +44,27 @@ jobs:
 
       - name: Build web
         run: flutter build web --release
+
+  orchestrator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: orchestrator/pyproject.toml
+
+      - name: Install orchestrator
+        run: python -m pip install -e "./orchestrator[dev]"
+
+      - name: Lint orchestrator
+        run: python -m ruff check orchestrator
+
+      - name: Test orchestrator
+        run: python -m pytest orchestrator

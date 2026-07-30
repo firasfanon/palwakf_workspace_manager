@@ -63,3 +63,19 @@ flutter build web --release
 - لا تنشئ جداول تشغيلية في `public`.
 - لا تعتبر ادعاء Baseline دليلًا دون `commit/hash/archive`.
 - أي Mutation مستقبلية تتطلب تفويضًا صريحًا وأثر تدقيق.
+
+## Orchestrator Backend V1
+
+The local backend under `orchestrator/` provides a governed communication plane
+from OpenAI Agents SDK to Codex SDK or Codex MCP.
+
+```text
+ORCHESTRATOR_REMOTE_DEPLOYMENT=FALSE
+ORCHESTRATOR_DATABASE_WRITE=FALSE
+ORCHESTRATOR_PRODUCTION_MUTATION=FALSE
+ORCHESTRATOR_CODEX_SANDBOX=READ_ONLY
+ORCHESTRATOR_CODEX_APPROVALS=DENY_ALL
+```
+
+The backend verifies the repository branch, clean worktree, local HEAD, and
+remote HEAD before every dispatch. See `orchestrator/README.md`.

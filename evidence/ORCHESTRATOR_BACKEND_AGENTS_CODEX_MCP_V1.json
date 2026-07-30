@@ -1,0 +1,63 @@
+{
+  "evidence_id": "ORCHESTRATOR_BACKEND_AGENTS_CODEX_MCP_V1_20260730",
+  "repository": "firasfanon/palwakf_workspace_manager",
+  "branch": "agent/workspace-manager-foundation-v1",
+  "source_head_before_change": "a312d498bf89c509ae04a6c2eaa476de0a7c39bc",
+  "runtime": {
+    "python": "3.12",
+    "openai_agents": "0.19.1",
+    "openai_codex": "0.144.4",
+    "planner_model": "gpt-5.6-sol"
+  },
+  "boundaries": {
+    "workspace_write": false,
+    "database_write": false,
+    "production_mutation": false,
+    "secret_access": false,
+    "remote_deployment": false
+  },
+  "validation": {
+    "ruff_format": "PASS",
+    "ruff_lint": "PASS",
+    "python_wheel_build": "PASS",
+    "pytest": {
+      "status": "PASS",
+      "tests": 13
+    },
+    "health_contract": "PASS",
+    "flutter": {
+      "dart_format": "PASS",
+      "analyze": "PASS",
+      "tests": {
+        "status": "PASS",
+        "tests": 6
+      },
+      "build_web_release": "PASS"
+    },
+    "trackable_secret_scan": "PASS",
+    "codex_sdk_live_read_only": {
+      "status": "PASS",
+      "thread_created": true,
+      "response_present": true,
+      "worktree_mutation": false
+    },
+    "codex_mcp_tool_discovery": {
+      "status": "PASS",
+      "tools": [
+        "codex",
+        "codex-reply"
+      ]
+    },
+    "codex_mcp_live_read_only": {
+      "status": "PASS",
+      "thread_created": true,
+      "response_present": true,
+      "worktree_mutation": false
+    },
+    "agents_to_codex_live": {
+      "status": "BLOCKED",
+      "reason": "OPENAI_API_KEY_NOT_VISIBLE_TO_PYTHON_RUNTIME",
+      "api_request_started": false
+    }
+  }
+}
