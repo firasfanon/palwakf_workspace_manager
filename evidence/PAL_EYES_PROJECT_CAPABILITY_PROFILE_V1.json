@@ -1,0 +1,127 @@
+{
+  "blocked_tools": [
+    {
+      "adapter_id": "supabase",
+      "disposition": "blocked",
+      "evidence": [
+        "task:SUPABASE_EXCLUDED",
+        "repository_indicator:true"
+      ],
+      "reason": "Task authority prohibits connection, schema, Auth, RLS, Storage, RPC, or data access."
+    }
+  ],
+  "conditional_tools": [
+    {
+      "adapter_id": "vercel",
+      "disposition": "conditional",
+      "evidence": [
+        "NOT_DISCOVERED"
+      ],
+      "reason": "Read-only deployment discovery only when a matching project exists."
+    },
+    {
+      "adapter_id": "local_git",
+      "disposition": "conditional",
+      "evidence": [
+        "allowlist_required"
+      ],
+      "reason": "Available only for an explicitly allowlisted resolved path."
+    },
+    {
+      "adapter_id": "figma",
+      "disposition": "conditional",
+      "evidence": [
+        "read_only_intake_scope"
+      ],
+      "reason": "Excluded from intake; reconsider only for later material UI implementation."
+    }
+  ],
+  "excluded_tools": [
+    {
+      "adapter_id": "canva",
+      "disposition": "excluded",
+      "evidence": [
+        "bounded_minimum_tool_plan"
+      ],
+      "reason": "No concrete repository evidence requires this tool for read-only intake."
+    },
+    {
+      "adapter_id": "academic_research",
+      "disposition": "excluded",
+      "evidence": [
+        "bounded_minimum_tool_plan"
+      ],
+      "reason": "No concrete repository evidence requires this tool for read-only intake."
+    },
+    {
+      "adapter_id": "legal_research",
+      "disposition": "excluded",
+      "evidence": [
+        "bounded_minimum_tool_plan"
+      ],
+      "reason": "No concrete repository evidence requires this tool for read-only intake."
+    },
+    {
+      "adapter_id": "machine_learning",
+      "disposition": "excluded",
+      "evidence": [
+        "bounded_minimum_tool_plan"
+      ],
+      "reason": "No concrete repository evidence requires this tool for read-only intake."
+    },
+    {
+      "adapter_id": "gmail",
+      "disposition": "excluded",
+      "evidence": [
+        "bounded_minimum_tool_plan"
+      ],
+      "reason": "No concrete repository evidence requires this tool for read-only intake."
+    },
+    {
+      "adapter_id": "calendar",
+      "disposition": "excluded",
+      "evidence": [
+        "bounded_minimum_tool_plan"
+      ],
+      "reason": "No concrete repository evidence requires this tool for read-only intake."
+    },
+    {
+      "adapter_id": "contacts",
+      "disposition": "excluded",
+      "evidence": [
+        "bounded_minimum_tool_plan"
+      ],
+      "reason": "No concrete repository evidence requires this tool for read-only intake."
+    }
+  ],
+  "observed_head": "c67ff5e28205aac57ff28e8b8120c3bac5de4488",
+  "profile_version": "PROJECT_CAPABILITY_PROFILE_V1",
+  "project_id": "FIRASFANON_PAL_EYES_3ADCC2FC",
+  "selected_tools": [
+    {
+      "adapter_id": "github_repository",
+      "disposition": "selected",
+      "evidence": [
+        "observed_head:c67ff5e28205aac57ff28e8b8120c3bac5de4488",
+        "github_api:read_only"
+      ],
+      "reason": "Required source-of-truth repository and CI reads."
+    },
+    {
+      "adapter_id": "workspace_manager_orchestrator",
+      "disposition": "selected",
+      "evidence": [
+        "external_project_registry:v1"
+      ],
+      "reason": "Required registry, report, fingerprint, and evidence persistence."
+    }
+  ],
+  "stack": [
+    "Dart",
+    "Flutter",
+    "Flutter Map",
+    "GoRouter",
+    "Riverpod",
+    "Supabase Flutter SDK"
+  ]
+}

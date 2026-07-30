@@ -1,28 +1,27 @@
 # Current Task
 
 ```text
-TASK_ID=PALWAKF_WORKSPACE_MANAGER_CONNECTED_SERVICE_AND_CHATGPT_MCP_V1
-STATUS=IMPLEMENTED_SOURCE_VERIFIED_LOCAL_SECURE_MODE
+TASK_ID=PALWAKF_WORKSPACE_MANAGER_EXTERNAL_PROJECT_INTAKE_AND_REALITY_ADAPTER_V1
+STATUS=IMPLEMENTED_LOCAL_VERIFIED_PENDING_REMOTE_CI
 MODE=CONTROLLED_REPOSITORY_MUTATION
 REPOSITORY=firasfanon/palwakf_workspace_manager
 BRANCH=agent/workspace-manager-foundation-v1
-EXPECTED_BEFORE_HEAD=94c50e0400ee4f843270f7f505119f2a72c78841
-ORCHESTRATOR_BACKEND=CONNECTED_DURABLE_AUTHENTICATED
-ORCHESTRATOR_HTTP_MCP_PARITY=PASS
-ORCHESTRATOR_SQLITE_PERSISTENCE=PASS
-ORCHESTRATOR_BOUNDED_QUEUE=PASS
-ORCHESTRATOR_ONE_ACTIVE_WRITER=PASS
-ORCHESTRATOR_HOST_BINDING=PASS
-ORCHESTRATOR_CROSS_HOST_RESUME=REJECTED_FAIL_CLOSED
-TOOL_OPERATIONAL_HEALTH=PASS
-CONNECTED_CLIENT_SMOKE=PASS
-IMPLEMENTATION_COMMIT=ea6d6dac96357d5b0f72e19a603c3805845364a2
-GITHUB_ACTIONS_RUN=30586946323
-GITHUB_ACTIONS_STATUS=PASS
-VERCEL_PREVIEW=READY_TARGET_NULL
-LOCAL_SECURE_MODE=PASS
-REMOTE_OAUTH_SOURCE_READINESS=PASS
-CHATGPT_LIVE_CONNECTION=NOT_EXECUTED_REQUIRES_AUTHORIZED_HTTPS_OAUTH_DEPLOYMENT
+EXPECTED_BEFORE_HEAD=e97d1d4a2b5cc4a934d4558dc5c095714cb70c01
+IMPLEMENTATION_COMMIT=PENDING_COMMIT
+GITHUB_ACTIONS_RUN=PENDING_PUSH
+GITHUB_ACTIONS_STATUS=PENDING_PUSH
+EXTERNAL_PROJECT_DOMAIN_MODEL=PASS
+GITHUB_REALITY_ADAPTER=PASS_READ_ONLY
+LOCAL_GIT_ADAPTER=PASS_EXACT_ALLOWLIST_ONLY
+PROJECT_REGISTRY=PASS_PERSISTENT_STATE_STORE
+PROJECT_APIS=PASS_AUTHENTICATED
+PROJECT_FLUTTER_UI=PASS_ARABIC_RTL
+PAL_EYES_DEFAULT_BRANCH=main
+PAL_EYES_OBSERVED_HEAD=c67ff5e28205aac57ff28e8b8120c3bac5de4488
+PAL_EYES_CI_STATUS=NOT_CONFIGURED
+PAL_EYES_DEPLOYMENT_STATUS=NOT_DISCOVERED
+PAL_EYES_REALITY_FINGERPRINT=A1A08EB8CBADAC80557511FD1CD82DFBB8720BC837821D5F226CCA71530C457A
+PAL_EYES_EXTERNAL_MUTATION=NONE
 DATABASE_WRITE=LOCAL_ORCHESTRATOR_SQLITE_ONLY
 SUPABASE_CONNECTED=FALSE
 PRODUCTION_MUTATION=NONE
@@ -32,15 +31,13 @@ SECRET_VALUES_EXPOSED=FALSE
 
 ## Acceptance
 
-- Authenticated HTTP and MCP use one application service.
-- Task state, idempotency, audit events, host binding, and writer locks survive
-  process restart in local SQLite.
-- Queue and worker counts are bounded; one workspace writer is active per
-  repository.
-- MCP clients can dispatch, read status, continue, cancel, verify, and list
-  recent tasks without manual relay.
-- Flutter provides Arabic RTL tool-health dashboard and detail routes.
-- Provider values retain provenance; unavailable cost, balance, and expiry are
-  not invented.
-- No public endpoint, production promotion, merge, or Supabase connection is
-  part of this task.
+- GitHub and local Git adapters expose read-only boundaries only.
+- Local Git rejects every path outside the exact resolved allowlist.
+- Reality fingerprints are deterministic for unchanged repository facts and
+  change when the observed HEAD changes.
+- Tool decisions persist selected, conditional, excluded, and blocked adapters
+  with reasons and evidence.
+- Pal_Eyes was read at an immutable HEAD without source, branch, dependency,
+  CI, deployment, database, or Supabase mutation.
+- Flutter renders intake, registry, reality, drift, blocked, and ranked
+  candidate states.

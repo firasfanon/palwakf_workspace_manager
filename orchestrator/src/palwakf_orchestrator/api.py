@@ -44,6 +44,21 @@ from palwakf_orchestrator.operator_contracts import (
 )
 from palwakf_orchestrator.operator_service import OperatorService
 from palwakf_orchestrator.persistence import SQLiteStateStore, StateStore
+from palwakf_orchestrator.project_contracts import (
+    CandidateWorkItem,
+    ExternalProjectRealityReport,
+    ExternalProjectRecord,
+    PrepareGovernedTaskEnvelopeRequest,
+    PrepareGovernedTaskEnvelopeResponse,
+    ProjectAdapterKind,
+    ProjectIntakeRequest,
+)
+from palwakf_orchestrator.project_reality import (
+    GitHubRepositoryRealityAdapter,
+    HttpxGitHubReadClient,
+    LocalGitRealityAdapter,
+)
+from palwakf_orchestrator.project_service import ExternalProjectService
 from palwakf_orchestrator.service import OrchestratorService
 
 
@@ -55,6 +70,7 @@ def create_app(
     state_store: StateStore | None = None,
     auth_registry: AuthRegistry | None = None,
     connected_service: ConnectedApplicationService | None = None,
+    project_service: ExternalProjectService | None = None,
 ) -> FastAPI:
     resolved_settings = settings or get_settings()
     resolved_settings.assert_safe_binding()
@@ -87,6 +103,17 @@ def create_app(
         resolved_store,
         authentication_configured=resolved_auth.configured,
     )
+    resolved_projects = project_service or ExternalProjectService(
+        {
+            ProjectAdapterKind.github_repository: GitHubRepositoryRealityAdapter(
+                HttpxGitHubReadClient(os.environ.get("GITHUB_TOKEN"))
+            ),
+            ProjectAdapterKind.local_git: LocalGitRealityAdapter(
+                resolved_settings.local_project_allowlist
+            ),
+        },
+        resolved_store,
+    )
     limiter = BoundedRateLimiter(resolved_settings.requests_per_minute)
     mcp_http_app = create_mcp_server(
         connected,
@@ -110,6 +137,7 @@ def create_app(
         lifespan=lifespan,
     )
     app.state.connected_service = connected
+    app.state.project_service = resolved_projects
     app.add_middleware(
         CORSMiddleware,
         allow_origin_regex=r"^https?://(127\.0\.0\.1|localhost)(:\d+)?$",
@@ -259,6 +287,7 @@ def create_app(
             raise HTTPException(status_code=404, detail=str(exc)) from exc
 
     _add_legacy_routes(app, resolved_operator, connected)
+    _add_project_routes(app, resolved_projects)
     app.mount("/mcp", mcp_http_app, name="mcp")
     return app
 
@@ -433,3 +462,89 @@ def _add_legacy_routes(
     )
     async def tool_reconciliation(task_id: str) -> ToolReconciliation:
         return operator.reconcile_tools(task_id)
+
+
+def _add_project_routes(
+    app: FastAPI,
+    projects: ExternalProjectService,
+) -> None:
+    def project_error(exc: GovernanceError) -> HTTPException:
+        status = (
+            404
+            if str(exc)
+            in {
+                "PROJECT_NOT_REGISTERED",
+                "PROJECT_REALITY_NOT_PROBED",
+                "PROJECT_REPOSITORY_NOT_FOUND",
+                "PROJECT_CANDIDATE_NOT_FOUND",
+            }
+            else 409
+        )
+        return HTTPException(status_code=status, detail=str(exc))
+
+    @app.post("/v1/projects/intake", response_model=ExternalProjectRecord)
+    async def project_intake(command: ProjectIntakeRequest) -> ExternalProjectRecord:
+        try:
+            return projects.intake(command)
+        except GovernanceError as exc:
+            raise project_error(exc) from exc
+
+    @app.get("/v1/projects", response_model=list[ExternalProjectRecord])
+    async def list_external_projects() -> list[ExternalProjectRecord]:
+        return projects.list_projects()
+
+    @app.get("/v1/projects/{project_id}", response_model=ExternalProjectRecord)
+    async def get_external_project(project_id: str) -> ExternalProjectRecord:
+        try:
+            return projects.get_project(project_id)
+        except GovernanceError as exc:
+            raise project_error(exc) from exc
+
+    @app.post(
+        "/v1/projects/{project_id}/probe",
+        response_model=ExternalProjectRealityReport,
+    )
+    async def probe_external_project(
+        project_id: str,
+    ) -> ExternalProjectRealityReport:
+        try:
+            return await projects.probe(project_id)
+        except GovernanceError as exc:
+            raise project_error(exc) from exc
+
+    @app.get(
+        "/v1/projects/{project_id}/reality",
+        response_model=ExternalProjectRealityReport,
+    )
+    async def external_project_reality(
+        project_id: str,
+    ) -> ExternalProjectRealityReport:
+        try:
+            return projects.reality(project_id)
+        except GovernanceError as exc:
+            raise project_error(exc) from exc
+
+    @app.get(
+        "/v1/projects/{project_id}/candidate-work-items",
+        response_model=list[CandidateWorkItem],
+    )
+    async def external_project_candidates(
+        project_id: str,
+    ) -> list[CandidateWorkItem]:
+        try:
+            return projects.candidate_work_items(project_id)
+        except GovernanceError as exc:
+            raise project_error(exc) from exc
+
+    @app.post(
+        "/v1/projects/{project_id}/prepare-task",
+        response_model=PrepareGovernedTaskEnvelopeResponse,
+    )
+    async def prepare_external_project_task(
+        project_id: str,
+        command: PrepareGovernedTaskEnvelopeRequest,
+    ) -> PrepareGovernedTaskEnvelopeResponse:
+        try:
+            return projects.prepare_task_envelope(project_id, command.candidate_id)
+        except GovernanceError as exc:
+            raise project_error(exc) from exc

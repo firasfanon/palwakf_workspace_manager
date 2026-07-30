@@ -104,3 +104,27 @@ memory. They are not accepted through `--dart-define` and are not embedded in
 `build/web`. The connected service, OAuth/JWKS remote gate, MCP tools, and Tool
 Operational Health model are specified in
 `docs/contracts/CONNECTED_SERVICE_AND_CHATGPT_MCP_V1.md`.
+
+## External Project Intake and Reality Adapter V1
+
+The authenticated Orchestrator now registers external repositories and produces
+bounded read-only reality baselines through:
+
+```text
+POST /v1/projects/intake
+GET  /v1/projects
+GET  /v1/projects/{project_id}
+POST /v1/projects/{project_id}/probe
+GET  /v1/projects/{project_id}/reality
+GET  /v1/projects/{project_id}/candidate-work-items
+POST /v1/projects/{project_id}/prepare-task
+```
+
+GitHub probing reads repository identity, immutable HEAD, a bounded file tree,
+safe metadata files, and CI status. Secret-risk file names may be reported, but
+their values are never read. Local Git probing is disabled unless the resolved
+repository root exactly matches `PALWAKF_LOCAL_PROJECT_ALLOWLIST_JSON`.
+
+The first live baseline covers `firasfanon/Pal_Eyes` in
+`READ_ONLY_ZERO_MUTATION` mode. Supabase remains blocked even when repository
+indicators exist, and prepare-task creates no execution.

@@ -1,0 +1,105 @@
+{
+  "task_id": "PALWAKF_WORKSPACE_MANAGER_EXTERNAL_PROJECT_INTAKE_AND_REALITY_ADAPTER_V1",
+  "status": "IMPLEMENTED_LOCAL_VERIFIED_PENDING_REMOTE_CI",
+  "repository": "firasfanon/palwakf_workspace_manager",
+  "branch": "agent/workspace-manager-foundation-v1",
+  "before_head": "e97d1d4a2b5cc4a934d4558dc5c095714cb70c01",
+  "implementation_commit": null,
+  "adapter_status": {
+    "contract": "PASS",
+    "github_repository": "PASS_READ_ONLY",
+    "local_git": "PASS_EXACT_ALLOWLIST_ONLY",
+    "bounded_files": 500,
+    "metadata_byte_limit": 256000,
+    "write_operations_exposed": false
+  },
+  "project_registry_status": {
+    "status": "PASS",
+    "state_store": "ORCHESTRATOR_STATE_STORE",
+    "restart_round_trip": "PASS",
+    "authenticated_api": "PASS",
+    "prepare_only_dispatch": false
+  },
+  "pal_eyes": {
+    "repository": "firasfanon/Pal_Eyes",
+    "mode": "READ_ONLY_ZERO_MUTATION",
+    "default_branch": "main",
+    "observed_head": "c67ff5e28205aac57ff28e8b8120c3bac5de4488",
+    "stack": [
+      "Dart",
+      "Flutter",
+      "Flutter Map",
+      "GoRouter",
+      "Riverpod",
+      "Supabase Flutter SDK"
+    ],
+    "toolchain": {
+      "application": "8.0.1+27",
+      "dart": ">=3.10.0 <4.0.0",
+      "flutter": ">=3.38.0"
+    },
+    "build_and_test_commands": [
+      "dart format --output=none --set-exit-if-changed lib test",
+      "flutter analyze",
+      "flutter test",
+      "flutter build web --release"
+    ],
+    "commands_executed": false,
+    "ci_status": "NOT_CONFIGURED",
+    "deployment_status": "NOT_DISCOVERED",
+    "reality_fingerprint": "A1A08EB8CBADAC80557511FD1CD82DFBB8720BC837821D5F226CCA71530C457A",
+    "file_count": 291,
+    "ignored_secret_policy": "PASS",
+    "secret_risk_file_names_only": [
+      ".env.example"
+    ],
+    "tool_profile": "evidence/PAL_EYES_PROJECT_CAPABILITY_PROFILE_V1.json",
+    "reality_report": "evidence/PAL_EYES_EXTERNAL_PROJECT_REALITY_REPORT_V1.json",
+    "candidate_work_items": [
+      {
+        "rank": 1,
+        "candidate_id": "PAL_EYES_GIS_CANDIDATE_VALIDATION",
+        "title": "Require real coordinate and source evidence in GIS candidate intake"
+      },
+      {
+        "rank": 2,
+        "candidate_id": "PAL_EYES_R8_0_1_RUNTIME_CLOSURE",
+        "title": "Close R8.0.1 analyzer, test, and browser acceptance"
+      }
+    ]
+  },
+  "validation": {
+    "ruff": "PASS",
+    "mypy": "PASS_24_SOURCE_FILES",
+    "pytest": "PASS_54_TESTS",
+    "dart_format": "PASS_26_FILES",
+    "flutter_analyze": "PASS",
+    "flutter_test": "PASS_19_TESTS",
+    "flutter_build_web_release": "PASS_BUILD_WEB",
+    "live_pal_eyes_probe": "PASS",
+    "secret_scan": "PASS_114_FILES",
+    "manifest": "PASS_113_ENTRIES",
+    "github_actions": {
+      "status": "PENDING_PUSH",
+      "run_id": null
+    }
+  },
+  "boundaries": {
+    "pal_eyes_source_mutated": false,
+    "pal_eyes_branch_created": false,
+    "pal_eyes_commit_created": false,
+    "pal_eyes_pull_request_created": false,
+    "pal_eyes_dependencies_installed": false,
+    "pal_eyes_commands_executed": false,
+    "supabase_connected": false,
+    "database_accessed": false,
+    "vercel_mutated": false,
+    "workspace_manager_merged": false,
+    "production_promoted": false,
+    "secret_exposed": false
+  },
+  "blockers": [
+    "REMOTE_CI_PENDING_PUSH"
+  ],
+  "next_action": "COMMIT_PUSH_WAIT_CI_THEN_CLOSE_EVIDENCE"
+}

@@ -38,8 +38,11 @@ def main() -> None:
             }
         )
     manifest = {
-        "batch": "PALWAKF_WORKSPACE_MANAGER_CONNECTED_SERVICE_AND_CHATGPT_MCP_V1",
-        "status": "CONNECTED_SERVICE_SOURCE_VERIFIED_LOCAL_SECURE_MODE",
+        "batch": (
+            "PALWAKF_WORKSPACE_MANAGER_EXTERNAL_PROJECT_INTAKE_"
+            "AND_REALITY_ADAPTER_V1"
+        ),
+        "status": "EXTERNAL_PROJECT_INTAKE_LOCAL_VERIFIED_PENDING_REMOTE_CI",
         "file_count": len(files),
         "files": files,
     }

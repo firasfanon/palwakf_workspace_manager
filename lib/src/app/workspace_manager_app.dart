@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import '../core/theme/palwakf_theme.dart';
 import '../features/orchestrator/presentation/orchestrator_workspace_page.dart';
 import '../features/orchestrator/presentation/tool_health_page.dart';
+import '../features/projects/presentation/external_projects_page.dart';
+import '../features/projects/presentation/project_reality_page.dart';
 
 final workspaceRouterProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
@@ -23,6 +25,18 @@ final workspaceRouterProvider = Provider<GoRouter>((ref) {
             path: ':adapterId',
             builder: (context, state) => ToolHealthPage(
               adapterId: state.pathParameters['adapterId'],
+            ),
+          ),
+        ],
+      ),
+      GoRoute(
+        path: '/projects',
+        builder: (context, state) => const ExternalProjectsPage(),
+        routes: <RouteBase>[
+          GoRoute(
+            path: ':projectId',
+            builder: (context, state) => ProjectRealityPage(
+              projectId: state.pathParameters['projectId']!,
             ),
           ),
         ],

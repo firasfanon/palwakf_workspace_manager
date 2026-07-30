@@ -48,6 +48,11 @@ class _OrchestratorWorkspacePageState
         ),
         actions: <Widget>[
           IconButton(
+            tooltip: 'المشاريع الخارجية',
+            onPressed: () => context.go('/projects'),
+            icon: const Icon(Icons.hub_outlined),
+          ),
+          IconButton(
             tooltip: 'الصحة التشغيلية للأدوات',
             onPressed: () => context.go('/tools'),
             icon: const Icon(Icons.health_and_safety_outlined),

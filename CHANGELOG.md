@@ -46,6 +46,20 @@
   fact provenance, freshness, alerts, and no invented provider values.
 - Deterministic authenticated HTTP/MCP fake-executor smoke and repository
   secret scanner in CI.
+- Persistent external-project registry with authenticated intake, list, detail,
+  read-only probe, reality report, candidate work item, and prepare-only task
+  envelope APIs.
+- Versioned `ExternalProjectRecord`, `ProjectRealityAdapter`,
+  `ExternalProjectRealityReport`, and `ProjectCapabilityProfile` contracts.
+- GitHub repository reality adapter with bounded metadata reads, deterministic
+  fingerprints, stack and command detection, CI discovery, and typed blockers.
+- Local Git reality adapter restricted to exact resolved allowlisted paths and
+  a fixed read-only command set.
+- Arabic RTL project intake, external project registry, and project reality
+  pages with observed HEAD, drift, CI, deployment, tool decisions, and ranked
+  product candidates.
+- Live read-only Pal_Eyes baseline at
+  `c67ff5e28205aac57ff28e8b8120c3bac5de4488`.
 
 ### Boundaries
 
@@ -53,4 +67,4 @@
 - No database write.
 - No production mutation.
 - No secret values.
-- No project source intake yet.
+- External source intake is read-only and performs no project mutation.

@@ -1,0 +1,338 @@
+{
+  "external_mutation": false,
+  "probe_mode": "READ_ONLY_ZERO_MUTATION",
+  "production_mutation": false,
+  "registry_persistence": "PASS_MEMORY_STATE_STORE_ROUND_TRIP",
+  "report": {
+    "adapter": "github_repository",
+    "ahead_by": null,
+    "baseline_fingerprint": "A1A08EB8CBADAC80557511FD1CD82DFBB8720BC837821D5F226CCA71530C457A",
+    "behind_by": null,
+    "blockers": [],
+    "candidate_work_items": [
+      {
+        "acceptance_test": "Widget and store tests reject empty source IDs and zero placeholder coordinates, while a validated candidate remains internal-only.",
+        "blocked": false,
+        "blocker": null,
+        "candidate_id": "PAL_EYES_GIS_CANDIDATE_VALIDATION",
+        "evidence": [
+          "lib/features/workspace/presentation/gis_review_screen.dart",
+          "project_state:r7_0_2_hotfix.gis_review_tasks=4"
+        ],
+        "rank": 1,
+        "rationale": "The current product action creates a candidate with latitude 0, longitude 0, and an empty source identifier.",
+        "title": "Require real coordinate and source evidence in GIS candidate intake"
+      },
+      {
+        "acceptance_test": "Pinned Flutter gates pass and desktop/mobile Arabic RTL browser UAT records no overflow or legacy-label regression.",
+        "blocked": false,
+        "blocker": null,
+        "candidate_id": "PAL_EYES_R8_0_1_RUNTIME_CLOSURE",
+        "evidence": [
+          "docs/project_memory/PAL_EYES_PROJECT_STATE_SNAPSHOT_CURRENT.json",
+          "docs/project_memory/PAL_EYES_SESSION_HANDOFF_CURRENT.md"
+        ],
+        "rank": 2,
+        "rationale": "The canonical state and handoff report BUILT_PENDING_LOCAL_UAT with format, analyze, test, and Browser UAT still pending.",
+        "title": "Close R8.0.1 analyzer, test, and browser acceptance"
+      }
+    ],
+    "capability_profile": {
+      "blocked_tools": [
+        {
+          "adapter_id": "supabase",
+          "disposition": "blocked",
+          "evidence": [
+            "task:SUPABASE_EXCLUDED",
+            "repository_indicator:true"
+          ],
+          "reason": "Task authority prohibits connection, schema, Auth, RLS, Storage, RPC, or data access."
+        }
+      ],
+      "conditional_tools": [
+        {
+          "adapter_id": "vercel",
+          "disposition": "conditional",
+          "evidence": [
+            "NOT_DISCOVERED"
+          ],
+          "reason": "Read-only deployment discovery only when a matching project exists."
+        },
+        {
+          "adapter_id": "local_git",
+          "disposition": "conditional",
+          "evidence": [
+            "allowlist_required"
+          ],
+          "reason": "Available only for an explicitly allowlisted resolved path."
+        },
+        {
+          "adapter_id": "figma",
+          "disposition": "conditional",
+          "evidence": [
+            "read_only_intake_scope"
+          ],
+          "reason": "Excluded from intake; reconsider only for later material UI implementation."
+        }
+      ],
+      "excluded_tools": [
+        {
+          "adapter_id": "canva",
+          "disposition": "excluded",
+          "evidence": [
+            "bounded_minimum_tool_plan"
+          ],
+          "reason": "No concrete repository evidence requires this tool for read-only intake."
+        },
+        {
+          "adapter_id": "academic_research",
+          "disposition": "excluded",
+          "evidence": [
+            "bounded_minimum_tool_plan"
+          ],
+          "reason": "No concrete repository evidence requires this tool for read-only intake."
+        },
+        {
+          "adapter_id": "legal_research",
+          "disposition": "excluded",
+          "evidence": [
+            "bounded_minimum_tool_plan"
+          ],
+          "reason": "No concrete repository evidence requires this tool for read-only intake."
+        },
+        {
+          "adapter_id": "machine_learning",
+          "disposition": "excluded",
+          "evidence": [
+            "bounded_minimum_tool_plan"
+          ],
+          "reason": "No concrete repository evidence requires this tool for read-only intake."
+        },
+        {
+          "adapter_id": "gmail",
+          "disposition": "excluded",
+          "evidence": [
+            "bounded_minimum_tool_plan"
+          ],
+          "reason": "No concrete repository evidence requires this tool for read-only intake."
+        },
+        {
+          "adapter_id": "calendar",
+          "disposition": "excluded",
+          "evidence": [
+            "bounded_minimum_tool_plan"
+          ],
+          "reason": "No concrete repository evidence requires this tool for read-only intake."
+        },
+        {
+          "adapter_id": "contacts",
+          "disposition": "excluded",
+          "evidence": [
+            "bounded_minimum_tool_plan"
+          ],
+          "reason": "No concrete repository evidence requires this tool for read-only intake."
+        }
+      ],
+      "observed_head": "c67ff5e28205aac57ff28e8b8120c3bac5de4488",
+      "profile_version": "PROJECT_CAPABILITY_PROFILE_V1",
+      "project_id": "FIRASFANON_PAL_EYES_3ADCC2FC",
+      "selected_tools": [
+        {
+          "adapter_id": "github_repository",
+          "disposition": "selected",
+          "evidence": [
+            "observed_head:c67ff5e28205aac57ff28e8b8120c3bac5de4488",
+            "github_api:read_only"
+          ],
+          "reason": "Required source-of-truth repository and CI reads."
+        },
+        {
+          "adapter_id": "workspace_manager_orchestrator",
+          "disposition": "selected",
+          "evidence": [
+            "external_project_registry:v1"
+          ],
+          "reason": "Required registry, report, fingerprint, and evidence persistence."
+        }
+      ],
+      "stack": [
+        "Dart",
+        "Flutter",
+        "Flutter Map",
+        "GoRouter",
+        "Riverpod",
+        "Supabase Flutter SDK"
+      ]
+    },
+    "ci": [],
+    "ci_status": "NOT_CONFIGURED",
+    "commands": [
+      {
+        "command": "dart format --output=none --set-exit-if-changed lib test",
+        "evidence": "docs/11_LOCAL_RUN_AND_VALIDATION.md",
+        "executable_in_read_only_probe": false,
+        "purpose": "format"
+      },
+      {
+        "command": "flutter analyze",
+        "evidence": "docs/11_LOCAL_RUN_AND_VALIDATION.md",
+        "executable_in_read_only_probe": false,
+        "purpose": "analyze"
+      },
+      {
+        "command": "flutter test",
+        "evidence": "docs/11_LOCAL_RUN_AND_VALIDATION.md",
+        "executable_in_read_only_probe": false,
+        "purpose": "test"
+      },
+      {
+        "command": "flutter build web --release",
+        "evidence": "docs/11_LOCAL_RUN_AND_VALIDATION.md",
+        "executable_in_read_only_probe": false,
+        "purpose": "build"
+      }
+    ],
+    "default_branch": "main",
+    "deployment_status": "NOT_DISCOVERED",
+    "deployments": [
+      {
+        "environment": null,
+        "evidence": "Vercel sole-team project inventory contains no Pal_Eyes project; repository tree contains no vercel.json",
+        "provider": "vercel",
+        "status": "NOT_DISCOVERED",
+        "url": null
+      }
+    ],
+    "drift_status": "BASELINE_CREATED",
+    "external_mutation_performed": false,
+    "indicators": {
+      "database_migrations": true,
+      "flutter": true,
+      "infrastructure": false,
+      "node": false,
+      "python": false,
+      "supabase": true
+    },
+    "local_clean": null,
+    "observed_at": "2026-07-30T23:05:38Z",
+    "observed_branch": "main",
+    "observed_head": "c67ff5e28205aac57ff28e8b8120c3bac5de4488",
+    "package_managers": [
+      "pub"
+    ],
+    "previous_observed_head": null,
+    "project_id": "FIRASFANON_PAL_EYES_3ADCC2FC",
+    "report_version": "EXTERNAL_PROJECT_REALITY_REPORT_V1",
+    "repository_full_name": "firasfanon/Pal_Eyes",
+    "source_of_truth_references": [
+      {
+        "kind": "github_commit",
+        "observation": "observed immutable repository HEAD",
+        "reference": "https://github.com/firasfanon/Pal_Eyes/commit/c67ff5e28205aac57ff28e8b8120c3bac5de4488"
+      },
+      {
+        "kind": "github_file",
+        "observation": "bounded metadata read",
+        "reference": "https://github.com/firasfanon/Pal_Eyes/blob/c67ff5e28205aac57ff28e8b8120c3bac5de4488/pubspec.yaml"
+      },
+      {
+        "kind": "github_file",
+        "observation": "bounded metadata read",
+        "reference": "https://github.com/firasfanon/Pal_Eyes/blob/c67ff5e28205aac57ff28e8b8120c3bac5de4488/docs/11_LOCAL_RUN_AND_VALIDATION.md"
+      },
+      {
+        "kind": "github_file",
+        "observation": "bounded metadata read",
+        "reference": "https://github.com/firasfanon/Pal_Eyes/blob/c67ff5e28205aac57ff28e8b8120c3bac5de4488/docs/project_memory/PAL_EYES_PROJECT_STATE_SNAPSHOT_CURRENT.json"
+      },
+      {
+        "kind": "github_file",
+        "observation": "bounded metadata read",
+        "reference": "https://github.com/firasfanon/Pal_Eyes/blob/c67ff5e28205aac57ff28e8b8120c3bac5de4488/docs/project_memory/PAL_EYES_SESSION_HANDOFF_CURRENT.md"
+      }
+    ],
+    "stack": [
+      "Dart",
+      "Flutter",
+      "Flutter Map",
+      "GoRouter",
+      "Riverpod",
+      "Supabase Flutter SDK"
+    ],
+    "toolchain_versions": {
+      "application": "8.0.1+27",
+      "dart": ">=3.10.0 <4.0.0",
+      "flutter": ">=3.38.0"
+    },
+    "tree": {
+      "ignored_secret_policy_present": true,
+      "manifest_files": [
+        "pubspec.lock",
+        "pubspec.yaml"
+      ],
+      "scanned_files": 291,
+      "secret_risk_file_names": [
+        ".env.example"
+      ],
+      "source_roots": [
+        "lib"
+      ],
+      "state_files": [
+        "BASELINE_MANIFEST.json",
+        "Install-PalEyesDevelopmentBaseline.ps1",
+        "PAL_EYES_BASELINE_ID.txt",
+        "content_seed/governed/PAL_EYES_HISTORICALLY_REVIEWED_EDITORIAL_BASELINE_V1.json",
+        "docs/12_DEPENDENCY_BASELINE.md",
+        "docs/13_FRESH_BASELINE_INSTALLATION.md",
+        "docs/SESSION_HANDOFF_20260713.md",
+        "docs/SESSION_HANDOFF_20260713_R0_2_0.md",
+        "docs/SESSION_HANDOFF_20260713_R1_0_0.md",
+        "docs/SESSION_HANDOFF_20260714_COMPILE_HOTFIX_R2_0_1.md",
+        "docs/SESSION_HANDOFF_20260714_COMPILE_HOTFIX_R2_0_2.md",
+        "docs/SESSION_HANDOFF_20260714_EXTENSION_IMPORT_HOTFIX_R3_0_1.md",
+        "docs/SESSION_HANDOFF_20260714_FULL_DRAFT_CATALOG_R3_0_0.md",
+        "docs/SESSION_HANDOFF_20260714_INITIAL_BROWSER_ACCEPTED.md",
+        "docs/SESSION_HANDOFF_20260714_R1_0_1.md",
+        "docs/SESSION_HANDOFF_20260714_R1_0_2.md",
+        "docs/SESSION_HANDOFF_20260714_UI_UX_PRODUCTIVE_SURFACES_V1.md",
+        "docs/SESSION_HANDOFF_20260715_GOVERNED_CONTENT_ADOPTION_R5_1_0.md",
+        "docs/SESSION_HANDOFF_20260715_GOVERNED_CONTENT_ADOPTION_R5_1_1.md",
+        "docs/SESSION_HANDOFF_20260715_GOVERNED_CONTENT_ADOPTION_R5_1_2.md",
+        "docs/SESSION_HANDOFF_20260715_HOME_SMOKE_IDENTITY_HOTFIX_R3_0_3.md",
+        "docs/SESSION_HANDOFF_20260715_IMMERSIVE_UI_UX_R4_0_0.md",
+        "docs/SESSION_HANDOFF_20260715_R4_0_1_FORMAT_AWARE_MATERIAL_REPAIR.md",
+        "docs/SESSION_HANDOFF_20260715_R4_0_2_ANALYZER_LAZY_TEST.md",
+        "docs/SESSION_HANDOFF_20260715_R4_0_3_VISUAL_CARD_OVERFLOW.md",
+        "docs/SESSION_HANDOFF_20260715_TEST_CONTRACT_HOTFIX_R3_0_2.md",
+        "docs/SESSION_HANDOFF_20260719_GOVERNED_CONTENT_ADOPTION_R5_1_3.md",
+        "docs/SESSION_HANDOFF_20260719_OPERATIONAL_BACKEND_R7_0_0.md",
+        "docs/SESSION_HANDOFF_20260719_OPERATIONAL_R7_0_1.md",
+        "docs/SESSION_HANDOFF_20260719_OPERATIONAL_R7_0_2.md",
+        "docs/SESSION_HANDOFF_20260719_ORIGINAL_HISTORICAL_DRAFT_R5_2_1.md",
+        "docs/SESSION_HANDOFF_20260719_PRODUCT_UX_PHASES_1_TO_4_R6_0_0.md",
+        "docs/SESSION_HANDOFF_20260719_PRODUCT_UX_R6_0_1.md",
+        "docs/SESSION_HANDOFF_20260719_R6_0_2.md",
+        "docs/SESSION_HANDOFF_20260720_PUBLIC_EXPERIENCE_R8_0_0.md",
+        "docs/SESSION_HANDOFF_20260720_PUBLIC_EXPERIENCE_R8_0_1.md",
+        "docs/project_memory/PAL_EYES_PROJECT_STATE_SNAPSHOT_CURRENT.json",
+        "docs/project_memory/PAL_EYES_SESSION_HANDOFF_CURRENT.md",
+        "evidence/BASELINE_INTEGRITY_REPORT.txt",
+        "evidence/DEVELOPMENT_BASELINE_R1_0_1_EVIDENCE.json",
+        "evidence/DEVELOPMENT_BASELINE_R1_0_1_STATIC_VERIFY.json",
+        "lib/features/operations/data/operational_baseline_mapper.dart",
+        "test/operational_baseline_mapper_contract_test.dart",
+        "tools/Verify-PalEyesDevelopmentBaseline.ps1"
+      ],
+      "test_roots": [
+        "test"
+      ],
+      "total_files": 291,
+      "truncated": false,
+      "workflow_files": []
+    },
+    "visibility": "public"
+  },
+  "secret_values_exposed": false,
+  "supabase_connected": false,
+  "task_id": "PALWAKF_WORKSPACE_MANAGER_EXTERNAL_PROJECT_INTAKE_AND_REALITY_ADAPTER_V1"
+}

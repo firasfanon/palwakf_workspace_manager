@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from functools import lru_cache
 from pathlib import Path
 from socket import gethostname
@@ -42,6 +43,7 @@ class Settings(BaseSettings):
     oauth_authorization_server: str | None = None
     oauth_jwks_url: str | None = None
     oauth_audience: str | None = None
+    local_project_allowlist_json: str = "[]"
 
     @property
     def resolved_state_db_path(self) -> Path:
@@ -70,6 +72,16 @@ class Settings(BaseSettings):
 
     def assert_local_only(self) -> None:
         self.assert_safe_binding()
+
+    @property
+    def local_project_allowlist(self) -> tuple[Path, ...]:
+        try:
+            values = json.loads(self.local_project_allowlist_json)
+        except json.JSONDecodeError as exc:
+            raise RuntimeError("LOCAL_PROJECT_ALLOWLIST_JSON must be valid JSON") from exc
+        if not isinstance(values, list) or not all(isinstance(value, str) for value in values):
+            raise RuntimeError("LOCAL_PROJECT_ALLOWLIST_JSON must be a JSON string array")
+        return tuple(Path(value).resolve() for value in values)
 
 
 @lru_cache
