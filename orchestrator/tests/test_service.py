@@ -12,6 +12,7 @@ from palwakf_orchestrator.contracts import (
     RepositoryState,
     Transport,
 )
+from palwakf_orchestrator.operator_service import OperatorService
 from palwakf_orchestrator.service import OrchestratorService
 from tests.test_contracts import valid_request
 
@@ -132,3 +133,52 @@ async def test_dispatch_endpoint_rejects_remote_host(tmp_path: Path) -> None:
 
     assert response.status_code == 403
     assert response.json()["detail"] == "V1 dispatch is local-only"
+
+
+async def test_capabilities_endpoint_contains_flags_not_environment_values(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "dummy-secret-value")
+    settings = Settings(workspace_root=tmp_path)
+    operator = OperatorService(tmp_path, automatic_agents_available=False)
+    app = create_app(settings, build_service(tmp_path), operator)
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://testserver",
+    ) as client:
+        response = await client.get("/v1/capabilities")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["manual_relay_fallback"] is True
+    assert payload["automatic_agents_available"] is False
+    assert payload["database_connected"] is False
+    assert "dummy-secret-value" not in response.text
+    assert "OPENAI_API_KEY" not in response.text
+
+
+async def test_cors_allows_loopback_flutter_client_only(tmp_path: Path) -> None:
+    app = create_app(Settings(workspace_root=tmp_path), build_service(tmp_path))
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://testserver",
+    ) as client:
+        local = await client.options(
+            "/v1/capabilities",
+            headers={
+                "Origin": "http://localhost:8080",
+                "Access-Control-Request-Method": "GET",
+            },
+        )
+        remote = await client.options(
+            "/v1/capabilities",
+            headers={
+                "Origin": "https://example.com",
+                "Access-Control-Request-Method": "GET",
+            },
+        )
+
+    assert local.headers["access-control-allow-origin"] == "http://localhost:8080"
+    assert "access-control-allow-origin" not in remote.headers

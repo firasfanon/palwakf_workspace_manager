@@ -30,6 +30,16 @@ if ($LASTEXITCODE -ne 0) {
 if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
+Push-Location (Join-Path $repoRoot "orchestrator")
+try {
+    & $python -m mypy
+    if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+    }
+}
+finally {
+    Pop-Location
+}
 & $python -m pytest (Join-Path $repoRoot "orchestrator")
 if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE

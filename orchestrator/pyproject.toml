@@ -19,6 +19,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "httpx==0.28.1",
+  "mypy==1.18.2",
   "pytest==9.1.1",
   "pytest-asyncio==1.4.0",
   "ruff==0.16.0",
@@ -41,3 +42,13 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "ASYNC"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+packages = ["palwakf_orchestrator"]
+mypy_path = "src"
+
+[[tool.mypy.overrides]]
+module = ["codex_cli_bin", "codex_cli_bin.*"]
+ignore_missing_imports = true

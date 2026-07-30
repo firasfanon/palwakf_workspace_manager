@@ -81,7 +81,7 @@ class CodexMcpGateway:
         root_logger = logging.getLogger()
         root_logger.addFilter(noise_filter)
         try:
-            await server.connect()
+            await server.connect()  # type: ignore[no-untyped-call]
             arguments: dict[str, Any] = {
                 "prompt": prompt,
                 "approval-policy": "never",
@@ -93,7 +93,7 @@ class CodexMcpGateway:
                 arguments["model"] = self._settings.codex_model
             result = await server.call_tool("codex", arguments)
         finally:
-            await server.cleanup()
+            await server.cleanup()  # type: ignore[no-untyped-call]
             root_logger.removeFilter(noise_filter)
 
         if getattr(result, "isError", False) or getattr(result, "is_error", False):

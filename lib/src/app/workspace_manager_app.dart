@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/theme/palwakf_theme.dart';
-import '../features/dashboard/presentation/workspace_dashboard_page.dart';
+import '../features/orchestrator/presentation/orchestrator_workspace_page.dart';
 
 final workspaceRouterProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
@@ -12,7 +12,7 @@ final workspaceRouterProvider = Provider<GoRouter>((ref) {
     routes: <RouteBase>[
       GoRoute(
         path: '/',
-        builder: (context, state) => const WorkspaceDashboardPage(),
+        builder: (context, state) => const OrchestratorWorkspacePage(),
       ),
     ],
   );

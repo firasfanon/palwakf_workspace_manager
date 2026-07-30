@@ -66,5 +66,9 @@ jobs:
       - name: Lint orchestrator
         run: python -m ruff check orchestrator
 
+      - name: Typecheck orchestrator
+        working-directory: orchestrator
+        run: python -m mypy
+
       - name: Test orchestrator
         run: python -m pytest orchestrator
