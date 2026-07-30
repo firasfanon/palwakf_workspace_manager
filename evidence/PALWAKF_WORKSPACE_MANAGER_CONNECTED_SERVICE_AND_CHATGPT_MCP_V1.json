@@ -4,6 +4,7 @@
   "repository": "firasfanon/palwakf_workspace_manager",
   "branch": "agent/workspace-manager-foundation-v1",
   "before_head": "94c50e0400ee4f843270f7f505119f2a72c78841",
+  "implementation_commit": "ea6d6dac96357d5b0f72e19a603c3805845364a2",
   "service": {
     "deployment_status": "SOURCE_READY_LOCAL_SECURE_SMOKE_PASS",
     "local_mode": "LOCAL_SECURE_MODE",
@@ -93,7 +94,20 @@
     "connected_transport_smoke": "PASS",
     "secret_scan": "PASS",
     "manifest": "GENERATED_DETERMINISTICALLY",
-    "github_actions": "PENDING_PUSH"
+    "github_actions": {
+      "status": "PASS",
+      "run_id": 30586946323,
+      "run_number": 18,
+      "orchestrator_job": "PASS",
+      "flutter_verify_job": "PASS"
+    },
+    "vercel_preview": {
+      "status": "READY",
+      "deployment_id": "dpl_8vR21nWvyXk7RrvP1CNp71VRJ2ip",
+      "url": "https://palwakf-workspace-manager-n4h09u4ky-firasfanons-projects.vercel.app",
+      "target": null,
+      "browser_uat": "NOT_RUN_LATER_INDEPENDENT_GATE"
+    }
   },
   "chatgpt_connection": {
     "source_readiness": "PASS",
