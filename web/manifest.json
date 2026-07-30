@@ -1,0 +1,11 @@
+{
+  "name": "PalWakf Workspace Manager",
+  "short_name": "PalWakf Workspace",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#F6F7F9",
+  "theme_color": "#123B66",
+  "description": "Sovereign operational-memory control plane for PalWakf.",
+  "orientation": "portrait-primary",
+  "prefer_related_applications": false
+}

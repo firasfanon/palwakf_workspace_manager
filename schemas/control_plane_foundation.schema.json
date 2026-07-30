@@ -1,0 +1,284 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://palwakf.local/schemas/control-plane-foundation-v1.json",
+  "title": "PalWakf Control Plane Foundation",
+  "type": "object",
+  "required": [
+    "projects",
+    "repositories",
+    "tasks",
+    "baselines",
+    "evidence",
+    "drifts",
+    "resumeStates"
+  ],
+  "properties": {
+    "projects": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/project"
+      }
+    },
+    "repositories": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/repository"
+      }
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/task"
+      }
+    },
+    "baselines": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/baseline"
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/evidence"
+      }
+    },
+    "drifts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/drift"
+      }
+    },
+    "resumeStates": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/resumeState"
+      }
+    }
+  },
+  "$defs": {
+    "project": {
+      "type": "object",
+      "required": [
+        "projectKey",
+        "projectName",
+        "verificationStatus",
+        "updatedAt"
+      ],
+      "properties": {
+        "projectKey": {
+          "type": "string",
+          "minLength": 1
+        },
+        "projectName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "verificationStatus": {
+          "enum": [
+            "VERIFIED",
+            "DOCUMENTED_NOT_VERIFIED",
+            "DRIFTED",
+            "UNKNOWN"
+          ]
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    },
+    "repository": {
+      "type": "object",
+      "required": [
+        "repositoryFullName",
+        "defaultBranch",
+        "headSha",
+        "verifiedAt"
+      ],
+      "properties": {
+        "repositoryFullName": {
+          "type": "string",
+          "pattern": "^[^/]+/[^/]+$"
+        },
+        "defaultBranch": {
+          "type": "string"
+        },
+        "headSha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "verifiedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    },
+    "task": {
+      "type": "object",
+      "required": [
+        "taskId",
+        "projectKey",
+        "status",
+        "mode"
+      ],
+      "properties": {
+        "taskId": {
+          "type": "string"
+        },
+        "projectKey": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "READ_ONLY",
+            "MUTATION_REQUIRES_EXPLICIT_AUTHORIZATION",
+            "MUTATION_AUTHORIZED"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "baseline": {
+      "type": "object",
+      "required": [
+        "baselineId",
+        "projectKey",
+        "verificationStatus"
+      ],
+      "properties": {
+        "baselineId": {
+          "type": "string"
+        },
+        "projectKey": {
+          "type": "string"
+        },
+        "commitSha": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sourceHash": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "archiveLocation": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "verificationStatus": {
+          "enum": [
+            "VERIFIED",
+            "DOCUMENTED_NOT_VERIFIED",
+            "DRIFTED",
+            "UNKNOWN"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence": {
+      "type": "object",
+      "required": [
+        "evidenceId",
+        "type",
+        "location",
+        "authoritative"
+      ],
+      "properties": {
+        "evidenceId": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "location": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "authoritative": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "drift": {
+      "type": "object",
+      "required": [
+        "driftId",
+        "severity",
+        "resolved"
+      ],
+      "properties": {
+        "driftId": {
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "LOW",
+            "MEDIUM",
+            "HIGH",
+            "CRITICAL"
+          ]
+        },
+        "resolved": {
+          "type": "boolean"
+        },
+        "expectedState": {
+          "type": "string"
+        },
+        "actualState": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "resumeState": {
+      "type": "object",
+      "required": [
+        "projectKey",
+        "taskId",
+        "updatedAt",
+        "nextAction"
+      ],
+      "properties": {
+        "projectKey": {
+          "type": "string"
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "nextAction": {
+          "type": "string"
+        },
+        "blockers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

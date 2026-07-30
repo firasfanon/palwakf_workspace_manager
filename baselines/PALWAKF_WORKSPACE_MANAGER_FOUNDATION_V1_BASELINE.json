@@ -1,0 +1,20 @@
+{
+  "baseline_id": "PALWAKF_WORKSPACE_MANAGER_FOUNDATION_V1_CANDIDATE_20260729",
+  "repository": "firasfanon/palwakf_workspace_manager",
+  "branch": "agent/workspace-manager-foundation-v1",
+  "status": "CANDIDATE_PENDING_CI",
+  "version": "0.1.0+1",
+  "boundaries": {
+    "database_write": false,
+    "production_mutation": false,
+    "secret_values": false,
+    "platform_repository_mutation": false
+  },
+  "acceptance_required": [
+    "DART_FORMAT_PASS",
+    "FLUTTER_ANALYZE_PASS",
+    "FLUTTER_TEST_PASS",
+    "FLUTTER_BUILD_WEB_PASS"
+  ],
+  "created_at": "2026-07-29T10:23:00+03:00"
+}
