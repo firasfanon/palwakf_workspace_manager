@@ -79,3 +79,22 @@ ORCHESTRATOR_CODEX_APPROVALS=DENY_ALL
 
 The backend verifies the repository branch, clean worktree, local HEAD, and
 remote HEAD before every dispatch. See `orchestrator/README.md`.
+
+## Self-Hosting Operational Loop V1
+
+The first screen is an Arabic RTL operator workspace backed by typed local HTTP
+contracts for task creation, dispatch, status, continue, cancel, independent
+verification, manual relay, capability routing, tool decisions, invocation
+receipts, and planned-versus-actual reconciliation.
+
+```text
+AUTOMATIC_MODE=PRIMARY
+USER_RELAY_FALLBACK=CONTROLLED
+USER_RELAY_IS_AUTOMATIC_ACCEPTANCE=FALSE
+DATABASE_CONNECTED=FALSE
+PRODUCTION_ACTIONS=ABSENT
+```
+
+The Flutter client reads its non-secret API base URL from
+`ORCHESTRATOR_API_BASE_URL` through `--dart-define`. The default is the local
+loopback service at `http://127.0.0.1:8421`.

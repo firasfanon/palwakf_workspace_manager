@@ -1,0 +1,25 @@
+{
+  "task_id": "ADD_RUNTIME_CAPABILITIES_ENDPOINT_AND_SURFACE",
+  "thread_id": "019fb358-3870-73d0-863b-c1b9a2dfb288",
+  "before_head": "fa12a9b2f7cd50258644ac88f77beae22ba150b8",
+  "after_head": "6d0f274dbcd3aa62ab75aeaad87de4a6ef201853",
+  "branch": "agent/workspace-manager-foundation-v1",
+  "commit_sha": "6d0f274dbcd3aa62ab75aeaad87de4a6ef201853",
+  "ci_result": "success",
+  "verification_status": "verified",
+  "changed_files": [
+    "lib/src/features/orchestrator/presentation/orchestrator_workspace_page.dart",
+    "test/orchestrator_workspace_test.dart"
+  ],
+  "tests": [
+    "ruff:PASS",
+    "mypy:PASS",
+    "pytest:35_PASS",
+    "flutter_analyze:PASS",
+    "flutter_test:12_PASS",
+    "flutter_build_web_release:PASS",
+    "github_actions:30568842057_PASS"
+  ],
+  "blocker": "Persisted probe thread stopped before shell tool outputs; product change was completed by the current authorized Codex task",
+  "next_action": "Repair Codex workspace-write shell tool output delivery and resume the same thread and idempotency key without creating another execution"
+}

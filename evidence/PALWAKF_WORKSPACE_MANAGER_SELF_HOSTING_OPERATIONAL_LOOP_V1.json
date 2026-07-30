@@ -1,0 +1,98 @@
+{
+  "task_id": "PALWAKF_WORKSPACE_MANAGER_SELF_HOSTING_OPERATIONAL_LOOP_V1",
+  "status": "IMPLEMENTED_WITH_SELF_HOSTING_PROBE_RUNTIME_BLOCKER",
+  "repository": "firasfanon/palwakf_workspace_manager",
+  "branch": "agent/workspace-manager-foundation-v1",
+  "before_head": "dd6151208e4eb81463045c095a5efde430370897",
+  "implementation_commit": "fa12a9b2f7cd50258644ac88f77beae22ba150b8",
+  "probe_commit": "6d0f274dbcd3aa62ab75aeaad87de4a6ef201853",
+  "manual_dispatch": {
+    "task_id": "ADD_RUNTIME_CAPABILITIES_ENDPOINT_AND_SURFACE",
+    "dispatch_mode": "USER_RELAY_FALLBACK",
+    "automatic_failure_code": "OPENAI_API_PROJECT_INSUFFICIENT_QUOTA",
+    "expected_head": "fa12a9b2f7cd50258644ac88f77beae22ba150b8",
+    "idempotency_key": "palwakf-self-hosting-capabilities-v1",
+    "package_receipt": "manual-2fd1027cb687e2d9faac6ead",
+    "canonical_envelope_sha256": "2fd1027cb687e2d9faac6eadcd8be014652d1bd9bedd98155229725c29f90546",
+    "generated_at": "2026-07-30T14:05:28.376995Z",
+    "repeated_package_same_receipt": true,
+    "automatic_connectivity_acceptance": false
+  },
+  "self_hosting_probe": {
+    "persisted_thread_id": "019fb358-3870-73d0-863b-c1b9a2dfb288",
+    "thread_count": 1,
+    "same_thread_resumed": true,
+    "tool_execution_reached": false,
+    "source_mutation_by_probe_thread": false,
+    "status": "BLOCKED_CODEX_WORKSPACE_WRITE_SHELL_RUNTIME",
+    "blocker": "Both turns stopped after shell function calls without tool outputs",
+    "product_change_committed": true,
+    "product_change_provenance": "CURRENT_AUTHORIZED_CODEX_TASK"
+  },
+  "http_smoke": {
+    "status": "PASS",
+    "head": "6d0f274dbcd3aa62ab75aeaad87de4a6ef201853",
+    "health": "PASS",
+    "capabilities": "PASS",
+    "capability_registry": "PASS",
+    "project_tool_profile": "PASS",
+    "tool_plan_blocked": false,
+    "automatic_status": "failed",
+    "repeated_manual_package_same_receipt": true,
+    "manual_connectivity_acceptance": false,
+    "manual_ack": "PASS"
+  },
+  "mcp_smoke": {
+    "status": "PASS",
+    "transport": "mcp",
+    "thread_id": "019fb434-47f5-73f0-8325-373a3df4fd6a",
+    "response_present": true,
+    "workspace_mutation": false
+  },
+  "validation": {
+    "ruff": "PASS",
+    "mypy": "PASS_14_SOURCE_FILES",
+    "pytest": "PASS_35_TESTS",
+    "dart_format": "PASS",
+    "flutter_analyze": "PASS",
+    "flutter_test": "PASS_12_TESTS",
+    "flutter_build_web_release": "PASS",
+    "secret_scan": "PASS",
+    "manifest": "PASS_DETERMINISTIC_SHA256",
+    "github_actions": {
+      "status": "PASS",
+      "run_id": 30568842057,
+      "verify_job": "PASS",
+      "orchestrator_job": "PASS"
+    },
+    "vercel_preview": {
+      "status": "READY",
+      "deployment_id": "dpl_Dp92Yheby5AQhV924bwgqG8Rukq8",
+      "url": "https://palwakf-workspace-manager-inncc5bth-firasfanons-projects.vercel.app",
+      "target": null
+    }
+  },
+  "acceptance_gates": {
+    "G1_ORCHESTRATOR_API_CLIENT": "PASS",
+    "G2_OPERATOR_TASK_UI": "PASS",
+    "G3_LIVE_CODEX_THREAD_CREATED": "PASS_EXECUTION_BLOCKED",
+    "G4_IDEMPOTENT_REPEAT_NO_SECOND_THREAD": "PASS",
+    "G5_SELF_HOSTING_PRODUCT_CHANGE_COMMITTED": "PASS",
+    "G6_TESTS_AND_CI": "PASS",
+    "G7_INDEPENDENT_RESULT_VERIFICATION": "PASS",
+    "G8_CHECKPOINT_AND_RESUME": "PASS",
+    "G9_USER_RELAY_FALLBACK_OPERATIONAL": "PASS",
+    "G10_MANUAL_RESULT_INDEPENDENT_VERIFICATION": "BLOCKED_PROBE_THREAD_NO_RESULT",
+    "G11_PROJECT_AWARE_CAPABILITY_ROUTER": "PASS",
+    "G12_TOOL_DECISION_TRACE": "PASS",
+    "G13_PLANNED_VS_ACTUAL_TOOL_RECONCILIATION": "PASS"
+  },
+  "boundaries": {
+    "merge_performed": false,
+    "production_promoted": false,
+    "supabase_connected": false,
+    "database_write": false,
+    "secret_exposed": false,
+    "automatic_gate_claimed_from_manual_relay": false
+  }
+}

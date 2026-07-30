@@ -25,6 +25,14 @@
 - In-process dispatch idempotency with stable execution receipts and Codex
   thread reuse.
 - Guarded live Agents startup and deterministic read-only live smoke harness.
+- Arabic RTL self-hosting operator workspace with typed local Orchestrator
+  client, bounded polling, recoverable errors, and independent verification.
+- Governed task lifecycle APIs for create, status, dispatch, continue, cancel,
+  verify, manual relay packaging, acknowledgement, and result import.
+- Versioned capability registry, project tool profiles, minimum-adapter routing,
+  persisted selection reasons, invocation receipts, and reconciliation.
+- Deterministic runtime capabilities endpoint and operator capability card.
+- Self-hosting checkpoint schema and machine-readable operational evidence.
 
 ### Boundaries
 

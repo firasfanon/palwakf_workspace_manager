@@ -52,3 +52,23 @@
   inherited key, or explicitly authorize a funded project key, then rerun the
   same governed smoke.
 - **Security:** No key value was printed, persisted, copied, or committed.
+
+## Record 004 - Persisted Codex probe thread stalled before tool output
+
+- **Date:** 2026-07-30.
+- **Thread:** `019fb358-3870-73d0-863b-c1b9a2dfb288`.
+- **Cause:** Both the initial turn and same-thread resume emitted shell function
+  calls but received no tool outputs through the Codex SDK workspace-write
+  runtime.
+- **Impact:** A real persisted thread exists, but it did not execute a source
+  mutation or return a final result. Manual relay is not counted as automatic
+  connectivity acceptance.
+- **Idempotency:** The same manual package receipt and thread were reused; no
+  second thread was created.
+- **Product status:** The current authorized Codex task completed and committed
+  the bounded runtime capability card. Local tests, GitHub Actions, and Preview
+  verification pass.
+- **Resolution gate:** Repair workspace-write shell result delivery and resume
+  the same thread and idempotency key.
+- **Security:** No secret, database, Supabase, merge, or Production operation
+  occurred.
