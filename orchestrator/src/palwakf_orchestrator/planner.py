@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 from typing import Protocol
 
@@ -9,8 +8,13 @@ from agents import Agent, ModelSettings, RunConfig, Runner
 from openai.types.shared import Reasoning
 
 from palwakf_orchestrator.config import Settings
-from palwakf_orchestrator.contracts import DispatchPlan, DispatchRequest, RepositoryState
-from palwakf_orchestrator.errors import GatewayError
+from palwakf_orchestrator.contracts import (
+    DispatchPlan,
+    DispatchRequest,
+    PlanningResult,
+    RepositoryState,
+)
+from palwakf_orchestrator.credentials import require_openai_api_key
 
 
 class Planner(Protocol):
@@ -18,7 +22,7 @@ class Planner(Protocol):
         self,
         request: DispatchRequest,
         repository_state: RepositoryState,
-    ) -> DispatchPlan: ...
+    ) -> PlanningResult: ...
 
 
 class AgentsPlanner:
@@ -32,9 +36,8 @@ class AgentsPlanner:
         self,
         request: DispatchRequest,
         repository_state: RepositoryState,
-    ) -> DispatchPlan:
-        if not os.environ.get("OPENAI_API_KEY"):
-            raise GatewayError("OPENAI_API_KEY is unavailable to the orchestrator runtime")
+    ) -> PlanningResult:
+        require_openai_api_key()
         instructions = self._prompt_path.read_text(encoding="utf-8")
         agent = Agent(
             name="PalWakf Sovereign Dispatch Planner",
@@ -60,6 +63,12 @@ class AgentsPlanner:
                 trace_include_sensitive_data=False,
             ),
         )
-        if isinstance(result.final_output, DispatchPlan):
-            return result.final_output
-        return DispatchPlan.model_validate(result.final_output)
+        plan = (
+            result.final_output
+            if isinstance(result.final_output, DispatchPlan)
+            else DispatchPlan.model_validate(result.final_output)
+        )
+        return PlanningResult(
+            plan=plan,
+            agents_response_id=result.last_response_id,
+        )

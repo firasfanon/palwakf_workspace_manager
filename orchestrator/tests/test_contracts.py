@@ -11,6 +11,7 @@ def valid_request() -> dict:
         "repository": "firasfanon/palwakf_workspace_manager",
         "branch": "agent/workspace-manager-foundation-v1",
         "expected_head": "a312d498",
+        "idempotency_key": "palwakf-test-001",
         "transport": "sdk",
         "boundaries": {
             "workspace_write": False,

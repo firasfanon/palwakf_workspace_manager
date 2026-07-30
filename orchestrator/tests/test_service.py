@@ -8,6 +8,7 @@ from palwakf_orchestrator.contracts import (
     DispatchPlan,
     DispatchRequest,
     GatewayResult,
+    PlanningResult,
     RepositoryState,
     Transport,
 )
@@ -32,15 +33,21 @@ class FakeGate:
 
 
 class FakePlanner:
+    calls = 0
+
     async def plan(
         self,
         request: DispatchRequest,
         repository_state: RepositoryState,
-    ) -> DispatchPlan:
-        return DispatchPlan(
-            summary="Read-only inspection",
-            codex_prompt=f"Inspect without writes: {request.prompt}",
-            requires_workspace_write=False,
+    ) -> PlanningResult:
+        self.calls += 1
+        return PlanningResult(
+            plan=DispatchPlan(
+                summary="Read-only inspection",
+                codex_prompt=f"Inspect without writes: {request.prompt}",
+                requires_workspace_write=False,
+            ),
+            agents_response_id="resp-test",
         )
 
 
@@ -74,8 +81,30 @@ async def test_dispatch_uses_planner_and_selected_gateway(tmp_path: Path) -> Non
     response = await build_service(tmp_path).dispatch(request)
 
     assert response.status == "completed"
+    assert response.agents_response_id == "resp-test"
     assert response.codex_thread_id == "thread-test"
     assert response.boundaries.production_mutation is False
+
+
+async def test_duplicate_idempotency_reuses_execution(tmp_path: Path) -> None:
+    request = DispatchRequest.model_validate(valid_request())
+    planner = FakePlanner()
+    settings = Settings(workspace_root=tmp_path)
+    service = OrchestratorService(
+        settings,
+        gate=FakeGate(),
+        planner=planner,
+        gateways={Transport.sdk: FakeGateway(), Transport.mcp: FakeGateway()},
+    )
+
+    first = await service.dispatch(request)
+    second = await service.dispatch(request)
+
+    assert planner.calls == 1
+    assert first.execution_receipt == second.execution_receipt
+    assert first.codex_thread_id == second.codex_thread_id
+    assert first.idempotency_replayed is False
+    assert second.idempotency_replayed is True
 
 
 async def test_health_endpoint_is_local_read_only_contract(tmp_path: Path) -> None:

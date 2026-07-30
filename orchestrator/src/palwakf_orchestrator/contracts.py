@@ -28,6 +28,7 @@ class DispatchRequest(BaseModel):
     repository: Literal["firasfanon/palwakf_workspace_manager"]
     branch: Literal["agent/workspace-manager-foundation-v1"]
     expected_head: str = Field(pattern=r"^[0-9a-fA-F]{7,40}$")
+    idempotency_key: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$")
     transport: Transport = Transport.sdk
     boundaries: SovereigntyBoundaries = Field(default_factory=SovereigntyBoundaries)
 
@@ -38,6 +39,11 @@ class DispatchPlan(BaseModel):
     summary: str = Field(min_length=1, max_length=1_000)
     codex_prompt: str = Field(min_length=10, max_length=30_000)
     requires_workspace_write: bool = False
+
+
+class PlanningResult(BaseModel):
+    plan: DispatchPlan
+    agents_response_id: str | None = None
 
 
 class RepositoryState(BaseModel):
@@ -59,8 +65,12 @@ class DispatchResponse(BaseModel):
     task_id: str
     status: Literal["completed"]
     transport: Transport
+    execution_receipt: str
+    idempotency_key: str
+    idempotency_replayed: bool
     repository_state: RepositoryState
     plan_summary: str
+    agents_response_id: str | None = None
     codex_thread_id: str | None = None
     final_response: str
     boundaries: SovereigntyBoundaries

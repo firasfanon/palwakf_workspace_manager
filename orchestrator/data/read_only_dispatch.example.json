@@ -4,6 +4,7 @@
   "repository": "firasfanon/palwakf_workspace_manager",
   "branch": "agent/workspace-manager-foundation-v1",
   "expected_head": "0000000",
+  "idempotency_key": "palwakf-read-only-inspection-001",
   "transport": "sdk",
   "boundaries": {
     "workspace_write": false,
