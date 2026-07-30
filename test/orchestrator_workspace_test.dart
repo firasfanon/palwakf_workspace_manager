@@ -113,9 +113,12 @@ void main() {
     expect(find.text('حلقة التشغيل الذاتي V1'), findsOneWidget);
     expect(find.text('صف المهام'), findsOneWidget);
     expect(find.text('ترحيل المستخدم'), findsOneWidget);
-    expect(find.text('محجوب'), findsOneWidget);
+    expect(find.text('Runtime Capabilities'), findsOneWidget);
+    expect(find.text('Automatic Agents'), findsOneWidget);
+    expect(find.text('Database'), findsOneWidget);
+    expect(find.text('محجوب'), findsWidgets);
     expect(find.byTooltip('مهمة جديدة'), findsOneWidget);
-    expect(find.textContaining('Merge'), findsNothing);
-    expect(find.textContaining('Production'), findsNothing);
+    expect(find.text('Merge'), findsNothing);
+    expect(find.text('Production'), findsNothing);
   });
 }

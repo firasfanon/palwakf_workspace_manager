@@ -423,8 +423,10 @@ class _TaskDetail extends StatelessWidget {
   Widget build(BuildContext context) {
     final task = state.selectedTask;
     if (task == null) {
-      return const Center(
-        child: Text('اختر مهمة أو أنشئ مهمة جديدة لبدء العمل.'),
+      return Center(
+        child: _RuntimeCapabilitiesCard(
+          capabilities: state.capabilities,
+        ),
       );
     }
     return DefaultTabController(
@@ -462,6 +464,71 @@ class _TaskDetail extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _RuntimeCapabilitiesCard extends StatelessWidget {
+  const _RuntimeCapabilitiesCard({required this.capabilities});
+
+  final RuntimeCapabilities? capabilities;
+
+  @override
+  Widget build(BuildContext context) {
+    final values = <String, bool>{
+      'Task lifecycle': capabilities?.taskLifecycle ?? false,
+      'Manual relay': capabilities?.manualRelayFallback ?? false,
+      'Capability routing': capabilities?.capabilityRouting ?? false,
+      'Tool trace': capabilities?.toolDecisionTrace ?? false,
+      'Reconciliation': capabilities?.reconciliation ?? false,
+      'Automatic Agents': capabilities?.automaticAgentsAvailable ?? false,
+      'Database': capabilities?.databaseConnected ?? false,
+      'Production mutation': capabilities?.productionMutation ?? false,
+    };
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 540),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              const _SectionTitle(
+                icon: Icons.memory_outlined,
+                title: 'Runtime Capabilities',
+              ),
+              const SizedBox(height: 8),
+              const Text('اختر مهمة أو أنشئ مهمة جديدة لبدء العمل.'),
+              const SizedBox(height: 16),
+              ...values.entries.map(
+                (entry) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: <Widget>[
+                      Icon(
+                        entry.value
+                            ? Icons.check_circle_outline
+                            : Icons.block_outlined,
+                        size: 18,
+                        color: entry.value
+                            ? PalWakfTheme.successGreen
+                            : PalWakfTheme.royalRed,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(entry.key)),
+                      Text(
+                        entry.value ? 'متاح' : 'محجوب',
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
