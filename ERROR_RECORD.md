@@ -28,3 +28,27 @@
 - **Resolution gate:** Inject `OPENAI_API_KEY` into the orchestrator process at
   runtime, then rerun the full Agents-to-Codex dispatch.
 - **Security:** No key value was printed, copied, or committed.
+
+## Resolution 002 - 2026-07-30
+
+- The stale Codex Desktop process environment was the root cause.
+- Governed launchers now inherit the key from Windows User or Machine scope into
+  process memory only when the current process does not already contain it.
+- Direct Python and uv-launched Python both report `SET` with source class
+  `windows_user_inherited`; the value is never reported.
+- Repository dotenv loading was removed.
+
+## Record 003 - OpenAI API project quota unavailable
+
+- **Date:** 2026-07-30.
+- **Cause:** The real Agents SDK request returned HTTP 429 with error code
+  `insufficient_quota`.
+- **Impact:** Agents SDK started a real request, but no planner response,
+  execution receipt, Codex thread, final response, or live duplicate replay
+  could be produced.
+- **Source status:** Runtime inheritance, fail-closed startup, lint, 16 tests,
+  offline idempotency, HEAD stability, and secret scans pass.
+- **Resolution gate:** Enable API quota for the project associated with the
+  inherited key, or explicitly authorize a funded project key, then rerun the
+  same governed smoke.
+- **Security:** No key value was printed, persisted, copied, or committed.

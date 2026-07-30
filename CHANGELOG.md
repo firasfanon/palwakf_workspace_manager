@@ -20,6 +20,11 @@
 - Repository, branch, clean-worktree, local-HEAD, and remote-HEAD governance gates.
 - Local-only FastAPI health and dispatch endpoints with remote-host rejection.
 - Python lint, contract tests, and CI verification without secret-dependent calls.
+- Safe process-only OpenAI credential presence probe and Windows environment
+  inheritance launchers.
+- In-process dispatch idempotency with stable execution receipts and Codex
+  thread reuse.
+- Guarded live Agents startup and deterministic read-only live smoke harness.
 
 ### Boundaries
 
