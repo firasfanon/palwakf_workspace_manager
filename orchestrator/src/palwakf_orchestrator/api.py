@@ -4,7 +4,7 @@ import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from starlette.middleware.base import RequestResponseEndpoint
@@ -25,6 +25,13 @@ from palwakf_orchestrator.connected_contracts import (
     VerifyCommand,
 )
 from palwakf_orchestrator.connected_service import ConnectedApplicationService
+from palwakf_orchestrator.dashboard_contracts import (
+    DashboardSummary,
+    EvidenceIndexItem,
+    OperationalAlertSummary,
+    RecentActivityItem,
+)
+from palwakf_orchestrator.dashboard_service import DashboardAggregationService
 from palwakf_orchestrator.errors import GovernanceError
 from palwakf_orchestrator.mcp_server import create_mcp_server
 from palwakf_orchestrator.operator_contracts import (
@@ -114,10 +121,19 @@ def create_app(
         },
         resolved_store,
     )
+    dashboard = DashboardAggregationService(
+        resolved_operator,
+        resolved_projects,
+        connected,
+        resolved_store,
+        resolved_settings.workspace_root,
+        stale_seconds=resolved_settings.stale_project_seconds,
+    )
     limiter = BoundedRateLimiter(resolved_settings.requests_per_minute)
     mcp_http_app = create_mcp_server(
         connected,
         resolved_auth,
+        dashboard,
     ).streamable_http_app()
 
     @asynccontextmanager
@@ -138,6 +154,7 @@ def create_app(
     )
     app.state.connected_service = connected
     app.state.project_service = resolved_projects
+    app.state.dashboard_service = dashboard
     app.add_middleware(
         CORSMiddleware,
         allow_origin_regex=r"^https?://(127\.0\.0\.1|localhost)(:\d+)?$",
@@ -189,6 +206,26 @@ def create_app(
     @app.get("/v1/queue", response_model=QueueSnapshot)
     async def queue() -> QueueSnapshot:
         return connected.queue_snapshot()
+
+    @app.get("/v1/dashboard/summary", response_model=DashboardSummary)
+    async def dashboard_summary() -> DashboardSummary:
+        return dashboard.summary()
+
+    @app.get("/v1/dashboard/activity", response_model=list[RecentActivityItem])
+    async def dashboard_activity(
+        limit: int = Query(default=30, ge=1, le=100),
+    ) -> list[RecentActivityItem]:
+        return dashboard.activity(limit)
+
+    @app.get("/v1/alerts", response_model=list[OperationalAlertSummary])
+    async def operational_alerts() -> list[OperationalAlertSummary]:
+        return dashboard.alerts()
+
+    @app.get("/v1/evidence", response_model=list[EvidenceIndexItem])
+    async def evidence_index(
+        limit: int = Query(default=50, ge=1, le=100),
+    ) -> list[EvidenceIndexItem]:
+        return dashboard.evidence(limit)
 
     @app.post("/v1/connected/tasks/dispatch", response_model=ConnectedTaskReceipt)
     async def connected_dispatch(

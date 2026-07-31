@@ -4,40 +4,68 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/theme/palwakf_theme.dart';
+import '../features/dashboard/presentation/operational_list_pages.dart';
+import '../features/dashboard/presentation/workspace_dashboard_page.dart';
 import '../features/orchestrator/presentation/orchestrator_workspace_page.dart';
 import '../features/orchestrator/presentation/tool_health_page.dart';
 import '../features/projects/presentation/external_projects_page.dart';
 import '../features/projects/presentation/project_reality_page.dart';
+import 'workspace_application_shell.dart';
 
 final workspaceRouterProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
-    initialLocation: '/',
+    initialLocation: '/dashboard',
     routes: <RouteBase>[
-      GoRoute(
-        path: '/',
-        builder: (context, state) => const OrchestratorWorkspacePage(),
-      ),
-      GoRoute(
-        path: '/tools',
-        builder: (context, state) => const ToolHealthPage(),
+      GoRoute(path: '/', redirect: (_, __) => '/dashboard'),
+      ShellRoute(
+        builder: (context, state, child) => WorkspaceApplicationShell(
+          location: state.uri.path,
+          child: child,
+        ),
         routes: <RouteBase>[
           GoRoute(
-            path: ':adapterId',
-            builder: (context, state) => ToolHealthPage(
-              adapterId: state.pathParameters['adapterId'],
-            ),
+            path: '/dashboard',
+            builder: (context, state) => const WorkspaceDashboardPage(),
           ),
-        ],
-      ),
-      GoRoute(
-        path: '/projects',
-        builder: (context, state) => const ExternalProjectsPage(),
-        routes: <RouteBase>[
           GoRoute(
-            path: ':projectId',
-            builder: (context, state) => ProjectRealityPage(
-              projectId: state.pathParameters['projectId']!,
-            ),
+            path: '/tasks',
+            builder: (context, state) => const OrchestratorWorkspacePage(),
+          ),
+          GoRoute(
+            path: '/tools',
+            builder: (context, state) => const ToolHealthPage(),
+            routes: <RouteBase>[
+              GoRoute(
+                path: ':adapterId',
+                builder: (context, state) => ToolHealthPage(
+                  adapterId: state.pathParameters['adapterId'],
+                ),
+              ),
+            ],
+          ),
+          GoRoute(
+            path: '/projects',
+            builder: (context, state) => const ExternalProjectsPage(),
+            routes: <RouteBase>[
+              GoRoute(
+                path: ':projectId',
+                builder: (context, state) => ProjectRealityPage(
+                  projectId: state.pathParameters['projectId']!,
+                ),
+              ),
+            ],
+          ),
+          GoRoute(
+            path: '/alerts',
+            builder: (context, state) => const OperationalAlertsPage(),
+          ),
+          GoRoute(
+            path: '/evidence',
+            builder: (context, state) => const EvidenceIndexPage(),
+          ),
+          GoRoute(
+            path: '/settings/connections',
+            builder: (context, state) => const ConnectionsPage(),
           ),
         ],
       ),

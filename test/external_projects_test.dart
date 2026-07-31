@@ -131,7 +131,10 @@ Widget app(Widget child, FakeExternalProjectApi api) {
     ],
     child: MaterialApp(
       locale: const Locale('ar'),
-      home: Directionality(textDirection: TextDirection.rtl, child: child),
+      home: Directionality(
+        textDirection: TextDirection.rtl,
+        child: Scaffold(body: child),
+      ),
     ),
   );
 }
@@ -166,23 +169,19 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('BASELINE_CREATED'), findsOneWidget);
+    await tester.tap(find.text('الواقع'));
+    await tester.pumpAndSettle();
     expect(find.text('flutter test'), findsOneWidget);
     expect(find.text('NOT_DISCOVERED'), findsWidgets);
-    final scrollable = find.byType(Scrollable).last;
-    await tester.scrollUntilVisible(
-      find.text('supabase'),
-      500,
-      scrollable: scrollable,
-    );
+    await tester.tap(find.text('ملف الأدوات'));
+    await tester.pumpAndSettle();
     expect(find.text('supabase'), findsOneWidget);
     expect(find.text('blocked'), findsOneWidget);
-    await tester.scrollUntilVisible(
-      find.text('التحقق من مدخلات مرشح GIS'),
-      500,
-      scrollable: scrollable,
-    );
+    await tester.tap(find.text('العمل المرشح'));
+    await tester.pumpAndSettle();
     expect(find.text('التحقق من مدخلات مرشح GIS'), findsOneWidget);
 
+    final scrollable = find.byType(Scrollable).last;
     await tester.scrollUntilVisible(
       find.text('تجهيز غلاف مهمة'),
       300,

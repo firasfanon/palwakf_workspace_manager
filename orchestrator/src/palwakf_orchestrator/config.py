@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     worker_count: int = Field(default=2, ge=1, le=16)
     requests_per_minute: int = Field(default=60, ge=1, le=10_000)
     stale_task_seconds: int = Field(default=3_600, ge=60, le=86_400)
+    stale_project_seconds: int = Field(default=86_400, ge=300, le=2_592_000)
     public_base_url: str | None = None
     oauth_authorization_server: str | None = None
     oauth_jwks_url: str | None = None

@@ -26,67 +26,40 @@ class _ExternalProjectsPageState extends ConsumerState<ExternalProjectsPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(externalProjectsControllerProvider);
     final controller = ref.read(externalProjectsControllerProvider.notifier);
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          tooltip: 'مساحة التشغيل',
-          onPressed: () => context.go('/'),
-          icon: const Icon(Icons.arrow_forward),
-        ),
-        title: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text('المشاريع الخارجية'),
-            Text(
-              'قراءة الواقع دون تعديل المصدر',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w400),
-            ),
-          ],
-        ),
-        actions: <Widget>[
-          IconButton(
-            tooltip: 'تحديث السجل',
-            onPressed: state.loading ? null : controller.load,
-            icon: const Icon(Icons.refresh),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: SafeArea(
-        child: Column(
-          children: <Widget>[
-            if (state.loading) const LinearProgressIndicator(minHeight: 2),
-            if (state.error != null)
-              _ErrorBand(message: state.error!, onRetry: controller.load),
-            Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final intake = _ProjectIntakePanel(
-                    onSubmit: controller.intake,
-                  );
-                  final registry = _ProjectRegistry(projects: state.projects);
-                  if (constraints.maxWidth < 820) {
-                    return ListView(
-                      children: <Widget>[
-                        intake,
-                        const Divider(height: 1),
-                        SizedBox(height: 520, child: registry),
-                      ],
-                    );
-                  }
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Material(
+      child: Column(
+        children: <Widget>[
+          if (state.loading) const LinearProgressIndicator(minHeight: 2),
+          if (state.error != null)
+            _ErrorBand(message: state.error!, onRetry: controller.load),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final intake = _ProjectIntakePanel(
+                  onSubmit: controller.intake,
+                );
+                final registry = _ProjectRegistry(projects: state.projects);
+                if (constraints.maxWidth < 820) {
+                  return ListView(
                     children: <Widget>[
-                      SizedBox(width: 350, child: intake),
-                      const VerticalDivider(width: 1),
-                      Expanded(child: registry),
+                      intake,
+                      const Divider(height: 1),
+                      SizedBox(height: 520, child: registry),
                     ],
                   );
-                },
-              ),
+                }
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    SizedBox(width: 350, child: intake),
+                    const VerticalDivider(width: 1),
+                    Expanded(child: registry),
+                  ],
+                );
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -256,14 +229,23 @@ class _AuthorityFact extends StatelessWidget {
   }
 }
 
-class _ProjectRegistry extends StatelessWidget {
+class _ProjectRegistry extends StatefulWidget {
   const _ProjectRegistry({required this.projects});
 
   final List<ExternalProject> projects;
 
   @override
+  State<_ProjectRegistry> createState() => _ProjectRegistryState();
+}
+
+class _ProjectRegistryState extends State<_ProjectRegistry> {
+  String _query = '';
+  String _status = 'all';
+  String _sort = 'name';
+
+  @override
   Widget build(BuildContext context) {
-    if (projects.isEmpty) {
+    if (widget.projects.isEmpty) {
       return const Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -275,73 +257,191 @@ class _ProjectRegistry extends StatelessWidget {
         ),
       );
     }
-    return ListView.separated(
-      padding: const EdgeInsets.all(20),
-      itemCount: projects.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
-      itemBuilder: (context, index) {
-        final project = projects[index];
-        return Card(
-          child: InkWell(
-            onTap: () => context.go('/projects/${project.projectId}'),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
+    final statuses = widget.projects.map((item) => item.status).toSet().toList()
+      ..sort();
+    final visible = widget.projects.where((project) {
+      final query = _query.trim().toLowerCase();
+      final matchesQuery = query.isEmpty ||
+          project.displayName.toLowerCase().contains(query) ||
+          project.repositoryFullName.toLowerCase().contains(query) ||
+          project.stack.any((value) => value.toLowerCase().contains(query));
+      return matchesQuery && (_status == 'all' || project.status == _status);
+    }).toList(growable: true);
+    visible.sort((left, right) {
+      return switch (_sort) {
+        'status' => left.status.compareTo(right.status),
+        'head' => (left.observedHead ?? '').compareTo(right.observedHead ?? ''),
+        _ => left.displayName.compareTo(right.displayName),
+      };
+    });
+    return Column(
+      children: <Widget>[
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final search = TextField(
+                decoration: const InputDecoration(
+                  labelText: 'بحث في المشاريع',
+                  prefixIcon: Icon(Icons.search),
+                ),
+                onChanged: (value) => setState(() => _query = value),
+              );
+              final controls = Row(
                 children: <Widget>[
-                  CircleAvatar(
-                    child: Icon(
-                      project.adapter == 'local_git'
-                          ? Icons.folder_outlined
-                          : Icons.cloud_outlined,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(
-                          project.displayName,
-                          style: const TextStyle(fontWeight: FontWeight.w800),
+                    child: DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      initialValue: _status,
+                      decoration: const InputDecoration(labelText: 'الحالة'),
+                      items: <DropdownMenuItem<String>>[
+                        const DropdownMenuItem(
+                          value: 'all',
+                          child: Text('كل الحالات'),
                         ),
-                        const SizedBox(height: 3),
-                        Text(
-                          project.repositoryFullName,
-                          textDirection: TextDirection.ltr,
-                        ),
-                        const SizedBox(height: 7),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 6,
-                          children: <Widget>[
-                            Chip(label: Text(project.status)),
-                            if (project.defaultBranch != null)
-                              Chip(label: Text(project.defaultBranch!)),
-                            ...project.stack.map(
-                              (value) => Chip(label: Text(value)),
-                            ),
-                          ],
-                        ),
-                        if (project.observedHead != null) ...<Widget>[
-                          const SizedBox(height: 7),
-                          Text(
-                            project.observedHead!,
-                            textDirection: TextDirection.ltr,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodySmall,
+                        ...statuses.map(
+                          (status) => DropdownMenuItem(
+                            value: status,
+                            child: Text(status),
                           ),
-                        ],
+                        ),
                       ],
+                      onChanged: (value) =>
+                          setState(() => _status = value ?? 'all'),
                     ),
                   ),
-                  const Icon(Icons.chevron_left),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      initialValue: _sort,
+                      decoration: const InputDecoration(labelText: 'الترتيب'),
+                      items: const <DropdownMenuItem<String>>[
+                        DropdownMenuItem(
+                          value: 'name',
+                          child: Text('الاسم'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'status',
+                          child: Text('الحالة'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'head',
+                          child: Text('HEAD'),
+                        ),
+                      ],
+                      onChanged: (value) =>
+                          setState(() => _sort = value ?? 'name'),
+                    ),
+                  ),
                 ],
-              ),
-            ),
+              );
+              if (constraints.maxWidth < 620) {
+                return Column(
+                  children: <Widget>[
+                    search,
+                    const SizedBox(height: 10),
+                    controls,
+                  ],
+                );
+              }
+              return Row(
+                children: <Widget>[
+                  Expanded(flex: 2, child: search),
+                  const SizedBox(width: 10),
+                  Expanded(flex: 2, child: controls),
+                ],
+              );
+            },
           ),
-        );
-      },
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+          child: Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: Text('${visible.length} من ${widget.projects.length}'),
+          ),
+        ),
+        Expanded(
+          child: visible.isEmpty
+              ? const Center(child: Text('لا توجد نتائج مطابقة.'))
+              : ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                  itemCount: visible.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (context, index) {
+                    final project = visible[index];
+                    return Card(
+                      child: InkWell(
+                        onTap: () =>
+                            context.go('/projects/${project.projectId}'),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: <Widget>[
+                              CircleAvatar(
+                                child: Icon(
+                                  project.adapter == 'local_git'
+                                      ? Icons.folder_outlined
+                                      : Icons.cloud_outlined,
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: <Widget>[
+                                    Text(
+                                      project.displayName,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w800),
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      project.repositoryFullName,
+                                      textDirection: TextDirection.ltr,
+                                    ),
+                                    const SizedBox(height: 7),
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 6,
+                                      children: <Widget>[
+                                        Chip(label: Text(project.status)),
+                                        if (project.defaultBranch != null)
+                                          Chip(
+                                              label:
+                                                  Text(project.defaultBranch!)),
+                                        ...project.stack.map(
+                                          (value) => Chip(label: Text(value)),
+                                        ),
+                                      ],
+                                    ),
+                                    if (project.observedHead !=
+                                        null) ...<Widget>[
+                                      const SizedBox(height: 7),
+                                      Text(
+                                        project.observedHead!,
+                                        textDirection: TextDirection.ltr,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall,
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              const Icon(Icons.chevron_left),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
     );
   }
 }

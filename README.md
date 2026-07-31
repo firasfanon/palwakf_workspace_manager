@@ -3,11 +3,11 @@
 منصة **PalWakf Workspace Manager / Sovereign Control Plane** هي الذاكرة التشغيلية الدائمة لمحفظة مشاريع PalWakf.  
 جلسة ChatGPT واجهة محادثية قابلة للاستبدال، بينما يحتفظ هذا النظام بحالة المشاريع والمهام والـBaselines والأدلة ونقاط الاستئناف.
 
-## حالة الأساس
+## الحالة التشغيلية
 
 ```text
 FOUNDATION_VERSION=0.1.0
-FOUNDATION_STATUS=CANDIDATE_PENDING_CI
+FOUNDATION_STATUS=OPERATIONAL_DASHBOARD_CANDIDATE
 DATABASE_WRITE=NONE
 PRODUCTION_MUTATION=NONE
 SECRET_VALUES=FORBIDDEN
@@ -37,12 +37,12 @@ path: PALWAKF_PLATFORM_COMPREHENSIVE_GUIDE.md
 
 راجع `docs/governance/PLATFORM_GUIDE_PIN.md`.
 
-## حدود Foundation V1
+## مساحة العمليات
 
 - نموذج نطاق للمشاريع والمهام والـBaselines والأدلة والانحرافات.
 - Reality Gate وDrift Gate وAuthorization Gate.
 - Resume Engine حتمي وقابل للاختبار.
-- واجهة Flutter Web عربية RTL لعرض حالة الأساس.
+- واجهة Flutter Web عربية RTL بصفحة عمليات رئيسية ومسارات موحدة.
 - عقود قراءة فقط؛ لا اتصال فعلي بقاعدة بيانات.
 - CI للفحص والتنسيق والتحليل والاختبارات وبناء Web.
 
@@ -80,9 +80,40 @@ ORCHESTRATOR_CODEX_APPROVALS=DENY_ALL
 The backend verifies the repository branch, clean worktree, local HEAD, and
 remote HEAD before every dispatch. See `orchestrator/README.md`.
 
+## Main Dashboard and Operations Shell V1
+
+The operational root is `/dashboard`. The responsive Arabic RTL shell exposes:
+
+```text
+/dashboard
+/projects
+/projects/{project_id}
+/tasks
+/tools
+/tools/{adapter_id}
+/alerts
+/evidence
+/settings/connections
+```
+
+Dashboard data is read from the existing authoritative task, project, tool
+health, connected-service, audit, checkpoint, and repository-evidence stores.
+Unavailable provider values remain `UNKNOWN`; evidence responses expose bounded
+relative references only.
+
+```text
+GET /v1/dashboard/summary
+GET /v1/dashboard/activity?limit=30
+GET /v1/alerts
+GET /v1/evidence?limit=50
+```
+
+The same reads are available to authenticated MCP clients. No public
+unauthenticated endpoint is created.
+
 ## Self-Hosting Operational Loop V1
 
-The first screen is an Arabic RTL operator workspace backed by typed local HTTP
+The `/tasks` screen is an Arabic RTL operator workspace backed by typed local HTTP
 contracts for task creation, dispatch, status, continue, cancel, independent
 verification, manual relay, capability routing, tool decisions, invocation
 receipts, and planned-versus-actual reconciliation.

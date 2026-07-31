@@ -3,14 +3,12 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/palwakf_theme.dart';
 import '../application/orchestrator_controller.dart';
 import '../data/orchestrator_api_client.dart';
 import '../domain/orchestrator_models.dart';
-import 'service_auth_dialog.dart';
 
 class OrchestratorWorkspacePage extends ConsumerStatefulWidget {
   const OrchestratorWorkspacePage({super.key});
@@ -34,87 +32,50 @@ class _OrchestratorWorkspacePageState
   Widget build(BuildContext context) {
     final state = ref.watch(orchestratorControllerProvider);
     final controller = ref.read(orchestratorControllerProvider.notifier);
-    return Scaffold(
-      appBar: AppBar(
-        title: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text('مدير مساحة عمل PalWakf'),
-            Text(
-              'حلقة التشغيل الذاتي V1',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w400),
+    return Material(
+      child: Column(
+        children: <Widget>[
+          _CapabilityStrip(capabilities: state.capabilities),
+          if (state.error != null)
+            _RecoverableError(
+              message: state.error!,
+              recoverable: state.errorRecoverable,
+              onRetry: controller.load,
             ),
-          ],
-        ),
-        actions: <Widget>[
-          IconButton(
-            tooltip: 'المشاريع الخارجية',
-            onPressed: () => context.go('/projects'),
-            icon: const Icon(Icons.hub_outlined),
-          ),
-          IconButton(
-            tooltip: 'الصحة التشغيلية للأدوات',
-            onPressed: () => context.go('/tools'),
-            icon: const Icon(Icons.health_and_safety_outlined),
-          ),
-          IconButton(
-            tooltip: 'مصادقة الخدمة',
-            onPressed: () => showServiceAuthDialog(context, ref),
-            icon: const Icon(Icons.lock_outline),
-          ),
-          IconButton(
-            tooltip: 'تحديث',
-            onPressed: state.loading ? null : controller.load,
-            icon: const Icon(Icons.refresh),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: SafeArea(
-        child: Column(
-          children: <Widget>[
-            _CapabilityStrip(capabilities: state.capabilities),
-            if (state.error != null)
-              _RecoverableError(
-                message: state.error!,
-                recoverable: state.errorRecoverable,
-                onRetry: controller.load,
-              ),
-            if (state.loading) const LinearProgressIndicator(minHeight: 2),
-            Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final queue = _TaskQueue(
-                    state: state,
-                    onSelect: controller.selectTask,
-                    onCreate: () => _showNewTask(context),
-                  );
-                  final detail = _TaskDetail(
-                    state: state,
-                    controller: controller,
-                  );
-                  if (constraints.maxWidth < 760) {
-                    return Column(
-                      children: <Widget>[
-                        SizedBox(height: 260, child: queue),
-                        const Divider(height: 1),
-                        Expanded(child: detail),
-                      ],
-                    );
-                  }
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+          if (state.loading) const LinearProgressIndicator(minHeight: 2),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final queue = _TaskQueue(
+                  state: state,
+                  onSelect: controller.selectTask,
+                  onCreate: () => _showNewTask(context),
+                );
+                final detail = _TaskDetail(
+                  state: state,
+                  controller: controller,
+                );
+                if (constraints.maxWidth < 760) {
+                  return Column(
                     children: <Widget>[
-                      SizedBox(width: 340, child: queue),
-                      const VerticalDivider(width: 1),
+                      SizedBox(height: 260, child: queue),
+                      const Divider(height: 1),
                       Expanded(child: detail),
                     ],
                   );
-                },
-              ),
+                }
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    SizedBox(width: 340, child: queue),
+                    const VerticalDivider(width: 1),
+                    Expanded(child: detail),
+                  ],
+                );
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

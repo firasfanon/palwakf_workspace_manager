@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/palwakf_theme.dart';
+import '../../dashboard/application/dashboard_controller.dart';
 import '../application/external_projects_controller.dart';
 import '../domain/external_project_models.dart';
 
@@ -31,58 +31,39 @@ class _ProjectRealityPageState extends ConsumerState<ProjectRealityPage> {
     final state = ref.watch(externalProjectsControllerProvider);
     final controller = ref.read(externalProjectsControllerProvider.notifier);
     final reality = state.realityByProject[widget.projectId];
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          tooltip: 'سجل المشاريع',
-          onPressed: () => context.go('/projects'),
-          icon: const Icon(Icons.arrow_forward),
-        ),
-        title: const Text('حقيقة المشروع'),
-        actions: <Widget>[
-          IconButton(
-            tooltip: 'فحص قراءة فقط',
-            onPressed:
-                state.loading ? null : () => controller.probe(widget.projectId),
-            icon: const Icon(Icons.radar),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: SafeArea(
-        child: Column(
-          children: <Widget>[
-            if (state.loading) const LinearProgressIndicator(minHeight: 2),
-            if (state.error != null)
-              _RealityError(
-                message: state.error!,
-                onProbe: () => controller.probe(widget.projectId),
-              ),
-            Expanded(
-              child: reality == null
-                  ? _UnprobedState(
-                      onProbe: () => controller.probe(widget.projectId),
-                    )
-                  : _RealityView(
-                      reality: reality,
-                      onPrepare: (candidateId) async {
-                        final prepared = await controller.prepareTask(
-                          widget.projectId,
-                          candidateId,
-                        );
-                        if (!context.mounted || !prepared) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'تم تجهيز الغلاف فقط. لم يتم إرسال أي مهمة.',
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+    return Material(
+      child: Column(
+        children: <Widget>[
+          if (state.loading) const LinearProgressIndicator(minHeight: 2),
+          if (state.error != null)
+            _RealityError(
+              message: state.error!,
+              onProbe: () => controller.probe(widget.projectId),
             ),
-          ],
-        ),
+          Expanded(
+            child: reality == null
+                ? _UnprobedState(
+                    onProbe: () => controller.probe(widget.projectId),
+                  )
+                : _RealityView(
+                    reality: reality,
+                    onPrepare: (candidateId) async {
+                      final prepared = await controller.prepareTask(
+                        widget.projectId,
+                        candidateId,
+                      );
+                      if (!context.mounted || !prepared) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'تم تجهيز الغلاف فقط. لم يتم إرسال أي مهمة.',
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
       ),
     );
   }
@@ -122,120 +103,279 @@ class _UnprobedState extends StatelessWidget {
   }
 }
 
-class _RealityView extends StatelessWidget {
+class _RealityView extends ConsumerWidget {
   const _RealityView({required this.reality, required this.onPrepare});
 
   final ProjectReality reality;
   final Future<void> Function(String candidateId) onPrepare;
 
   @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final dashboard = ref.watch(dashboardControllerProvider);
+    final projectSummary = dashboard.summary?.projects
+        .where((item) => item.projectId == reality.projectId)
+        .firstOrNull;
+    final evidence = dashboard.evidence
+        .where(
+          (item) =>
+              item.associationId == reality.projectId ||
+              item.safeReference.contains(reality.projectId),
+        )
+        .toList(growable: false);
+    return DefaultTabController(
+      length: 6,
+      child: Column(
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              IconButton(
+                tooltip: 'العودة إلى المشاريع',
+                onPressed: () => Navigator.of(context).canPop()
+                    ? Navigator.of(context).pop()
+                    : null,
+                icon: const Icon(Icons.arrow_forward),
+              ),
+              Expanded(
+                child: TabBar(
+                  isScrollable: true,
+                  tabs: const <Widget>[
+                    Tab(text: 'نظرة عامة'),
+                    Tab(text: 'الواقع'),
+                    Tab(text: 'المهام'),
+                    Tab(text: 'ملف الأدوات'),
+                    Tab(text: 'العمل المرشح'),
+                    Tab(text: 'الأدلة'),
+                  ],
+                ),
+              ),
+              IconButton(
+                tooltip: 'فحص قراءة فقط',
+                onPressed: () => ref
+                    .read(externalProjectsControllerProvider.notifier)
+                    .probe(reality.projectId),
+                icon: const Icon(Icons.radar),
+              ),
+            ],
+          ),
+          Expanded(
+            child: TabBarView(
+              children: <Widget>[
+                _ProjectTab(
+                  children: <Widget>[
+                    _RealityHeader(reality: reality),
+                    const Divider(height: 34),
+                    _Section(
+                      title: 'الحالة التشغيلية',
+                      icon: Icons.monitor_heart_outlined,
+                      child: Column(
+                        children: <Widget>[
+                          _ProjectFact(
+                            label: 'الجاهزية',
+                            value: projectSummary?.readiness ?? 'UNKNOWN',
+                          ),
+                          _ProjectFact(
+                            label: 'المهام',
+                            value: '${projectSummary?.taskCount ?? 0}',
+                          ),
+                          _ProjectFact(
+                            label: 'فجوات الأدوات',
+                            value: '${projectSummary?.toolGapCount ?? 0}',
+                          ),
+                          _ProjectFact(
+                            label: 'كاتب مستودع نشط',
+                            value: projectSummary?.activeWriter ?? false
+                                ? 'نعم'
+                                : 'لا',
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                _ProjectTab(
+                  children: <Widget>[
+                    _Section(
+                      title: 'المكدس والأوامر',
+                      icon: Icons.terminal,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: <Widget>[
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: <Widget>[
+                              ...reality.stack
+                                  .map((value) => Chip(label: Text(value))),
+                              ...reality.packageManagers.map(
+                                (value) => Chip(label: Text(value)),
+                              ),
+                            ],
+                          ),
+                          ...reality.commands.map(
+                            (command) => ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: SelectableText(
+                                command.command,
+                                textDirection: TextDirection.ltr,
+                              ),
+                              subtitle: Text(
+                                '${command.purpose} · ${command.evidence}',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 34),
+                    _Section(
+                      title: 'CI والنشر',
+                      icon: Icons.account_tree_outlined,
+                      child: Column(
+                        children: <Widget>[
+                          _ProjectFact(
+                            label: 'CI',
+                            value: reality.ciStatus,
+                          ),
+                          _ProjectFact(
+                            label: 'النشر',
+                            value: reality.deploymentStatus,
+                          ),
+                          _ProjectFact(
+                            label: 'الانحراف',
+                            value: reality.driftStatus,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                _ProjectTab(
+                  children: <Widget>[
+                    _Section(
+                      title: 'مهام المشروع',
+                      icon: Icons.task_alt_outlined,
+                      child: projectSummary == null ||
+                              projectSummary.taskCount == 0
+                          ? const Text('لا توجد مهام مرتبطة في المخزن.')
+                          : Column(
+                              children: <Widget>[
+                                _ProjectFact(
+                                  label: 'إجمالي المهام',
+                                  value: '${projectSummary.taskCount}',
+                                ),
+                                _ProjectFact(
+                                  label: 'المرشح الأعلى',
+                                  value: projectSummary.topCandidateTitle ??
+                                      'UNKNOWN',
+                                ),
+                              ],
+                            ),
+                    ),
+                  ],
+                ),
+                _ProjectTab(
+                  children: <Widget>[
+                    _Section(
+                      title: 'قرار الأدوات',
+                      icon: Icons.route_outlined,
+                      child: Column(
+                        children: reality.capabilityProfile.all
+                            .map(
+                              (decision) =>
+                                  _ToolDecisionTile(decision: decision),
+                            )
+                            .toList(growable: false),
+                      ),
+                    ),
+                  ],
+                ),
+                _ProjectTab(
+                  children: <Widget>[
+                    _Section(
+                      title: 'مرشحو العمل التالي',
+                      icon: Icons.format_list_numbered,
+                      child: Column(
+                        children: reality.candidates
+                            .map(
+                              (candidate) => _CandidateCard(
+                                candidate: candidate,
+                                onPrepare: () =>
+                                    onPrepare(candidate.candidateId),
+                              ),
+                            )
+                            .toList(growable: false),
+                      ),
+                    ),
+                  ],
+                ),
+                _ProjectTab(
+                  children: <Widget>[
+                    _Section(
+                      title: 'الأدلة الآمنة',
+                      icon: Icons.fact_check_outlined,
+                      child: evidence.isEmpty
+                          ? const Text('لا توجد مراجع دليل مرتبطة وآمنة.')
+                          : Column(
+                              children: evidence
+                                  .map(
+                                    (item) => ListTile(
+                                      contentPadding: EdgeInsets.zero,
+                                      title: Text(item.evidenceType),
+                                      subtitle: SelectableText(
+                                        item.safeReference,
+                                        textDirection: TextDirection.ltr,
+                                      ),
+                                      trailing: Text(item.status),
+                                    ),
+                                  )
+                                  .toList(growable: false),
+                            ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProjectTab extends StatelessWidget {
+  const _ProjectTab({required this.children});
+
+  final List<Widget> children;
+
+  @override
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 40),
-      children: <Widget>[
-        _RealityHeader(reality: reality),
-        const Divider(height: 34),
-        _Section(
-          title: 'المكدس والأوامر',
-          icon: Icons.terminal,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: <Widget>[
-                  ...reality.stack.map((value) => Chip(label: Text(value))),
-                  ...reality.packageManagers.map(
-                    (value) => Chip(
-                      avatar: const Icon(Icons.inventory_2_outlined, size: 16),
-                      label: Text(value),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              ...reality.commands.map(
-                (command) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.chevron_left),
-                  title: SelectableText(
-                    command.command,
-                    textDirection: TextDirection.ltr,
-                  ),
-                  subtitle: Text('${command.purpose} · ${command.evidence}'),
-                ),
-              ),
-            ],
-          ),
+      children: children,
+    );
+  }
+}
+
+class _ProjectFact extends StatelessWidget {
+  const _ProjectFact({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(label),
+      trailing: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 280),
+        child: Text(
+          value,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.end,
         ),
-        const Divider(height: 34),
-        _Section(
-          title: 'CI والنشر',
-          icon: Icons.account_tree_outlined,
-          child: Column(
-            children: <Widget>[
-              if (reality.ci.isEmpty)
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.remove_circle_outline),
-                  title: const Text('لا توجد GitHub Actions workflows'),
-                  trailing: Text(reality.ciStatus),
-                )
-              else
-                ...reality.ci.map(
-                  (item) => ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.checklist_outlined),
-                    title: Text(item.name),
-                    subtitle: Text(item.provider),
-                    trailing: Text(item.conclusion ?? item.status),
-                  ),
-                ),
-              ...reality.deployments.map(
-                (item) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.rocket_launch_outlined),
-                  title: Text(item.provider),
-                  subtitle: Text(item.evidence),
-                  trailing: Text(item.status),
-                ),
-              ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.fact_check_outlined),
-                title: const Text('حالة النشر المجمعة'),
-                trailing: Text(reality.deploymentStatus),
-              ),
-            ],
-          ),
-        ),
-        const Divider(height: 34),
-        _Section(
-          title: 'قرار الأدوات',
-          icon: Icons.route_outlined,
-          child: Column(
-            children: reality.capabilityProfile.all
-                .map((decision) => _ToolDecisionTile(decision: decision))
-                .toList(growable: false),
-          ),
-        ),
-        const Divider(height: 34),
-        _Section(
-          title: 'مرشحو العمل التالي',
-          icon: Icons.format_list_numbered,
-          child: Column(
-            children: reality.candidates
-                .map(
-                  (candidate) => _CandidateCard(
-                    candidate: candidate,
-                    onPrepare: () => onPrepare(candidate.candidateId),
-                  ),
-                )
-                .toList(growable: false),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

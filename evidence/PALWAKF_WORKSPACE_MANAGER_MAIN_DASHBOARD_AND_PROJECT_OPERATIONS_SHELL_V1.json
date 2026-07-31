@@ -1,0 +1,80 @@
+{
+  "evidence_type": "PALWAKF_WORKSPACE_MANAGER_MAIN_DASHBOARD_AND_PROJECT_OPERATIONS_SHELL_V1",
+  "task_id": "PALWAKF_WORKSPACE_MANAGER_MAIN_DASHBOARD_AND_PROJECT_OPERATIONS_SHELL_V1",
+  "status": "IMPLEMENTED_LOCAL_VALIDATION_PASS_REMOTE_GATES_PENDING",
+  "repository": "firasfanon/palwakf_workspace_manager",
+  "branch": "agent/workspace-manager-foundation-v1",
+  "expected_before_head": "47802cfebe901e341800c3d03fde12642c497851",
+  "root_route": "/dashboard",
+  "task_route": "/tasks",
+  "application_shell": {
+    "name": "WorkspaceApplicationShell",
+    "direction": "RTL",
+    "locale": "ar-PS",
+    "routes": [
+      "/dashboard",
+      "/projects",
+      "/projects/:projectId",
+      "/tasks",
+      "/tools",
+      "/tools/:adapterId",
+      "/alerts",
+      "/evidence",
+      "/settings/connections"
+    ]
+  },
+  "dashboard_contracts": {
+    "http": [
+      "GET /v1/dashboard/summary",
+      "GET /v1/dashboard/activity?limit=<1..100>",
+      "GET /v1/alerts",
+      "GET /v1/evidence?limit=<1..100>"
+    ],
+    "mcp": [
+      "get_workspace_dashboard",
+      "list_workspace_activity",
+      "list_operational_alerts",
+      "list_workspace_evidence"
+    ],
+    "authoritative_sources": [
+      "OPERATOR_TASK_STORE",
+      "EXTERNAL_PROJECT_REGISTRY",
+      "TOOL_HEALTH_STORE",
+      "CONNECTED_SERVICE_READINESS",
+      "CONNECTED_SERVICE_AUDIT",
+      "REPOSITORY_EVIDENCE"
+    ],
+    "invented_provider_values": false,
+    "absolute_local_paths_exposed": false
+  },
+  "validation": {
+    "ruff": "PASS",
+    "mypy": "PASS",
+    "backend_tests": "PASS_58",
+    "flutter_format": "PASS",
+    "flutter_analyze": "PASS",
+    "flutter_tests": "PASS_23",
+    "flutter_viewports": [
+      360,
+      768,
+      1024,
+      1440
+    ],
+    "flutter_build_web_release": "PASS",
+    "output_directory": "build/web",
+    "secret_scan": "PASS",
+    "manifest_verification": "PASS",
+    "remote_ci": "PENDING_PUSH",
+    "preview": "PENDING_PUSH"
+  },
+  "boundaries": {
+    "pal_eyes_observed_head": "c67ff5e28205aac57ff28e8b8120c3bac5de4488",
+    "pal_eyes_mutation_performed": false,
+    "supabase_connected": false,
+    "database_connected": false,
+    "production_promoted": false,
+    "merge_performed": false,
+    "secret_values_exposed": false,
+    "human_browser_uat_completed": false
+  }
+}

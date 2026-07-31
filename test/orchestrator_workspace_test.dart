@@ -125,7 +125,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('حلقة التشغيل الذاتي V1'), findsOneWidget);
+    await tester.tap(find.text('المهام'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('PalWakf Workspace Manager'), findsOneWidget);
     expect(find.text('صف المهام'), findsOneWidget);
     expect(find.text('ترحيل المستخدم'), findsOneWidget);
     expect(find.text('Runtime Capabilities'), findsOneWidget);
@@ -153,10 +156,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('الصحة التشغيلية للأدوات'));
+    await tester.tap(find.text('الأدوات'));
     await tester.pumpAndSettle();
 
-    expect(find.text('الصحة التشغيلية للأدوات'), findsOneWidget);
+    expect(find.text('الأدوات'), findsWidgets);
     expect(find.text('سجل الأدوات'), findsOneWidget);
     expect(find.text('لا توجد بيانات مصادق عليها'), findsOneWidget);
   });

@@ -1,44 +1,39 @@
 # Current Task
 
 ```text
-TASK_ID=PALWAKF_WORKSPACE_MANAGER_EXTERNAL_PROJECT_INTAKE_AND_REALITY_ADAPTER_V1
-STATUS=IMPLEMENTED_VERIFIED_REMOTE_CI
+TASK_ID=PALWAKF_WORKSPACE_MANAGER_MAIN_DASHBOARD_AND_PROJECT_OPERATIONS_SHELL_V1
+STATUS=IMPLEMENTED_LOCAL_VALIDATION_PASS_REMOTE_GATES_PENDING
 MODE=CONTROLLED_REPOSITORY_MUTATION
 REPOSITORY=firasfanon/palwakf_workspace_manager
 BRANCH=agent/workspace-manager-foundation-v1
-EXPECTED_BEFORE_HEAD=e97d1d4a2b5cc4a934d4558dc5c095714cb70c01
-IMPLEMENTATION_COMMIT=452f7030acaf191f115beed04523b18d0e4889ef
-GITHUB_ACTIONS_PR_RUN=30590089146
-GITHUB_ACTIONS_PUSH_RUN=30590086582
-GITHUB_ACTIONS_STATUS=PASS_BOTH
-EXTERNAL_PROJECT_DOMAIN_MODEL=PASS
-GITHUB_REALITY_ADAPTER=PASS_READ_ONLY
-LOCAL_GIT_ADAPTER=PASS_EXACT_ALLOWLIST_ONLY
-PROJECT_REGISTRY=PASS_PERSISTENT_STATE_STORE
-PROJECT_APIS=PASS_AUTHENTICATED
-PROJECT_FLUTTER_UI=PASS_ARABIC_RTL
-PAL_EYES_DEFAULT_BRANCH=main
+EXPECTED_BEFORE_HEAD=47802cfebe901e341800c3d03fde12642c497851
+ROOT_ROUTE=/dashboard
+TASK_ROUTE=/tasks
+APPLICATION_SHELL=WORKSPACE_APPLICATION_SHELL_ARABIC_RTL
+DASHBOARD_AGGREGATION=AUTHORITATIVE_STORES_ONLY
+HTTP_MCP_READ_PARITY=PASS
 PAL_EYES_OBSERVED_HEAD=c67ff5e28205aac57ff28e8b8120c3bac5de4488
-PAL_EYES_CI_STATUS=NOT_CONFIGURED
-PAL_EYES_DEPLOYMENT_STATUS=NOT_DISCOVERED
-PAL_EYES_REALITY_FINGERPRINT=A1A08EB8CBADAC80557511FD1CD82DFBB8720BC837821D5F226CCA71530C457A
 PAL_EYES_EXTERNAL_MUTATION=NONE
-DATABASE_WRITE=LOCAL_ORCHESTRATOR_SQLITE_ONLY
+DATABASE_CONNECTION=NONE
 SUPABASE_CONNECTED=FALSE
 PRODUCTION_MUTATION=NONE
 MERGE_PERFORMED=FALSE
 SECRET_VALUES_EXPOSED=FALSE
+HUMAN_BROWSER_UAT=NOT_EXECUTED
 ```
 
 ## Acceptance
 
-- GitHub and local Git adapters expose read-only boundaries only.
-- Local Git rejects every path outside the exact resolved allowlist.
-- Reality fingerprints are deterministic for unchanged repository facts and
-  change when the observed HEAD changes.
-- Tool decisions persist selected, conditional, excluded, and blocked adapters
-  with reasons and evidence.
-- Pal_Eyes was read at an immutable HEAD without source, branch, dependency,
-  CI, deployment, database, or Supabase mutation.
-- Flutter renders intake, registry, reality, drift, blocked, and ranked
-  candidate states.
+- `/dashboard` is the operational root and `/tasks` preserves the existing
+  self-hosting task workspace.
+- One responsive Arabic RTL application shell owns navigation, page identity,
+  runtime authentication access, connection state, and refresh.
+- Dashboard, activity, alerts, and evidence reads aggregate existing task,
+  project, tool-health, readiness, audit, checkpoint, and evidence stores.
+- HTTP and authenticated MCP use the same aggregation service.
+- Unknown provider facts remain explicit and safe evidence references never
+  expose absolute local paths.
+- Projects support search, status filtering, sorting, and separated reality,
+  task, tool-profile, candidate, and evidence views.
+- Flutter viewport tests cover 360, 768, 1024, and 1440 pixels.
+- Pal_Eyes remains read-only at the previously observed immutable HEAD.

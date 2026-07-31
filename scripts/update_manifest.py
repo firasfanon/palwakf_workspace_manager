@@ -39,10 +39,10 @@ def main() -> None:
         )
     manifest = {
         "batch": (
-            "PALWAKF_WORKSPACE_MANAGER_EXTERNAL_PROJECT_INTAKE_"
-            "AND_REALITY_ADAPTER_V1"
+            "PALWAKF_WORKSPACE_MANAGER_MAIN_DASHBOARD_"
+            "AND_PROJECT_OPERATIONS_SHELL_V1"
         ),
-        "status": "EXTERNAL_PROJECT_INTAKE_VERIFIED_REMOTE_CI",
+        "status": "MAIN_DASHBOARD_AND_OPERATIONS_SHELL_LOCAL_VALIDATION_PASS",
         "file_count": len(files),
         "files": files,
     }

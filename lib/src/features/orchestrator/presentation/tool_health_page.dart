@@ -35,60 +35,33 @@ class _ToolHealthPageState extends ConsumerState<ToolHealthPage> {
     for (final tool in state.tools) {
       if (tool.adapterId == widget.adapterId) selected = tool;
     }
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          tooltip: 'مساحة العمل',
-          onPressed: () => context.go('/'),
-          icon: const Icon(Icons.arrow_forward),
-        ),
-        title: Text(
-          selected == null ? 'الصحة التشغيلية للأدوات' : selected.displayName,
-        ),
-        actions: <Widget>[
-          IconButton(
-            tooltip: 'مصادقة الخدمة',
-            onPressed: () => showServiceAuthDialog(context, ref),
-            icon: const Icon(Icons.lock_outline),
-          ),
-          IconButton(
-            tooltip: 'تحديث',
-            onPressed: state.loading
-                ? null
-                : ref.read(orchestratorControllerProvider.notifier).load,
-            icon: const Icon(Icons.refresh),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: SafeArea(
-        child: Column(
-          children: <Widget>[
-            if (state.loading) const LinearProgressIndicator(minHeight: 2),
-            if (state.error != null)
-              _ErrorBand(
-                message: state.error!,
-                onAuthenticate: () => showServiceAuthDialog(context, ref),
-              ),
-            Expanded(
-              child: selected == null
-                  ? _ToolHealthDashboard(
-                      tools: state.tools,
-                      alerts: state.toolAlerts,
-                    )
-                  : _ToolHealthDetail(
-                      tool: selected,
-                      alerts: state.toolAlerts
-                          .where(
-                              (alert) => alert.adapterId == selected!.adapterId)
-                          .toList(growable: false),
-                      onProbe: () => ref
-                          .read(orchestratorControllerProvider.notifier)
-                          .probeTool(selected!.adapterId),
-                    ),
+    return Material(
+      child: Column(
+        children: <Widget>[
+          if (state.loading) const LinearProgressIndicator(minHeight: 2),
+          if (state.error != null)
+            _ErrorBand(
+              message: state.error!,
+              onAuthenticate: () => showServiceAuthDialog(context, ref),
             ),
-          ],
-        ),
+          Expanded(
+            child: selected == null
+                ? _ToolHealthDashboard(
+                    tools: state.tools,
+                    alerts: state.toolAlerts,
+                  )
+                : _ToolHealthDetail(
+                    tool: selected,
+                    alerts: state.toolAlerts
+                        .where(
+                            (alert) => alert.adapterId == selected!.adapterId)
+                        .toList(growable: false),
+                    onProbe: () => ref
+                        .read(orchestratorControllerProvider.notifier)
+                        .probeTool(selected!.adapterId),
+                  ),
+          ),
+        ],
       ),
     );
   }

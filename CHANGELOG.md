@@ -60,6 +60,15 @@
   product candidates.
 - Live read-only Pal_Eyes baseline at
   `c67ff5e28205aac57ff28e8b8120c3bac5de4488`.
+- Operational `/dashboard` root backed by authoritative task, project, tool,
+  readiness, audit, checkpoint, and evidence stores.
+- Responsive Arabic RTL `WorkspaceApplicationShell` with unified navigation for
+  dashboard, projects, tasks, tools, alerts, evidence, and connections.
+- Existing self-hosting operator workspace moved intact to `/tasks`.
+- Authenticated dashboard summary, activity, alert, and safe evidence APIs with
+  matching MCP read tools.
+- Project search, status filtering, sorting, and six-section project detail.
+- Responsive Flutter shell tests at 360, 768, 1024, and 1440 pixels.
 
 ### Boundaries
 
@@ -68,3 +77,4 @@
 - No production mutation.
 - No secret values.
 - External source intake is read-only and performs no project mutation.
+- Browser UAT evidence is preparation-only until a human gate is executed.
