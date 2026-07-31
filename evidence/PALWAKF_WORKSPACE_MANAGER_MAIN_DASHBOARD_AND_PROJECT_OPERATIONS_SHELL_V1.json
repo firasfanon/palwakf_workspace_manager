@@ -53,7 +53,7 @@
     "backend_tests": "PASS_58",
     "flutter_format": "PASS",
     "flutter_analyze": "PASS",
-    "flutter_tests": "PASS_23",
+    "flutter_tests": "PASS_24",
     "flutter_viewports": [
       360,
       768,
@@ -65,7 +65,8 @@
     "secret_scan": "PASS",
     "manifest_verification": "PASS",
     "remote_ci": "PENDING_PUSH",
-    "preview": "PENDING_PUSH"
+    "preview": "READY_PROTECTED",
+    "preview_browser_smoke": "BLOCKED_BY_VERCEL_DEPLOYMENT_PROTECTION"
   },
   "boundaries": {
     "pal_eyes_observed_head": "c67ff5e28205aac57ff28e8b8120c3bac5de4488",

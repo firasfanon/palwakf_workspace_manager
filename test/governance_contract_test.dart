@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -32,5 +33,16 @@ void main() {
     for (final path in required) {
       expect(File(path).existsSync(), isTrue, reason: 'Missing $path');
     }
+  });
+
+  test('Vercel serves Flutter routes through the SPA entrypoint', () {
+    final config = jsonDecode(File('vercel.json').readAsStringSync())
+        as Map<String, dynamic>;
+    final rewrites = config['rewrites'] as List<dynamic>;
+
+    final spaRewrite = rewrites.single as Map<String, dynamic>;
+    expect(spaRewrite['source'], '/(.*)');
+    expect(spaRewrite['destination'], '/index.html');
+    expect(config['outputDirectory'], 'build/web');
   });
 }

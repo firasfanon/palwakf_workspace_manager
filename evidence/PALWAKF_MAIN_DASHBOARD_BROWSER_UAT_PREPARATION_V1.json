@@ -42,7 +42,13 @@
     "No Production, merge, Supabase, or database action is exposed"
   ],
   "automated_widget_viewport_test": "PASS_360_768_1024_1440",
-  "automated_preview_browser_smoke": "PENDING_PREVIEW",
+  "automated_preview_browser_smoke": "BLOCKED_BY_VERCEL_DEPLOYMENT_PROTECTION",
+  "preview_protection_observation": {
+    "status": "AUTHENTICATION_REQUIRED",
+    "public_unauthenticated_access": false,
+    "protection_disabled": false,
+    "source_change_required": false
+  },
   "human_browser_uat_completed": false,
   "human_browser_uat_claimed": false
 }
