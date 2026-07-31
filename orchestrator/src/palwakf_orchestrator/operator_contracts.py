@@ -59,6 +59,7 @@ class CreateOperatorTaskRequest(BaseModel):
     idempotency_key: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$")
     automatic_failure_code: str | None = Field(default=None, max_length=256)
     manual_fallback_selected: bool = False
+    requires_explicit_authorization: bool = False
 
 
 class OperatorTaskRecord(BaseModel):
@@ -77,6 +78,9 @@ class OperatorTaskRecord(BaseModel):
     idempotency_key: str
     automatic_failure_code: str | None = None
     manual_fallback_selected: bool = False
+    requires_explicit_authorization: bool = False
+    authorized_at: datetime | None = None
+    authorized_by: str | None = None
     dispatch_mode: DispatchMode = DispatchMode.automatic
     status: OperatorTaskStatus = OperatorTaskStatus.pending
     created_at: datetime
@@ -102,6 +106,14 @@ class OperatorTaskRecord(BaseModel):
     executor_duration_ms: int | None = None
     verification_duration_ms: int | None = None
     events: list[TaskEvent] = Field(default_factory=list)
+
+
+class TaskAuthorizationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    expected_head: str = Field(pattern=r"^[0-9a-fA-F]{40}$")
+    authority_reference: str = Field(min_length=8, max_length=2_000)
+    acknowledgement: Literal["AUTHORIZE_GOVERNED_EXECUTION"]
 
 
 class ManualDispatchPackage(BaseModel):
@@ -240,6 +252,10 @@ class ToolInvocationReceipt(BaseModel):
     status: Literal["completed", "failed", "skipped"]
     evidence: list[str]
     occurred_at: datetime
+    tool_call_id: str | None = None
+    command_summary: str | None = None
+    output_excerpt: str | None = None
+    exit_code: int | None = None
 
 
 class ToolReconciliation(BaseModel):

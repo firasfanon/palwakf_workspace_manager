@@ -100,7 +100,7 @@ class OrchestratorController extends StateNotifier<OrchestratorWorkspaceState> {
   final OrchestratorApi _api;
   Timer? _pollTimer;
   int _pollAttempts = 0;
-  static const int maxPollAttempts = 12;
+  static const int maxPollAttempts = 900;
 
   Future<void> load() async {
     await _guard(() async {
@@ -162,6 +162,32 @@ class OrchestratorController extends StateNotifier<OrchestratorWorkspaceState> {
         clearManualPackage: true,
       );
       await planTools();
+    });
+  }
+
+  Future<void> createProofTask() async {
+    await _guard(() async {
+      final task = await _api.createProofTask();
+      state = state.copyWith(
+        tasks: <OperatorTask>[
+          task,
+          ...state.tasks.where((value) => value.taskId != task.taskId),
+        ],
+        selectedTaskId: task.taskId,
+        clearToolPlan: true,
+        invocations: const <ToolInvocation>[],
+        clearReconciliation: true,
+        clearManualPackage: true,
+      );
+      await _loadToolTrace(task.taskId);
+    });
+  }
+
+  Future<void> authorize() async {
+    final task = state.selectedTask;
+    if (task == null) return;
+    await _guard(() async {
+      _replaceTask(await _api.authorize(task));
     });
   }
 
@@ -284,7 +310,8 @@ class OrchestratorController extends StateNotifier<OrchestratorWorkspaceState> {
       _replaceTask(await command(taskId));
       await _loadToolTrace(taskId);
       if (startPolling &&
-          state.selectedTask?.status == OrchestratorTaskStatus.running) {
+          (state.selectedTask?.status == OrchestratorTaskStatus.running ||
+              state.selectedTask?.status == OrchestratorTaskStatus.queued)) {
         _startPolling(taskId);
       }
     });

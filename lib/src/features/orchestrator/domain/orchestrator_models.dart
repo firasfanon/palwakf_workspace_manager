@@ -270,6 +270,7 @@ class OperatorTask {
     required this.changedFiles,
     required this.tests,
     required this.evidence,
+    required this.requiresExplicitAuthorization,
     this.automaticFailureCode,
     this.blocker,
     this.threadId,
@@ -277,6 +278,8 @@ class OperatorTask {
     this.beforeHead,
     this.afterHead,
     this.verificationReceipt,
+    this.authorizedAt,
+    this.authorizedBy,
   });
 
   factory OperatorTask.fromJson(Map<String, dynamic> json) {
@@ -313,6 +316,12 @@ class OperatorTask {
       tests: strings('tests'),
       evidence: strings('evidence'),
       verificationReceipt: json['verification_receipt'] as String?,
+      requiresExplicitAuthorization:
+          json['requires_explicit_authorization'] as bool? ?? false,
+      authorizedAt: json['authorized_at'] == null
+          ? null
+          : DateTime.parse(json['authorized_at'] as String),
+      authorizedBy: json['authorized_by'] as String?,
       events: (json['events'] as List<dynamic>? ?? const <dynamic>[])
           .map(
             (value) => TaskEvent.fromJson(value as Map<String, dynamic>),
@@ -348,6 +357,9 @@ class OperatorTask {
   final List<String> tests;
   final List<String> evidence;
   final String? verificationReceipt;
+  final bool requiresExplicitAuthorization;
+  final DateTime? authorizedAt;
+  final String? authorizedBy;
   final List<TaskEvent> events;
 
   bool get manualFallbackAvailable =>
@@ -537,6 +549,10 @@ class ToolInvocation {
     required this.adapterId,
     required this.status,
     required this.occurredAt,
+    this.toolCallId,
+    this.commandSummary,
+    this.outputExcerpt,
+    this.exitCode,
   });
 
   factory ToolInvocation.fromJson(Map<String, dynamic> json) {
@@ -545,6 +561,10 @@ class ToolInvocation {
       adapterId: json['adapter_id'] as String,
       status: json['status'] as String,
       occurredAt: DateTime.parse(json['occurred_at'] as String),
+      toolCallId: json['tool_call_id'] as String?,
+      commandSummary: json['command_summary'] as String?,
+      outputExcerpt: json['output_excerpt'] as String?,
+      exitCode: json['exit_code'] as int?,
     );
   }
 
@@ -552,6 +572,10 @@ class ToolInvocation {
   final String adapterId;
   final String status;
   final DateTime occurredAt;
+  final String? toolCallId;
+  final String? commandSummary;
+  final String? outputExcerpt;
+  final int? exitCode;
 }
 
 class ToolReconciliation {

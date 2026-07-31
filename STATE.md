@@ -2,11 +2,11 @@
 
 ```text
 PROJECT=PALWAKF_WORKSPACE_MANAGER
-PHASE=FOUNDATION_V1_OPERATIONAL_DASHBOARD
+PHASE=LOCAL_FIRST_SELF_HOSTING_BOOTSTRAP
 REPOSITORY=firasfanon/palwakf_workspace_manager
 DEFAULT_BRANCH=main
 WORK_BRANCH=agent/workspace-manager-foundation-v1
-STATE=MAIN_DASHBOARD_LOCAL_VALIDATION_PASS
+STATE=BOOTSTRAP_VALIDATED_SELF_HOSTED_PROOF_PENDING
 ROOT_ROUTE=/dashboard
 APPLICATION_SHELL=ARABIC_RTL_RESPONSIVE
 TASK_WORKSPACE_ROUTE=/tasks
@@ -26,6 +26,14 @@ PAL_EYES_EXTERNAL_MUTATION=NONE
 VERCEL_BUILD_CONFIGURED=TRUE
 VERCEL_OUTPUT_DIRECTORY=build/web
 LOCAL_VALIDATION=PASS
+ONE_COMMAND_START=PASS
+ONE_COMMAND_STOP=PASS
+LOCAL_SESSION=VERIFIED_HTTPONLY
+WORKSPACE_MANAGER_SELF_REGISTRATION=PASS
+LOCAL_BROWSER_UAT=PASS_AUTOMATED_DESKTOP_AND_NARROW
+SELF_HOSTED_LIVE_EXECUTIONS=0
+SELF_HOSTED_PROOF=PENDING
+EXTERNAL_PROJECT_WORK=FROZEN
 REMOTE_CI=PASS_RUN_30593284743
 PREVIEW=READY_PROTECTED
 PREVIEW_DEPLOYMENT_ID=dpl_4PCxygzyfN7pvFQtCJKojorqFr7R
@@ -37,8 +45,11 @@ MERGE_PERFORMED=FALSE
 
 ## Next Gate
 
-1. Commit and push to the existing governed branch and PR.
-2. Require GitHub Actions to pass for the exact pushed HEAD.
-3. Capture the automatic Vercel Preview and run automated browser preparation.
-4. Keep human Browser UAT as a separate unclaimed gate.
-5. Do not merge, promote Production, connect Supabase, or mutate Pal_Eyes.
+1. Commit and push the Bootstrap implementation to the existing branch and PR.
+2. Require GitHub Actions to pass for the exact Bootstrap HEAD.
+3. Start the product and create, authorize, and dispatch the one proof task from
+   the local UI without manual prompt relay.
+4. Verify its exact result HEAD, then stop and restart the product to prove
+   persisted resume without duplicate execution.
+5. Do not merge, promote Production, connect Supabase, or access any external
+   project.

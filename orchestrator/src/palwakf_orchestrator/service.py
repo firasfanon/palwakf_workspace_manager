@@ -66,11 +66,27 @@ class OrchestratorService:
     async def _execute(self, request: DispatchRequest) -> DispatchResponse:
         repository_state = self._gate.verify_repository(request)
         planning = await self._planner.plan(request, repository_state)
-        self._gate.verify_plan(planning.plan)
-        gateway_result = await self._gateways[request.transport].run(
-            planning.plan.codex_prompt,
-            self._settings.workspace_root,
-        )
+        if request.boundaries.workspace_write:
+            self._gate.verify_plan(planning.plan, request)
+            gateway_result = await self._gateways[request.transport].run(
+                planning.plan.codex_prompt,
+                self._settings.workspace_root,
+                workspace_write=True,
+            )
+            result_repository_state = self._gate.verify_result_repository(
+                request,
+                repository_state,
+            )
+        else:
+            self._gate.verify_plan(planning.plan)
+            gateway_result = await self._gateways[request.transport].run(
+                planning.plan.codex_prompt,
+                self._settings.workspace_root,
+            )
+            verifier = getattr(self._gate, "verify_result_repository", None)
+            result_repository_state = (
+                verifier(request, repository_state) if callable(verifier) else repository_state
+            )
         return DispatchResponse(
             task_id=request.task_id,
             status="completed",
@@ -79,9 +95,11 @@ class OrchestratorService:
             idempotency_key=request.idempotency_key,
             idempotency_replayed=False,
             repository_state=repository_state,
+            result_repository_state=result_repository_state,
             plan_summary=planning.plan.summary,
             agents_response_id=planning.agents_response_id,
             codex_thread_id=gateway_result.thread_id,
             final_response=gateway_result.final_response,
+            tool_outputs=gateway_result.tool_outputs,
             boundaries=request.boundaries,
         )

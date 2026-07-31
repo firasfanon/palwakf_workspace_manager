@@ -11,6 +11,7 @@ from openai_codex import ApprovalMode, AsyncCodex, CodexConfig, Sandbox
 from palwakf_orchestrator.config import Settings
 from palwakf_orchestrator.contracts import GatewayResult, Transport
 from palwakf_orchestrator.errors import GatewayError
+from palwakf_orchestrator.safe_logging import redact
 
 CODEX_DEVELOPER_INSTRUCTIONS = """
 Operate in read-only inspection mode.
@@ -19,6 +20,43 @@ send external messages, deploy, merge, or promote production.
 Return findings and evidence only.
 """.strip()
 
+CODEX_WRITE_DEVELOPER_INSTRUCTIONS = """
+Operate only inside the current PalWakf Workspace Manager repository.
+The user explicitly authorized the single governed task in the prompt.
+Do not access secrets, environment values, databases, Supabase, production,
+or any external project. Make only the requested focused source change.
+Run the requested deterministic checks, commit once, and push only the current
+governed branch. Return the required structured result after every shell call
+has completed and its output has been received.
+""".strip()
+
+CODEX_WRITE_RESULT_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "task_id": {"type": "string"},
+        "status": {"type": "string", "enum": ["completed"]},
+        "before_head": {"type": "string"},
+        "after_head": {"type": "string"},
+        "commit_sha": {"type": "string"},
+        "changed_files": {"type": "array", "items": {"type": "string"}},
+        "tests": {"type": "array", "items": {"type": "string"}},
+        "evidence": {"type": "array", "items": {"type": "string"}},
+        "summary": {"type": "string"},
+    },
+    "required": [
+        "task_id",
+        "status",
+        "before_head",
+        "after_head",
+        "commit_sha",
+        "changed_files",
+        "tests",
+        "evidence",
+        "summary",
+    ],
+}
+
 
 class _CodexEventNoiseFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
@@ -26,30 +64,47 @@ class _CodexEventNoiseFilter(logging.Filter):
 
 
 class CodexGateway(Protocol):
-    async def run(self, prompt: str, workspace: Path) -> GatewayResult: ...
+    async def run(
+        self,
+        prompt: str,
+        workspace: Path,
+        *,
+        workspace_write: bool = False,
+    ) -> GatewayResult: ...
 
 
 class CodexSdkGateway:
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
 
-    async def run(self, prompt: str, workspace: Path) -> GatewayResult:
+    async def run(
+        self,
+        prompt: str,
+        workspace: Path,
+        *,
+        workspace_write: bool = False,
+    ) -> GatewayResult:
+        sandbox = Sandbox.workspace_write if workspace_write else Sandbox.read_only
+        instructions = (
+            CODEX_WRITE_DEVELOPER_INSTRUCTIONS if workspace_write else CODEX_DEVELOPER_INSTRUCTIONS
+        )
         config = CodexConfig(cwd=str(workspace))
         async with AsyncCodex(config) as codex:
             thread = await codex.thread_start(
                 approval_mode=ApprovalMode.deny_all,
                 cwd=str(workspace),
-                developer_instructions=CODEX_DEVELOPER_INSTRUCTIONS,
-                ephemeral=True,
+                developer_instructions=instructions,
+                ephemeral=False,
                 model=self._settings.codex_model,
-                sandbox=Sandbox.read_only,
+                sandbox=sandbox,
             )
             result = await thread.run(
                 prompt,
                 approval_mode=ApprovalMode.deny_all,
                 cwd=str(workspace),
                 model=self._settings.codex_model,
-                sandbox=Sandbox.read_only,
+                output_schema=CODEX_WRITE_RESULT_SCHEMA if workspace_write else None,
+                sandbox=sandbox,
             )
         final_response = result.final_response or ""
         if not final_response:
@@ -59,14 +114,40 @@ class CodexSdkGateway:
             thread_id=thread.id,
             status=str(result.status),
             final_response=final_response,
+            tool_outputs=self._tool_outputs(result.items),
         )
+
+    @staticmethod
+    def _tool_outputs(items: list[Any]) -> list[dict[str, object]]:
+        outputs: list[dict[str, object]] = []
+        for item in items:
+            value = getattr(item, "root", item)
+            if getattr(value, "type", None) != "commandExecution":
+                continue
+            outputs.append(
+                {
+                    "tool_call_id": str(getattr(value, "id", "")),
+                    "command_summary": redact(getattr(value, "command", ""))[:500],
+                    "output_excerpt": redact(getattr(value, "aggregated_output", "") or "")[:2_000],
+                    "exit_code": getattr(value, "exit_code", None),
+                }
+            )
+        return outputs
 
 
 class CodexMcpGateway:
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
 
-    async def run(self, prompt: str, workspace: Path) -> GatewayResult:
+    async def run(
+        self,
+        prompt: str,
+        workspace: Path,
+        *,
+        workspace_write: bool = False,
+    ) -> GatewayResult:
+        if workspace_write:
+            raise GatewayError("Codex MCP workspace-write dispatch is not enabled")
         server = MCPServerStdio(
             params={
                 "command": str(bundled_codex_path()),

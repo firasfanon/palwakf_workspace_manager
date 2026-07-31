@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     workspace_root: Path = Field(default_factory=default_workspace_root)
     repository: str = "firasfanon/palwakf_workspace_manager"
     governed_branch: str = "agent/workspace-manager-foundation-v1"
+    pull_request_number: int = Field(default=1, ge=1)
     openai_model: str = "gpt-5.6-sol"
     codex_model: str | None = None
     bind_host: str = "127.0.0.1"
@@ -40,6 +41,7 @@ class Settings(BaseSettings):
     requests_per_minute: int = Field(default=60, ge=1, le=10_000)
     stale_task_seconds: int = Field(default=3_600, ge=60, le=86_400)
     stale_project_seconds: int = Field(default=86_400, ge=300, le=2_592_000)
+    self_hosted_ci_timeout_seconds: int = Field(default=900, ge=60, le=3_600)
     public_base_url: str | None = None
     oauth_authorization_server: str | None = None
     oauth_jwks_url: str | None = None

@@ -58,6 +58,13 @@ class FakeExecutor:
                 remote_head=HEAD,
                 clean=True,
             ),
+            result_repository_state=RepositoryState(
+                repository=request.repository,
+                branch=request.branch,
+                local_head=HEAD,
+                remote_head=HEAD,
+                clean=True,
+            ),
             plan_summary="Deterministic fake executor acceptance",
             agents_response_id="fake-agents-response",
             codex_thread_id=f"fake-thread-{request.task_id.lower()}",

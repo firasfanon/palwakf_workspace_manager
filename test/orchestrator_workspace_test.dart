@@ -52,6 +52,13 @@ class FakeOrchestratorApi implements OrchestratorApi {
       throw UnimplementedError();
 
   @override
+  Future<OperatorTask> createProofTask() => throw UnimplementedError();
+
+  @override
+  Future<OperatorTask> authorize(OperatorTask task) =>
+      throw UnimplementedError();
+
+  @override
   Future<OperatorTask> dispatch(String taskId) => throw UnimplementedError();
 
   @override
@@ -136,6 +143,7 @@ void main() {
     expect(find.text('Database'), findsOneWidget);
     expect(find.text('محجوب'), findsWidgets);
     expect(find.byTooltip('مهمة جديدة'), findsOneWidget);
+    expect(find.byTooltip('إنشاء مهمة الإثبات الذاتي'), findsOneWidget);
     expect(find.text('Merge'), findsNothing);
     expect(find.text('Production'), findsNothing);
   });

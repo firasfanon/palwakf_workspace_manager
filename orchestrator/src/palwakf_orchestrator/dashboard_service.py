@@ -23,6 +23,7 @@ from palwakf_orchestrator.dashboard_contracts import (
     TaskStatusSummary,
     ToolHealthSummary,
 )
+from palwakf_orchestrator.local_product import LocalProductService
 from palwakf_orchestrator.operator_contracts import OperatorTaskRecord, OperatorTaskStatus
 from palwakf_orchestrator.operator_service import OperatorService
 from palwakf_orchestrator.persistence import StateStore
@@ -50,6 +51,7 @@ class DashboardAggregationService:
         *,
         stale_seconds: int = 86_400,
         now: Callable[[], datetime] | None = None,
+        local_product: LocalProductService | None = None,
     ) -> None:
         self._operator = operator
         self._projects = projects
@@ -58,6 +60,7 @@ class DashboardAggregationService:
         self._workspace_root = workspace_root.resolve()
         self._stale_after = timedelta(seconds=stale_seconds)
         self._now = now or (lambda: datetime.now(UTC))
+        self._local_product = local_product
 
     def summary(self) -> DashboardSummary:
         now = self._now()
@@ -82,13 +85,9 @@ class DashboardAggregationService:
             freshness=FreshnessState.fresh,
             portfolio_total=len(project_summaries),
             portfolio_ready=sum(item.readiness == "READY" for item in project_summaries),
-            portfolio_attention_required=sum(
-                item.attention_required for item in project_summaries
-            ),
+            portfolio_attention_required=sum(item.attention_required for item in project_summaries),
             active_repository_writers=sum(item.active_writer for item in project_summaries),
-            human_action_required=sum(
-                item.severity in {"warning", "critical"} for item in alerts
-            ),
+            human_action_required=sum(item.severity in {"warning", "critical"} for item in alerts),
             tasks=task_summary,
             tools=tool_summary,
             alert_count=len(alerts),
@@ -97,6 +96,9 @@ class DashboardAggregationService:
             connection=connection,
             checkpoints=self._checkpoints(tasks),
             actions=self._actions(project_summaries, alerts, task_summary),
+            managed_workspace=(
+                self._local_product.status() if self._local_product is not None else None
+            ),
         )
 
     def alerts(self) -> list[OperationalAlertSummary]:
@@ -284,9 +286,7 @@ class DashboardAggregationService:
                     association_kind = "task"
                     association_id = str(raw["task_id"])
                 observed = self._parse_datetime(
-                    raw.get("observed_at")
-                    or raw.get("generated_at")
-                    or raw.get("completed_at")
+                    raw.get("observed_at") or raw.get("generated_at") or raw.get("completed_at")
                 )
                 fingerprint = self._fingerprint(raw)
                 values.append(
@@ -317,6 +317,67 @@ class DashboardAggregationService:
         self, tasks: list[OperatorTaskRecord], now: datetime
     ) -> list[PortfolioProjectSummary]:
         result: list[PortfolioProjectSummary] = []
+        if self._local_product is not None:
+            workspace = self._local_product.status()
+            heads_match = bool(
+                workspace.local_head
+                and workspace.local_head == workspace.remote_head
+                and workspace.local_head == workspace.pull_request_head
+            )
+            ready = (
+                heads_match
+                and workspace.worktree_clean is True
+                and workspace.pull_request_state == "OPEN"
+                and workspace.ci_status == "SUCCESS"
+            )
+            blockers = [
+                code
+                for condition, code in (
+                    (not heads_match, "HEADS_NOT_ALIGNED"),
+                    (workspace.worktree_clean is not True, "WORKTREE_NOT_CLEAN"),
+                    (workspace.pull_request_state != "OPEN", "PR_NOT_OPEN"),
+                    (workspace.ci_status != "SUCCESS", "CI_NOT_SUCCESS"),
+                )
+                if condition
+            ]
+            result.append(
+                PortfolioProjectSummary(
+                    project_id="PALWAKF_WORKSPACE_MANAGER",
+                    display_name="PalWakf Workspace Manager",
+                    repository_full_name=workspace.repository,
+                    status="registered",
+                    readiness="READY" if ready else "ATTENTION_REQUIRED",
+                    attention_required=not ready,
+                    observed_branch=workspace.branch,
+                    observed_head=workspace.local_head,
+                    last_probe_at=workspace.refreshed_at,
+                    freshness=FreshnessState.fresh,
+                    stack=["Flutter", "Python", "FastAPI"],
+                    package_managers=["pub", "uv"],
+                    ci_status=workspace.ci_status,
+                    deployment_status=workspace.preview_status,
+                    drift_status="ALIGNED" if heads_match else "DRIFTED",
+                    blockers=blockers,
+                    tool_gap_count=sum(
+                        state.status == "BLOCKED"
+                        for state in (
+                            workspace.github,
+                            workspace.agents_sdk,
+                            workspace.codex,
+                            workspace.authentication,
+                            workspace.orchestrator,
+                        )
+                    ),
+                    top_candidate_id=None,
+                    top_candidate_title=None,
+                    task_count=sum(
+                        task.project_id == "PALWAKF_WORKSPACE_MANAGER" for task in tasks
+                    ),
+                    active_writer=workspace.active_writer_task_id is not None,
+                    evidence_count=0,
+                    provenance="LOCAL_MANAGED_WORKSPACE",
+                )
+            )
         for project in self._projects.list_projects():
             report: ExternalProjectRealityReport | None
             try:
@@ -367,16 +428,13 @@ class DashboardAggregationService:
                     top_candidate_id=candidates[0].candidate_id if candidates else None,
                     top_candidate_title=candidates[0].title if candidates else None,
                     task_count=len(project_tasks),
-                    active_writer=self._store.writer_for(project.repository_full_name)
-                    is not None,
+                    active_writer=self._store.writer_for(project.repository_full_name) is not None,
                     evidence_count=len(project.source_of_truth_references),
                 )
             )
         return result
 
-    def _task_summary(
-        self, tasks: list[OperatorTaskRecord], now: datetime
-    ) -> TaskStatusSummary:
+    def _task_summary(self, tasks: list[OperatorTaskRecord], now: datetime) -> TaskStatusSummary:
         counts = Counter(task.status.value for task in tasks)
         stale = sum(
             task.status not in _TERMINAL_TASK_STATUSES
@@ -446,9 +504,7 @@ class DashboardAggregationService:
             required_attention=attention,
         )
 
-    def _checkpoints(
-        self, tasks: list[OperatorTaskRecord]
-    ) -> list[ResumeCheckpointSummary]:
+    def _checkpoints(self, tasks: list[OperatorTaskRecord]) -> list[ResumeCheckpointSummary]:
         values: list[ResumeCheckpointSummary] = []
         for task in sorted(tasks, key=lambda item: item.updated_at, reverse=True):
             if task.status in _TERMINAL_TASK_STATUSES:
@@ -505,9 +561,7 @@ class DashboardAggregationService:
             ),
         ]
 
-    def _freshness(
-        self, observed_at: datetime | None, now: datetime
-    ) -> FreshnessState:
+    def _freshness(self, observed_at: datetime | None, now: datetime) -> FreshnessState:
         if observed_at is None:
             return FreshnessState.unknown
         return (

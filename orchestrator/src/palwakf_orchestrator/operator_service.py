@@ -27,6 +27,7 @@ from palwakf_orchestrator.operator_contracts import (
     OperatorTaskStatus,
     ProjectCapabilityProfile,
     RuntimeCapabilities,
+    TaskAuthorizationRequest,
     TaskCapabilityRequest,
     TaskEvent,
     ToolInvocationReceipt,
@@ -42,6 +43,7 @@ SECRET_PATTERN = re.compile(
     r"(?:api[_-]?key|token|password|secret)\s*[:=]\s*\S+)",
     re.IGNORECASE,
 )
+SELF_HOSTED_PROOF_TASK_ID = "PALWAKF_WORKSPACE_MANAGER_SELF_HOSTED_LAST_EXECUTION_CARD_V1"
 
 
 class RepositoryVerifier(Protocol):
@@ -174,6 +176,32 @@ class OperatorService:
         except KeyError as exc:
             raise GovernanceError(f"unknown task: {task_id}") from exc
 
+    def authorize_task(
+        self,
+        task_id: str,
+        request: TaskAuthorizationRequest,
+        *,
+        principal_id: str,
+    ) -> OperatorTaskRecord:
+        task = self.get_task(task_id)
+        if not task.requires_explicit_authorization:
+            raise GovernanceError("task does not require explicit authorization")
+        if task.expected_head != request.expected_head:
+            raise GovernanceError("authorization HEAD does not match task authority")
+        if task.authority_reference != request.authority_reference:
+            raise GovernanceError("authorization reference does not match task authority")
+        if task.authorized_at is not None:
+            return task
+        task.authorized_at = datetime.now(UTC)
+        task.authorized_by = principal_id
+        return self._transition(
+            task,
+            task.status,
+            "TASK_AUTHORIZED",
+            "Explicit governed execution authorization persisted",
+            blocker=None,
+        )
+
     def bind_client(
         self,
         task_id: str,
@@ -252,9 +280,12 @@ class OperatorService:
 
     async def dispatch_task(self, task_id: str) -> OperatorTaskRecord:
         task = self.get_task(task_id)
+        if task.requires_explicit_authorization and task.authorized_at is None:
+            raise GovernanceError("explicit task authorization is required before dispatch")
         plan = self._tool_plans.get(task_id)
         if plan is None:
             raise GovernanceError("tool decisions must be persisted before dispatch")
+        workspace_write = task.sandbox == "workspace-write"
         if plan.dispatch_blocked:
             raise GovernanceError("tool plan contains a blocked required capability")
         if task.status == OperatorTaskStatus.cancelled:
@@ -270,6 +301,10 @@ class OperatorService:
                 code,
                 blocker=code,
             )
+        if workspace_write and (
+            task.task_id != SELF_HOSTED_PROOF_TASK_ID or not task.requires_explicit_authorization
+        ):
+            raise GovernanceError("workspace-write is restricted to the governed proof task")
         if self._orchestrator is None:
             raise GovernanceError("automatic orchestrator is unavailable")
 
@@ -282,14 +317,34 @@ class OperatorService:
                     "branch": task.branch,
                     "expected_head": task.expected_head,
                     "idempotency_key": task.idempotency_key,
+                    "boundaries": {
+                        "workspace_write": workspace_write,
+                        "database_write": False,
+                        "production_mutation": False,
+                        "secret_access": False,
+                    },
                 }
             )
         )
         task.thread_id = response.codex_thread_id
         task.execution_receipt = response.execution_receipt
         task.before_head = response.repository_state.local_head
-        task.after_head = response.repository_state.local_head
-        self._record_planned_invocations(task_id)
+        task.after_head = response.result_repository_state.local_head
+        task.changed_files = self._changed_files(task.before_head, task.after_head)
+        task.tests = [
+            str(output.get("command_summary"))
+            for output in response.tool_outputs
+            if output.get("exit_code") == 0
+            and any(
+                marker in str(output.get("command_summary", "")).lower()
+                for marker in ("pytest", "flutter test", "flutter analyze", "ruff", "mypy")
+            )
+        ]
+        task.evidence = [
+            f"task:{task.task_id}:execution-receipt",
+            f"task:{task.task_id}:tool-output-correlation",
+        ]
+        self._record_planned_invocations(task_id, response.tool_outputs)
         return self._transition(
             task,
             OperatorTaskStatus.pending_verification,
@@ -297,6 +352,28 @@ class OperatorService:
             "Executor completed; independent verification remains required",
             blocker=None,
         )
+
+    def _changed_files(self, before_head: str, after_head: str) -> list[str]:
+        if before_head == after_head:
+            return []
+        result = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(self._workspace),
+                "diff",
+                "--name-only",
+                before_head,
+                after_head,
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if result.returncode != 0:
+            return []
+        return [line for line in result.stdout.splitlines() if line]
 
     def continue_task(self, task_id: str) -> OperatorTaskRecord:
         task = self.get_task(task_id)
@@ -371,6 +448,22 @@ class OperatorService:
             )
             self._persist()
         return verified
+
+    def record_verification_blocker(
+        self,
+        task_id: str,
+        blocker: str,
+    ) -> OperatorTaskRecord:
+        task = self.get_task(task_id)
+        if task.status != OperatorTaskStatus.pending_verification:
+            raise GovernanceError("verification blocker requires pending verification")
+        return self._transition(
+            task,
+            OperatorTaskStatus.pending_verification,
+            "INDEPENDENT_VERIFICATION_BLOCKED",
+            blocker,
+            blocker=blocker,
+        )
 
     def generate_manual_package(self, task_id: str) -> ManualDispatchPackage:
         task = self.get_task(task_id)
@@ -550,9 +643,13 @@ class OperatorService:
             reconciled=not missing and not unexpected,
         )
 
-    def _record_planned_invocations(self, task_id: str) -> None:
+    def _record_planned_invocations(
+        self,
+        task_id: str,
+        tool_outputs: list[dict[str, object]],
+    ) -> None:
         plan = self.tool_decisions(task_id)
-        self._invocations[task_id] = [
+        planned = [
             ToolInvocationReceipt(
                 invocation_id=f"inv-{uuid4()}",
                 task_id=task_id,
@@ -565,6 +662,27 @@ class OperatorService:
             for decision in plan.decisions
             if decision.selected_adapter_id
         ]
+        captured = [
+            ToolInvocationReceipt(
+                invocation_id=f"inv-{uuid4()}",
+                task_id=task_id,
+                capability_id="codex-shell",
+                adapter_id="codex",
+                status=("completed" if output.get("exit_code") in {None, 0} else "failed"),
+                evidence=["CORRELATED_CODEX_TOOL_OUTPUT"],
+                occurred_at=datetime.now(UTC),
+                tool_call_id=str(output.get("tool_call_id") or ""),
+                command_summary=str(output.get("command_summary") or ""),
+                output_excerpt=str(output.get("output_excerpt") or ""),
+                exit_code=self._optional_int(output.get("exit_code")),
+            )
+            for output in tool_outputs
+        ]
+        self._invocations[task_id] = [*planned, *captured]
+
+    @staticmethod
+    def _optional_int(value: object) -> int | None:
+        return value if isinstance(value, int) else None
 
     def _require_package(
         self,

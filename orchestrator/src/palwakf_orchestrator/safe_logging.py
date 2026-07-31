@@ -25,9 +25,14 @@ class RedactingFilter(logging.Filter):
         record.msg = redact(record.msg)
         if record.args:
             if isinstance(record.args, dict):
-                record.args = {key: redact(value) for key, value in record.args.items()}
+                record.args = {
+                    key: redact(value) if isinstance(value, str) else value
+                    for key, value in record.args.items()
+                }
             else:
-                record.args = tuple(redact(value) for value in record.args)
+                record.args = tuple(
+                    redact(value) if isinstance(value, str) else value for value in record.args
+                )
         return True
 
 

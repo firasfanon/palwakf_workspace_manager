@@ -50,6 +50,7 @@ class _OrchestratorWorkspacePageState
                   state: state,
                   onSelect: controller.selectTask,
                   onCreate: () => _showNewTask(context),
+                  onCreateProof: controller.createProofTask,
                 );
                 final detail = _TaskDetail(
                   state: state,
@@ -211,11 +212,13 @@ class _TaskQueue extends StatelessWidget {
     required this.state,
     required this.onSelect,
     required this.onCreate,
+    required this.onCreateProof,
   });
 
   final OrchestratorWorkspaceState state;
   final ValueChanged<String> onSelect;
   final VoidCallback onCreate;
+  final VoidCallback onCreateProof;
 
   @override
   Widget build(BuildContext context) {
@@ -239,6 +242,12 @@ class _TaskQueue extends StatelessWidget {
                   tooltip: 'مهمة جديدة',
                   onPressed: onCreate,
                   icon: const Icon(Icons.add),
+                ),
+                const SizedBox(width: 6),
+                IconButton.outlined(
+                  tooltip: 'إنشاء مهمة الإثبات الذاتي',
+                  onPressed: onCreateProof,
+                  icon: const Icon(Icons.self_improvement_outlined),
                 ),
               ],
             ),
@@ -545,12 +554,23 @@ class _TaskHeader extends StatelessWidget {
             runSpacing: 8,
             children: <Widget>[
               FilledButton.icon(
-                onPressed: task.status == OrchestratorTaskStatus.cancelled
+                onPressed: task.status == OrchestratorTaskStatus.cancelled ||
+                        (task.requiresExplicitAuthorization &&
+                            task.authorizedAt == null)
                     ? null
                     : controller.dispatch,
                 icon: const Icon(Icons.send_outlined),
                 label: const Text('إرسال'),
               ),
+              if (task.requiresExplicitAuthorization)
+                FilledButton.tonalIcon(
+                  onPressed:
+                      task.authorizedAt == null ? controller.authorize : null,
+                  icon: const Icon(Icons.gavel_outlined),
+                  label: Text(
+                    task.authorizedAt == null ? 'تفويض التنفيذ' : 'مفوّضة',
+                  ),
+                ),
               OutlinedButton.icon(
                 onPressed: task.status == OrchestratorTaskStatus.failed ||
                         task.status == OrchestratorTaskStatus.awaitingApproval
@@ -660,6 +680,9 @@ class _OverviewTab extends StatelessWidget {
             'المستودع': task.repository,
             'الفرع': task.branch,
             'مرجع التفويض': task.authorityReference,
+            'حالة التفويض': task.requiresExplicitAuthorization
+                ? (task.authorizedAt == null ? 'بانتظار التفويض' : 'مفوّضة')
+                : 'تفويض المغلف كافٍ',
             'Sandbox': task.sandbox,
             'Idempotency': task.idempotencyKey,
           },
@@ -762,7 +785,17 @@ class _ToolPlanTab extends StatelessWidget {
               dense: true,
               leading: const Icon(Icons.check_circle_outline, size: 20),
               title: Text(invocation.adapterId),
-              subtitle: Text(invocation.capabilityId),
+              subtitle: Text(
+                <String>[
+                  invocation.capabilityId,
+                  if (invocation.commandSummary != null)
+                    invocation.commandSummary!,
+                  if (invocation.outputExcerpt != null)
+                    invocation.outputExcerpt!,
+                ].join('\n'),
+                maxLines: 6,
+                overflow: TextOverflow.ellipsis,
+              ),
               trailing: Text(invocation.status),
             ),
           ),

@@ -130,10 +130,11 @@ The Flutter client reads its non-secret API base URL from
 `ORCHESTRATOR_API_BASE_URL` through `--dart-define`. The default is the local
 loopback service at `http://127.0.0.1:8421`.
 
-Service bearer values are entered at runtime and remain in Flutter application
-memory. They are not accepted through `--dart-define` and are not embedded in
-`build/web`. The connected service, OAuth/JWKS remote gate, MCP tools, and Tool
-Operational Health model are specified in
+Service bearer values are never accepted through `--dart-define` and are not
+embedded in `build/web`. The repository-root local launcher exchanges a
+one-time loopback nonce for an HttpOnly session cookie, while remote clients
+continue to use scoped bearer or OAuth/JWKS authentication. The connected
+service, MCP tools, and Tool Operational Health model are specified in
 `docs/contracts/CONNECTED_SERVICE_AND_CHATGPT_MCP_V1.md`.
 
 ## External Project Intake and Reality Adapter V1
@@ -159,3 +160,30 @@ repository root exactly matches `PALWAKF_LOCAL_PROJECT_ALLOWLIST_JSON`.
 The first live baseline covers `firasfanon/Pal_Eyes` in
 `READ_ONLY_ZERO_MUTATION` mode. Supabase remains blocked even when repository
 indicators exist, and prepare-task creates no execution.
+
+## Local-First Product Runtime V1
+
+Run the complete authenticated local product from the repository root:
+
+```powershell
+.\Start-PalWakfWorkspaceManager.ps1
+```
+
+Stop it with:
+
+```powershell
+.\Stop-PalWakfWorkspaceManager.ps1
+```
+
+The start command builds Flutter Web, starts the loopback Orchestrator, creates
+an automatic HttpOnly local session, registers Workspace Manager as the primary
+managed project, waits for readiness, and opens `/dashboard`. Starting it again
+reuses the healthy process instead of creating a duplicate.
+
+The Dashboard reads local/remote/PR HEAD, worktree, PR, CI, Preview, runtime
+capability, task, checkpoint, and repository-writer state from authoritative
+local and provider sources. Unknown provider values remain `UNKNOWN`.
+
+Vercel serves the protected static Preview only. Agents SDK and Codex dispatch
+require the authenticated local runtime; Preview is never treated as a remote
+executor or promoted to Production by these scripts.

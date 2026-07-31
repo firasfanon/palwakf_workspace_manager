@@ -46,4 +46,5 @@ def main() -> None:
         host=settings.bind_host,
         port=port,
         log_level="info",
+        access_log=False,
     )

@@ -58,3 +58,19 @@ def test_log_filter_redacts_bearers_and_api_keys() -> None:
 
     assert "private-value" not in record.getMessage()
     assert record.getMessage().count("[REDACTED]") == 2
+
+
+def test_log_filter_preserves_numeric_format_arguments() -> None:
+    record = logging.LogRecord(
+        name="test",
+        level=logging.INFO,
+        pathname=__file__,
+        lineno=1,
+        msg="Listening on port %d",
+        args=(8421,),
+        exc_info=None,
+    )
+
+    RedactingFilter().filter(record)
+
+    assert record.getMessage() == "Listening on port 8421"

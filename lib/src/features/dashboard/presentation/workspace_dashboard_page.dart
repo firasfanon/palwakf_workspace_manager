@@ -53,6 +53,10 @@ class _WorkspaceDashboardPageState
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 40),
               children: <Widget>[
                 _DashboardHeader(summary: summary),
+                if (summary.managedWorkspace != null) ...<Widget>[
+                  const SizedBox(height: 14),
+                  _ManagedWorkspaceBand(status: summary.managedWorkspace!),
+                ],
                 const SizedBox(height: 18),
                 _MetricGrid(summary: summary),
                 const SizedBox(height: 26),
@@ -117,6 +121,73 @@ class _WorkspaceDashboardPageState
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ManagedWorkspaceBand extends StatelessWidget {
+  const _ManagedWorkspaceBand({required this.status});
+
+  final ManagedWorkspaceStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    String head(String? value) {
+      if (value == null || value.length < 8) return 'UNKNOWN';
+      return value.substring(0, 8);
+    }
+
+    final capabilities = <String, CapabilityState>{
+      'Orchestrator': status.orchestrator,
+      'المصادقة': status.authentication,
+      'GitHub': status.github,
+      'Agents SDK': status.agentsSdk,
+      'Codex': status.codex,
+    };
+    return _Panel(
+      title: 'مساحة العمل الأساسية',
+      icon: Icons.dns_outlined,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            status.repository,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: capabilities.entries
+                .map(
+                  (entry) => _StateChip(
+                    label: '${entry.key}: ${entry.value.status}',
+                    warning: entry.value.status == 'BLOCKED',
+                  ),
+                )
+                .toList(growable: false),
+          ),
+          const SizedBox(height: 12),
+          _FactRow(
+            label: 'الرؤوس local / remote / PR',
+            value:
+                '${head(status.localHead)} / ${head(status.remoteHead)} / ${head(status.pullRequestHead)}',
+          ),
+          _FactRow(
+            label: 'PR #${status.pullRequestNumber}',
+            value: '${status.pullRequestState} · CI ${status.ciStatus}',
+          ),
+          _FactRow(
+            label: 'الشجرة والكاتب',
+            value:
+                '${status.worktreeClean == true ? 'نظيفة' : 'غير نظيفة'} · ${status.activeWriterTaskId ?? 'لا يوجد كاتب نشط'}',
+          ),
+          _FactRow(
+            label: 'المهمة الحالية',
+            value: status.currentTaskId ?? 'لا توجد مهمة نشطة',
+          ),
+        ],
+      ),
     );
   }
 }

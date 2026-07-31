@@ -1,46 +1,46 @@
 # Current Task
 
 ```text
-TASK_ID=PALWAKF_WORKSPACE_MANAGER_MAIN_DASHBOARD_AND_PROJECT_OPERATIONS_SHELL_V1
-STATUS=IMPLEMENTED_VERIFIED_REMOTE_CI_PREVIEW_READY
-MODE=CONTROLLED_REPOSITORY_MUTATION
+TASK_ID=PALWAKF_WORKSPACE_MANAGER_LOCAL_FIRST_SELF_HOSTING_PRODUCT_COMPLETION_V1
+STATUS=BOOTSTRAP_VALIDATED_SELF_HOSTED_PROOF_PENDING
+MODE=CONTROLLED_LOCAL_SELF_HOSTING
 REPOSITORY=firasfanon/palwakf_workspace_manager
 BRANCH=agent/workspace-manager-foundation-v1
-EXPECTED_BEFORE_HEAD=47802cfebe901e341800c3d03fde12642c497851
-IMPLEMENTATION_COMMIT=aadc118a819e2a5dd0311db95676ddc51dcdb651
-SPA_ROUTE_FIX_COMMIT=d4fbb51196656c249a871a8ae686ca46b55165db
-GITHUB_ACTIONS_RUN=30593284743
-ROOT_ROUTE=/dashboard
-TASK_ROUTE=/tasks
-APPLICATION_SHELL=WORKSPACE_APPLICATION_SHELL_ARABIC_RTL
-DASHBOARD_AGGREGATION=AUTHORITATIVE_STORES_ONLY
-HTTP_MCP_READ_PARITY=PASS
-PAL_EYES_OBSERVED_HEAD=c67ff5e28205aac57ff28e8b8120c3bac5de4488
-PAL_EYES_EXTERNAL_MUTATION=NONE
+PR_NUMBER=1
+EXPECTED_BEFORE_HEAD=53e1d2beb54229563445232dec9c5ff32277fccc
+BOOTSTRAP_COMMIT=PENDING
+SELF_HOSTED_COMMIT=PENDING
+SELF_HOSTED_PROOF_TASK=PALWAKF_WORKSPACE_MANAGER_SELF_HOSTED_LAST_EXECUTION_CARD_V1
+SELF_HOSTED_PROOF_IDEMPOTENCY_KEY=palwakf-self-hosted-last-execution-card-v1
+SELF_HOSTED_PROOF_STATUS=PENDING_AFTER_BOOTSTRAP_COMMIT
+LIVE_SELF_HOSTED_EXECUTION_COUNT=0
+ONE_COMMAND_START=IMPLEMENTED_VALIDATED
+ONE_COMMAND_STOP=IMPLEMENTED_VALIDATED
+LOCAL_SESSION=VERIFIED_HTTPONLY_ONE_TIME_LAUNCH
+SELF_REGISTRATION=PASS
+DASHBOARD_AGGREGATION=AUTHORITATIVE_STORES_AND_LOCAL_REPOSITORY_REALITY
+LOCAL_BROWSER_UAT=PASS_AUTOMATED_DESKTOP_AND_NARROW
+PRODUCT_ACCEPTANCE=PENDING_LIVE_PROOF_AND_RESTART_RESUME
+EXTERNAL_PROJECT_WORK=FROZEN
+EXTERNAL_PROJECT_MUTATION=NONE
 DATABASE_CONNECTION=NONE
 SUPABASE_CONNECTED=FALSE
 PRODUCTION_MUTATION=NONE
 MERGE_PERFORMED=FALSE
 SECRET_VALUES_EXPOSED=FALSE
-PREVIEW=READY_PROTECTED
-PREVIEW_DEPLOYMENT_ID=dpl_4PCxygzyfN7pvFQtCJKojorqFr7R
-PREVIEW_URL=https://palwakf-workspace-manager-2d5pfnftv-firasfanons-projects.vercel.app
-PREVIEW_BROWSER_SMOKE=BLOCKED_BY_VERCEL_DEPLOYMENT_PROTECTION
-HUMAN_BROWSER_UAT=NOT_EXECUTED
 ```
 
 ## Acceptance
 
-- `/dashboard` is the operational root and `/tasks` preserves the existing
-  self-hosting task workspace.
-- One responsive Arabic RTL application shell owns navigation, page identity,
-  runtime authentication access, connection state, and refresh.
-- Dashboard, activity, alerts, and evidence reads aggregate existing task,
-  project, tool-health, readiness, audit, checkpoint, and evidence stores.
-- HTTP and authenticated MCP use the same aggregation service.
-- Unknown provider facts remain explicit and safe evidence references never
-  expose absolute local paths.
-- Projects support search, status filtering, sorting, and separated reality,
-  task, tool-profile, candidate, and evidence views.
-- Flutter viewport tests cover 360, 768, 1024, and 1440 pixels.
-- Pal_Eyes remains read-only at the previously observed immutable HEAD.
+- One repository-root command starts the authenticated loopback Orchestrator
+  and Flutter product without manual credential entry.
+- Workspace Manager registers itself from real local Git, remote Git, GitHub
+  PR, GitHub Actions, and Vercel commit status.
+- The operator UI creates and explicitly authorizes the canonical proof task.
+- Only that task can request workspace write, and it is bound to one persistent
+  idempotency key and one repository writer.
+- Codex shell calls persist redacted, correlated outputs and exact exit codes.
+- GitHub Actions must verify the exact self-hosted result HEAD.
+- External project work remains frozen and is neither read nor mutated.
+- Product acceptance remains pending until the one live proof and controlled
+  restart/resume gates pass.

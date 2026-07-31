@@ -14,6 +14,7 @@ class DashboardSummary {
     required this.connection,
     required this.checkpoints,
     required this.actions,
+    this.managedWorkspace,
   });
 
   factory DashboardSummary.fromJson(Map<String, dynamic> json) {
@@ -43,6 +44,11 @@ class DashboardSummary {
           .map((value) =>
               DashboardAction.fromJson(value as Map<String, dynamic>))
           .toList(growable: false),
+      managedWorkspace: json['managed_workspace'] == null
+          ? null
+          : ManagedWorkspaceStatus.fromJson(
+              json['managed_workspace'] as Map<String, dynamic>,
+            ),
     );
   }
 
@@ -60,6 +66,94 @@ class DashboardSummary {
   final ConnectionReadinessSummary connection;
   final List<ResumeCheckpointSummary> checkpoints;
   final List<DashboardAction> actions;
+  final ManagedWorkspaceStatus? managedWorkspace;
+}
+
+class CapabilityState {
+  const CapabilityState({required this.status, this.blocker});
+
+  factory CapabilityState.fromJson(Map<String, dynamic> json) {
+    return CapabilityState(
+      status: json['status'] as String,
+      blocker: json['blocker'] as String?,
+    );
+  }
+
+  final String status;
+  final String? blocker;
+}
+
+class ManagedWorkspaceStatus {
+  const ManagedWorkspaceStatus({
+    required this.registered,
+    required this.repository,
+    required this.branch,
+    required this.pullRequestNumber,
+    required this.pullRequestState,
+    required this.ciStatus,
+    required this.previewStatus,
+    required this.github,
+    required this.agentsSdk,
+    required this.codex,
+    required this.authentication,
+    required this.orchestrator,
+    required this.refreshedAt,
+    this.localHead,
+    this.remoteHead,
+    this.pullRequestHead,
+    this.worktreeClean,
+    this.activeWriterTaskId,
+    this.currentTaskId,
+    this.latestVerifiedTaskId,
+  });
+
+  factory ManagedWorkspaceStatus.fromJson(Map<String, dynamic> json) {
+    CapabilityState capability(String key) =>
+        CapabilityState.fromJson(json[key] as Map<String, dynamic>);
+    return ManagedWorkspaceStatus(
+      registered: json['registered'] as bool,
+      repository: json['repository'] as String,
+      branch: json['branch'] as String,
+      pullRequestNumber: json['pull_request_number'] as int,
+      localHead: json['local_head'] as String?,
+      remoteHead: json['remote_head'] as String?,
+      pullRequestHead: json['pull_request_head'] as String?,
+      worktreeClean: json['worktree_clean'] as bool?,
+      pullRequestState: json['pull_request_state'] as String,
+      ciStatus: json['ci_status'] as String,
+      previewStatus: json['preview_status'] as String,
+      activeWriterTaskId: json['active_writer_task_id'] as String?,
+      currentTaskId: json['current_task_id'] as String?,
+      latestVerifiedTaskId: json['latest_verified_task_id'] as String?,
+      github: capability('github'),
+      agentsSdk: capability('agents_sdk'),
+      codex: capability('codex'),
+      authentication: capability('authentication'),
+      orchestrator: capability('orchestrator'),
+      refreshedAt: DateTime.parse(json['refreshed_at'] as String),
+    );
+  }
+
+  final bool registered;
+  final String repository;
+  final String branch;
+  final int pullRequestNumber;
+  final String? localHead;
+  final String? remoteHead;
+  final String? pullRequestHead;
+  final bool? worktreeClean;
+  final String pullRequestState;
+  final String ciStatus;
+  final String previewStatus;
+  final String? activeWriterTaskId;
+  final String? currentTaskId;
+  final String? latestVerifiedTaskId;
+  final CapabilityState github;
+  final CapabilityState agentsSdk;
+  final CapabilityState codex;
+  final CapabilityState authentication;
+  final CapabilityState orchestrator;
+  final DateTime refreshedAt;
 }
 
 class TaskStatusSummary {

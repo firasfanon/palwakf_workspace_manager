@@ -74,7 +74,31 @@ class GovernanceGate:
             clean=True,
         )
 
+    def verify_result_repository(
+        self,
+        request: DispatchRequest,
+        before: RepositoryState,
+    ) -> RepositoryState:
+        after = self.verify_repository(
+            request.model_copy(
+                update={"expected_head": self._git.run(self._workspace, "rev-parse", "HEAD")}
+            )
+        )
+        if request.boundaries.workspace_write:
+            if after.local_head == before.local_head:
+                raise GovernanceError("authorized workspace-write produced no commit")
+        elif after.local_head != before.local_head:
+            raise GovernanceError("read-only dispatch mutated repository HEAD")
+        return after
+
     @staticmethod
-    def verify_plan(plan: DispatchPlan) -> None:
-        if plan.requires_workspace_write:
-            raise GovernanceError("V1 dispatch plan requested forbidden workspace mutation")
+    def verify_plan(
+        plan: DispatchPlan,
+        request: DispatchRequest | None = None,
+    ) -> None:
+        if request is None:
+            if plan.requires_workspace_write:
+                raise GovernanceError("dispatch plan requested forbidden workspace mutation")
+            return
+        if plan.requires_workspace_write != request.boundaries.workspace_write:
+            raise GovernanceError("dispatch plan mutation class does not match task authority")

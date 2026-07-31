@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from starlette.middleware.base import RequestResponseEndpoint
 
 from palwakf_orchestrator.auth import AuthRegistry, BoundedRateLimiter, JwtAuthConfig
@@ -33,6 +33,8 @@ from palwakf_orchestrator.dashboard_contracts import (
 )
 from palwakf_orchestrator.dashboard_service import DashboardAggregationService
 from palwakf_orchestrator.errors import GovernanceError
+from palwakf_orchestrator.local_product import LocalProductService, ManagedWorkspaceStatus
+from palwakf_orchestrator.local_session import LOCAL_SESSION_COOKIE, LocalSessionManager
 from palwakf_orchestrator.mcp_server import create_mcp_server
 from palwakf_orchestrator.operator_contracts import (
     CreateOperatorTaskRequest,
@@ -43,6 +45,7 @@ from palwakf_orchestrator.operator_contracts import (
     OperatorTaskRecord,
     ProjectCapabilityProfile,
     RuntimeCapabilities,
+    TaskAuthorizationRequest,
     TaskCapabilityRequest,
     ToolInvocationReceipt,
     ToolPlanResponse,
@@ -78,6 +81,8 @@ def create_app(
     auth_registry: AuthRegistry | None = None,
     connected_service: ConnectedApplicationService | None = None,
     project_service: ExternalProjectService | None = None,
+    local_session_manager: LocalSessionManager | None = None,
+    local_product_service: LocalProductService | None = None,
 ) -> FastAPI:
     resolved_settings = settings or get_settings()
     resolved_settings.assert_safe_binding()
@@ -121,6 +126,17 @@ def create_app(
         },
         resolved_store,
     )
+    local_sessions = local_session_manager or LocalSessionManager()
+    local_product = local_product_service
+    if local_product is None and (resolved_settings.workspace_root / ".git").is_dir():
+        local_product = LocalProductService(
+            resolved_settings.workspace_root,
+            resolved_settings.repository,
+            resolved_settings.governed_branch,
+            resolved_settings.pull_request_number,
+            resolved_operator,
+            resolved_store,
+        )
     dashboard = DashboardAggregationService(
         resolved_operator,
         resolved_projects,
@@ -128,6 +144,7 @@ def create_app(
         resolved_store,
         resolved_settings.workspace_root,
         stale_seconds=resolved_settings.stale_project_seconds,
+        local_product=local_product,
     )
     limiter = BoundedRateLimiter(resolved_settings.requests_per_minute)
     mcp_http_app = create_mcp_server(
@@ -155,10 +172,11 @@ def create_app(
     app.state.connected_service = connected
     app.state.project_service = resolved_projects
     app.state.dashboard_service = dashboard
+    app.state.local_product_service = local_product
     app.add_middleware(
         CORSMiddleware,
         allow_origin_regex=r"^https?://(127\.0\.0\.1|localhost)(:\d+)?$",
-        allow_credentials=False,
+        allow_credentials=True,
         allow_methods=["GET", "POST", "OPTIONS"],
         allow_headers=["Accept", "Authorization", "Content-Type", "X-Correlation-ID"],
     )
@@ -172,9 +190,13 @@ def create_app(
             return await call_next(request)
         if request.method == "OPTIONS":
             return await call_next(request)
+        if request.method == "GET" and request.url.path.startswith("/local/session/"):
+            return await call_next(request)
         scope = _scope_for(request)
         try:
-            principal = resolved_auth.require(request, scope)
+            principal = local_sessions.require(request, scope)
+            if principal is None:
+                principal = resolved_auth.require(request, scope)
             limiter.require(principal.client_id)
         except HTTPException as exc:
             return JSONResponse(
@@ -198,6 +220,47 @@ def create_app(
         if not readiness.ready:
             raise HTTPException(status_code=503, detail=readiness.model_dump(mode="json"))
         return readiness
+
+    @app.post("/local/session/issue")
+    async def issue_local_session(request: Request) -> dict[str, str]:
+        nonce = local_sessions.issue_launch(request.state.principal)
+        return {"launch_path": f"/local/session/{nonce}"}
+
+    @app.get("/local/session/{nonce}", include_in_schema=False)
+    async def redeem_local_session(nonce: str, request: Request) -> Response:
+        session_id = local_sessions.redeem_launch(nonce, request)
+        response = RedirectResponse(url="/dashboard", status_code=303)
+        response.set_cookie(
+            LOCAL_SESSION_COOKIE,
+            session_id,
+            max_age=28_800,
+            httponly=True,
+            secure=False,
+            samesite="strict",
+            path="/",
+        )
+        return response
+
+    @app.post("/v1/local-product/bootstrap", response_model=ManagedWorkspaceStatus)
+    async def bootstrap_local_product() -> ManagedWorkspaceStatus:
+        if local_product is None:
+            raise HTTPException(status_code=503, detail="local repository is unavailable")
+        return local_product.register(refresh_remote=True)
+
+    @app.get("/v1/local-product/status", response_model=ManagedWorkspaceStatus)
+    async def local_product_status() -> ManagedWorkspaceStatus:
+        if local_product is None:
+            raise HTTPException(status_code=503, detail="local repository is unavailable")
+        return local_product.status()
+
+    @app.post("/v1/local-product/proof-task", response_model=OperatorTaskRecord)
+    async def create_local_proof_task() -> OperatorTaskRecord:
+        if local_product is None:
+            raise HTTPException(status_code=503, detail="local repository is unavailable")
+        try:
+            return local_product.create_proof_task()
+        except GovernanceError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
 
     @app.get("/v1/metrics", response_model=OperationalMetrics)
     async def metrics() -> OperationalMetrics:
@@ -326,6 +389,18 @@ def create_app(
     _add_legacy_routes(app, resolved_operator, connected)
     _add_project_routes(app, resolved_projects)
     app.mount("/mcp", mcp_http_app, name="mcp")
+
+    @app.get("/{ui_path:path}", include_in_schema=False)
+    async def local_flutter_ui(ui_path: str) -> Response:
+        build_root = (resolved_settings.workspace_root / "build" / "web").resolve()
+        candidate = (build_root / ui_path).resolve()
+        if ui_path and candidate.is_file() and build_root in candidate.parents:
+            return FileResponse(candidate)
+        index = build_root / "index.html"
+        if index.is_file():
+            return FileResponse(index)
+        raise HTTPException(status_code=404, detail="local Flutter build is not available")
+
     return app
 
 
@@ -395,6 +470,21 @@ def _add_legacy_routes(
                 correlation_id=request.headers.get("X-Correlation-ID"),
             )
             return receipt.task
+        except GovernanceError as exc:
+            raise conflict(exc) from exc
+
+    @app.post("/v1/tasks/{task_id}/authorize", response_model=OperatorTaskRecord)
+    async def authorize_task(
+        task_id: str,
+        command: TaskAuthorizationRequest,
+        request: Request,
+    ) -> OperatorTaskRecord:
+        try:
+            return operator.authorize_task(
+                task_id,
+                command,
+                principal_id=request.state.principal.client_id,
+            )
         except GovernanceError as exc:
             raise conflict(exc) from exc
 

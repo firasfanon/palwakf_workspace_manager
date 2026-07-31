@@ -69,6 +69,17 @@
   matching MCP read tools.
 - Project search, status filtering, sorting, and six-section project detail.
 - Responsive Flutter shell tests at 360, 768, 1024, and 1440 pixels.
+- Repository-root one-command local startup and controlled stop scripts.
+- Automatic one-time loopback session exchange with HttpOnly cookie auth and no
+  Flutter-embedded bearer value.
+- Primary Workspace Manager self-registration from real local Git, remote Git,
+  GitHub PR, GitHub Actions, and Vercel commit status.
+- Governed proof-task creation and explicit authorization from the operator UI.
+- Workspace-write dispatch restricted to one canonical proof task and one
+  persistent idempotency key.
+- Correlated, redacted Codex shell command and output receipts in the task store.
+- Exact-result GitHub Actions verification for the self-hosted proof task.
+- Automated desktop and narrow local Browser UAT harness.
 
 ### Boundaries
 

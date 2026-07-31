@@ -6,6 +6,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from palwakf_orchestrator.local_product import ManagedWorkspaceStatus
+
 
 class FreshnessState(StrEnum):
     fresh = "FRESH"
@@ -36,7 +38,9 @@ class PortfolioProjectSummary(BaseModel):
     task_count: int
     active_writer: bool
     evidence_count: int
-    provenance: Literal["EXTERNAL_PROJECT_REGISTRY"] = "EXTERNAL_PROJECT_REGISTRY"
+    provenance: Literal["EXTERNAL_PROJECT_REGISTRY", "LOCAL_MANAGED_WORKSPACE"] = (
+        "EXTERNAL_PROJECT_REGISTRY"
+    )
 
 
 class TaskStatusSummary(BaseModel):
@@ -111,12 +115,8 @@ class ConnectionReadinessSummary(BaseModel):
     local_secure: bool
     public_unauthenticated_endpoint: Literal[False] = False
     chatgpt_live_state: Literal["PENDING_NOT_ACTIVATED"] = "PENDING_NOT_ACTIVATED"
-    execution_host_compatibility: Literal["CURRENT_RUNTIME_BOUND"] = (
-        "CURRENT_RUNTIME_BOUND"
-    )
-    tool_executor_compatibility: Literal["CURRENT_RUNTIME_BOUND"] = (
-        "CURRENT_RUNTIME_BOUND"
-    )
+    execution_host_compatibility: Literal["CURRENT_RUNTIME_BOUND"] = "CURRENT_RUNTIME_BOUND"
+    tool_executor_compatibility: Literal["CURRENT_RUNTIME_BOUND"] = "CURRENT_RUNTIME_BOUND"
     last_successful_codex_execution_at: datetime | None
 
 
@@ -157,6 +157,7 @@ class DashboardSummary(BaseModel):
     connection: ConnectionReadinessSummary
     checkpoints: list[ResumeCheckpointSummary]
     actions: list[DashboardAction]
+    managed_workspace: ManagedWorkspaceStatus | None = None
     provenance: list[str] = Field(
         default_factory=lambda: [
             "OPERATOR_TASK_STORE",

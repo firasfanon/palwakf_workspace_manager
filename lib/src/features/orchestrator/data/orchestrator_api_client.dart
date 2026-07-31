@@ -35,6 +35,10 @@ abstract interface class OrchestratorApi {
 
   Future<OperatorTask> createTask(TaskDraft draft);
 
+  Future<OperatorTask> createProofTask();
+
+  Future<OperatorTask> authorize(OperatorTask task);
+
   Future<OperatorTask> taskStatus(String taskId);
 
   Future<ToolPlan> planTools(String taskId);
@@ -153,6 +157,27 @@ class HttpOrchestratorApiClient implements OrchestratorApi {
   Future<OperatorTask> createTask(TaskDraft draft) async {
     return OperatorTask.fromJson(
       await _postObject('/v1/tasks', draft.toJson()),
+    );
+  }
+
+  @override
+  Future<OperatorTask> createProofTask() async {
+    return OperatorTask.fromJson(
+      await _postObject('/v1/local-product/proof-task', null),
+    );
+  }
+
+  @override
+  Future<OperatorTask> authorize(OperatorTask task) async {
+    return OperatorTask.fromJson(
+      await _postObject(
+        '/v1/tasks/${task.taskId}/authorize',
+        <String, dynamic>{
+          'expected_head': task.expectedHead,
+          'authority_reference': task.authorityReference,
+          'acknowledgement': 'AUTHORIZE_GOVERNED_EXECUTION',
+        },
+      ),
     );
   }
 

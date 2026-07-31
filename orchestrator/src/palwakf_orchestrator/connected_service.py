@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from collections import defaultdict
 from datetime import UTC, datetime
 from statistics import median
 from typing import Literal
 from uuid import uuid4
+
+import httpx
 
 from palwakf_orchestrator.config import Settings
 from palwakf_orchestrator.connected_contracts import (
@@ -23,12 +26,48 @@ from palwakf_orchestrator.errors import GovernanceError
 from palwakf_orchestrator.operator_contracts import (
     OperatorTaskRecord,
     OperatorTaskStatus,
+    VerificationRequest,
 )
 from palwakf_orchestrator.operator_service import OperatorService
 from palwakf_orchestrator.persistence import StateStore
+from palwakf_orchestrator.safe_logging import redact
 from palwakf_orchestrator.tool_health import ToolHealthService
 
 TransportName = Literal["http", "mcp"]
+SELF_HOSTED_PROOF_TASK_ID = "PALWAKF_WORKSPACE_MANAGER_SELF_HOSTED_LAST_EXECUTION_CARD_V1"
+
+
+class GitHubCiVerifier:
+    def __init__(self, repository: str, token: str | None = None) -> None:
+        headers = {
+            "Accept": "application/vnd.github+json",
+            "User-Agent": "PalWakf-Workspace-Manager",
+        }
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        self._client = httpx.Client(
+            base_url=f"https://api.github.com/repos/{repository}",
+            headers=headers,
+            timeout=15,
+        )
+
+    def status(self, head: str) -> tuple[str, str | None]:
+        response = self._client.get("/actions/runs", params={"head_sha": head, "per_page": 5})
+        response.raise_for_status()
+        payload = response.json()
+        runs = payload.get("workflow_runs") if isinstance(payload, dict) else None
+        if not isinstance(runs, list) or not runs:
+            return "pending", None
+        run = runs[0]
+        if not isinstance(run, dict):
+            return "pending", None
+        status = str(run.get("status") or "pending").lower()
+        conclusion = str(run.get("conclusion") or "").lower()
+        run_id = run.get("id")
+        receipt = f"github-actions-run-{run_id}" if run_id else None
+        if status != "completed":
+            return "pending", receipt
+        return ("success" if conclusion == "success" else "failed"), receipt
 
 
 class ConnectedApplicationService:
@@ -40,6 +79,7 @@ class ConnectedApplicationService:
         *,
         authentication_configured: bool,
         tool_health: ToolHealthService | None = None,
+        ci_verifier: GitHubCiVerifier | None = None,
     ) -> None:
         self.settings = settings
         self.operator = operator
@@ -51,6 +91,10 @@ class ConnectedApplicationService:
         self._active: dict[str, asyncio.Task[OperatorTaskRecord]] = {}
         self._repository_locks: defaultdict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
         self._audit = self._restore_audit()
+        self._ci_verifier = ci_verifier or GitHubCiVerifier(
+            settings.repository,
+            os.environ.get("GITHUB_TOKEN"),
+        )
 
     async def start(self) -> None:
         if self._workers:
@@ -306,7 +350,13 @@ class ConnectedApplicationService:
             execution = asyncio.create_task(self.operator.dispatch_task(task.task_id))
             self._active[task.task_id] = execution
             try:
-                await asyncio.wait_for(execution, timeout=task.timeout_seconds)
+                completed = await asyncio.wait_for(execution, timeout=task.timeout_seconds)
+                if (
+                    completed.task_id == SELF_HOSTED_PROOF_TASK_ID
+                    and completed.status == OperatorTaskStatus.pending_verification
+                    and completed.after_head
+                ):
+                    await self._verify_self_hosted_ci(completed)
             except TimeoutError:
                 self.operator.fail_task(task.task_id, "EXECUTION_TIMEOUT", timed_out=True)
             except asyncio.CancelledError:
@@ -315,12 +365,51 @@ class ConnectedApplicationService:
         except Exception as exc:
             self.operator.fail_task(
                 task.task_id,
-                f"EXECUTION_FAILED:{type(exc).__name__}",
+                f"EXECUTION_FAILED:{type(exc).__name__}:{redact(exc)[:400]}",
             )
         finally:
             self._active.pop(task.task_id, None)
             if writer_acquired:
                 self.store.release_repository_writer(task.repository, task.task_id)
+
+    async def _verify_self_hosted_ci(self, task: OperatorTaskRecord) -> None:
+        assert task.after_head is not None
+        deadline = asyncio.get_running_loop().time() + self.settings.self_hosted_ci_timeout_seconds
+        last_receipt: str | None = None
+        while asyncio.get_running_loop().time() < deadline:
+            try:
+                status, receipt = await asyncio.to_thread(
+                    self._ci_verifier.status,
+                    task.after_head,
+                )
+            except httpx.HTTPError as exc:
+                self.operator.record_verification_blocker(
+                    task.task_id,
+                    f"GITHUB_CI_READ_FAILED:{type(exc).__name__}",
+                )
+                return
+            last_receipt = receipt or last_receipt
+            if status == "success" and last_receipt:
+                self.operator.verify_task(
+                    task.task_id,
+                    VerificationRequest(
+                        verification_receipt=last_receipt,
+                        ci_status="success",
+                        verified_head=task.after_head,
+                    ),
+                )
+                return
+            if status == "failed":
+                self.operator.record_verification_blocker(
+                    task.task_id,
+                    f"GITHUB_CI_FAILED:{last_receipt or 'UNKNOWN_RUN'}",
+                )
+                return
+            await asyncio.sleep(10)
+        self.operator.record_verification_blocker(
+            task.task_id,
+            f"GITHUB_CI_TIMEOUT:{last_receipt or 'NO_RUN_DISCOVERED'}",
+        )
 
     def _assert_host(self, execution_host_id: str, tool_executor_id: str) -> None:
         if (

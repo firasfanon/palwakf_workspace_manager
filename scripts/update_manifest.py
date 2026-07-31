@@ -30,6 +30,13 @@ def main() -> None:
     files = []
     for relative in repository_files():
         content = (ROOT / relative).read_bytes()
+        if b"\0" not in content:
+            try:
+                content.decode("utf-8")
+            except UnicodeDecodeError:
+                pass
+            else:
+                content = content.replace(b"\r\n", b"\n")
         files.append(
             {
                 "path": relative,
@@ -39,10 +46,10 @@ def main() -> None:
         )
     manifest = {
         "batch": (
-            "PALWAKF_WORKSPACE_MANAGER_MAIN_DASHBOARD_"
-            "AND_PROJECT_OPERATIONS_SHELL_V1"
+            "PALWAKF_WORKSPACE_MANAGER_LOCAL_FIRST_"
+            "SELF_HOSTING_PRODUCT_COMPLETION_V1"
         ),
-        "status": "MAIN_DASHBOARD_AND_OPERATIONS_SHELL_LOCAL_VALIDATION_PASS",
+        "status": "BOOTSTRAP_VALIDATED_SELF_HOSTED_PROOF_PENDING",
         "file_count": len(files),
         "files": files,
     }
