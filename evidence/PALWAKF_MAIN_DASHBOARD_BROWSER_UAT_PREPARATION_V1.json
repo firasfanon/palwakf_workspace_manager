@@ -2,7 +2,9 @@
   "evidence_type": "PALWAKF_MAIN_DASHBOARD_BROWSER_UAT_PREPARATION_V1",
   "task_id": "PALWAKF_WORKSPACE_MANAGER_MAIN_DASHBOARD_AND_PROJECT_OPERATIONS_SHELL_V1",
   "status": "PREPARED_NOT_HUMAN_EXECUTED",
-  "preview_url": "PENDING_AUTOMATIC_PREVIEW_AFTER_PUSH",
+  "preview_url": "https://palwakf-workspace-manager-2d5pfnftv-firasfanons-projects.vercel.app",
+  "preview_deployment_id": "dpl_4PCxygzyfN7pvFQtCJKojorqFr7R",
+  "preview_source_commit": "d4fbb51196656c249a871a8ae686ca46b55165db",
   "routes": [
     "/dashboard",
     "/projects",

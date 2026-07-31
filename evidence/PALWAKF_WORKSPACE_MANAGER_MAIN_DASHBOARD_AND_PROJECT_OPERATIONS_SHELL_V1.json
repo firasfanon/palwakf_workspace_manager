@@ -5,6 +5,8 @@
   "repository": "firasfanon/palwakf_workspace_manager",
   "branch": "agent/workspace-manager-foundation-v1",
   "expected_before_head": "47802cfebe901e341800c3d03fde12642c497851",
+  "implementation_commit": "aadc118a819e2a5dd0311db95676ddc51dcdb651",
+  "spa_route_fix_commit": "d4fbb51196656c249a871a8ae686ca46b55165db",
   "root_route": "/dashboard",
   "task_route": "/tasks",
   "application_shell": {
@@ -64,8 +66,10 @@
     "output_directory": "build/web",
     "secret_scan": "PASS",
     "manifest_verification": "PASS",
-    "remote_ci": "PENDING_PUSH",
+    "remote_ci": "PASS_RUN_30593284743",
     "preview": "READY_PROTECTED",
+    "preview_deployment_id": "dpl_4PCxygzyfN7pvFQtCJKojorqFr7R",
+    "preview_source_commit": "d4fbb51196656c249a871a8ae686ca46b55165db",
     "preview_browser_smoke": "BLOCKED_BY_VERCEL_DEPLOYMENT_PROTECTION"
   },
   "boundaries": {
