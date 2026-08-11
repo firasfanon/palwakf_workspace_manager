@@ -7,6 +7,7 @@
     "uat:local": "node scripts/local_browser_uat.mjs"
   },
   "devDependencies": {
-    "playwright": "1.62.1"
+    "playwright": "1.62.1",
+    "supabase": "2.113.0"
   }
 }
