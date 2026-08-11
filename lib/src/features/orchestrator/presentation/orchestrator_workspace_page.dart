@@ -410,10 +410,22 @@ class _TaskDetail extends StatelessWidget {
   Widget build(BuildContext context) {
     final task = state.selectedTask;
     if (task == null) {
-      return Center(
-        child: _RuntimeCapabilitiesCard(
-          capabilities: state.capabilities,
-        ),
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final minimumHeight =
+              constraints.maxHeight > 32 ? constraints.maxHeight - 32 : 0.0;
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: minimumHeight),
+              child: Center(
+                child: _RuntimeCapabilitiesCard(
+                  capabilities: state.capabilities,
+                ),
+              ),
+            ),
+          );
+        },
       );
     }
     return DefaultTabController(

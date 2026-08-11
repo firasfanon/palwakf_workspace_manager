@@ -37,3 +37,6 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
+
+# Node browser UAT
+node_modules/

@@ -1,0 +1,12 @@
+{
+  "name": "palwakf-workspace-manager-uat",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Local browser UAT toolchain for PalWakf Workspace Manager.",
+  "scripts": {
+    "uat:local": "node scripts/local_browser_uat.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
+}
