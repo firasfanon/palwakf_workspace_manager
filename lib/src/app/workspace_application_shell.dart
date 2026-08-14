@@ -18,18 +18,50 @@ class WorkspaceApplicationShell extends ConsumerWidget {
   final Widget child;
 
   static const destinations = <ShellDestination>[
-    ShellDestination('/dashboard', 'لوحة العمليات', Icons.dashboard_outlined,
-        Icons.dashboard),
+    ShellDestination(
+      '/dashboard',
+      'لوحة العمليات',
+      Icons.dashboard_outlined,
+      Icons.dashboard,
+    ),
     ShellDestination('/projects', 'المشاريع', Icons.hub_outlined, Icons.hub),
     ShellDestination(
-        '/tasks', 'المهام', Icons.task_alt_outlined, Icons.task_alt),
-    ShellDestination('/tools', 'الأدوات', Icons.build_outlined, Icons.build),
-    ShellDestination('/alerts', 'التنبيهات', Icons.notifications_outlined,
-        Icons.notifications),
+      '/tasks',
+      'المهام',
+      Icons.task_alt_outlined,
+      Icons.task_alt,
+    ),
     ShellDestination(
-        '/evidence', 'الأدلة', Icons.fact_check_outlined, Icons.fact_check),
-    ShellDestination('/settings/connections', 'الاتصالات', Icons.cable_outlined,
-        Icons.cable),
+      '/extensions',
+      'التوسعات',
+      Icons.extension_outlined,
+      Icons.extension,
+    ),
+    ShellDestination(
+      '/operations',
+      'التشغيل',
+      Icons.settings_suggest_outlined,
+      Icons.settings_suggest,
+    ),
+    ShellDestination('/tools', 'الأدوات', Icons.build_outlined, Icons.build),
+    ShellDestination(
+      '/alerts',
+      'التنبيهات',
+      Icons.notifications_outlined,
+      Icons.notifications,
+    ),
+    ShellDestination(
+      '/evidence',
+      'الأدلة',
+      Icons.fact_check_outlined,
+      Icons.fact_check,
+    ),
+    ShellDestination(
+      '/settings/connections',
+      'الاتصالات',
+      Icons.cable_outlined,
+      Icons.cable,
+    ),
   ];
 
   @override
@@ -208,10 +240,9 @@ class _DrawerNavigation extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(18, 20, 18, 14),
           child: Text(
             'مساحة عمل PalWakf',
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(fontWeight: FontWeight.w800),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
         ),
         const Divider(height: 1),
@@ -240,12 +271,7 @@ class _DrawerNavigation extends StatelessWidget {
 }
 
 class ShellDestination {
-  const ShellDestination(
-    this.route,
-    this.label,
-    this.icon,
-    this.selectedIcon,
-  );
+  const ShellDestination(this.route, this.label, this.icon, this.selectedIcon);
 
   final String route;
   final String label;

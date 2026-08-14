@@ -132,7 +132,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('المهام'));
+    await tester.tap(find.text('التشغيل'));
     await tester.pumpAndSettle();
 
     expect(find.text('PalWakf Workspace Manager'), findsOneWidget);
