@@ -26,6 +26,39 @@ export PATH="${FLUTTER_ROOT}/bin:${PATH}"
 
 flutter config --no-analytics
 flutter pub get --enforce-lockfile
-flutter build web --release
+
+runtime_mode="${PALWAKF_RUNTIME_MODE:-preview}"
+if [[ "${runtime_mode}" != "preview" ]]; then
+  printf 'Vercel build requires PALWAKF_RUNTIME_MODE=preview, got %s\n' \
+    "${runtime_mode}" >&2
+  exit 1
+fi
+
+dart_defines=(
+  "--dart-define=PALWAKF_RUNTIME_MODE=preview"
+)
+
+if [[ -n "${ORCHESTRATOR_API_BASE_URL:-}" ]]; then
+  case "${ORCHESTRATOR_API_BASE_URL}" in
+    https://127.0.0.1*|https://localhost*|http://*)
+      printf 'Preview ORCHESTRATOR_API_BASE_URL must be non-loopback HTTPS\n' >&2
+      exit 1
+      ;;
+    https://*)
+      dart_defines+=(
+        "--dart-define=ORCHESTRATOR_API_BASE_URL=${ORCHESTRATOR_API_BASE_URL}"
+      )
+      ;;
+    *)
+      printf 'Invalid ORCHESTRATOR_API_BASE_URL for Preview\n' >&2
+      exit 1
+      ;;
+  esac
+  printf 'PREVIEW_ORCHESTRATOR_ENDPOINT=CONFIGURED_HTTPS\n'
+else
+  printf 'PREVIEW_ORCHESTRATOR_ENDPOINT=NOT_CONFIGURED_VISUAL_ONLY\n'
+fi
+
+flutter build web --release "${dart_defines[@]}"
 
 test -f build/web/index.html

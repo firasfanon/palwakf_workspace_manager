@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../../../core/config/orchestrator_runtime_config.dart';
 import '../domain/orchestrator_models.dart';
 
 class OrchestratorApiException implements Exception {
@@ -87,15 +88,10 @@ class HttpOrchestratorApiClient implements OrchestratorApi {
     this.bearerToken,
     this.timeout = const Duration(seconds: 15),
   })  : _client = client ?? http.Client(),
-        baseUrl = (baseUrl ??
-                const String.fromEnvironment(
-                  'ORCHESTRATOR_API_BASE_URL',
-                  defaultValue: 'http://127.0.0.1:8421',
-                ))
-            .replaceFirst(RegExp(r'/$'), '');
+        _baseUrlOverride = baseUrl;
 
   final http.Client _client;
-  final String baseUrl;
+  final String? _baseUrlOverride;
   final String? bearerToken;
   final Duration timeout;
 
@@ -341,6 +337,9 @@ class HttpOrchestratorApiClient implements OrchestratorApi {
     Map<String, dynamic>? body,
   }) async {
     try {
+      final baseUrl = OrchestratorRuntimeConfig.resolveBaseUrl(
+        explicitBaseUrl: _baseUrlOverride,
+      );
       final request = http.Request(method, Uri.parse('$baseUrl$path'))
         ..headers['Accept'] = 'application/json';
       final token = bearerToken?.trim();
@@ -370,6 +369,12 @@ class HttpOrchestratorApiClient implements OrchestratorApi {
         );
       }
       return response;
+    } on OrchestratorRuntimeConfigurationException catch (error) {
+      throw OrchestratorApiException(
+        code: error.code,
+        message: error.message,
+        recoverable: true,
+      );
     } on TimeoutException {
       throw const OrchestratorApiException(
         code: 'TIMEOUT',
@@ -379,7 +384,7 @@ class HttpOrchestratorApiClient implements OrchestratorApi {
     } on http.ClientException {
       throw const OrchestratorApiException(
         code: 'CONNECTION_FAILED',
-        message: 'تعذر الوصول إلى Orchestrator المحلي.',
+        message: 'تعذر الوصول إلى خدمة Orchestrator المهيأة.',
         recoverable: true,
       );
     }

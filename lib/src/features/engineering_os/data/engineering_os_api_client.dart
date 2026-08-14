@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../../../core/config/orchestrator_runtime_config.dart';
 import '../domain/engineering_os_models.dart';
 
 class EngineeringOsApiException implements Exception {
@@ -20,15 +21,10 @@ class EngineeringOsApiClient {
     this.bearerToken,
     this.timeout = const Duration(seconds: 15),
   })  : _client = client ?? http.Client(),
-        baseUrl = (baseUrl ??
-                const String.fromEnvironment(
-                  'ORCHESTRATOR_API_BASE_URL',
-                  defaultValue: 'http://127.0.0.1:8421',
-                ))
-            .replaceFirst(RegExp(r'/$'), '');
+        _baseUrlOverride = baseUrl;
 
   final http.Client _client;
-  final String baseUrl;
+  final String? _baseUrlOverride;
   final String? bearerToken;
   final Duration timeout;
 
@@ -89,6 +85,9 @@ class EngineeringOsApiClient {
         'Authorization': 'Bearer ${bearerToken!.trim()}',
     };
     try {
+      final baseUrl = OrchestratorRuntimeConfig.resolveBaseUrl(
+        explicitBaseUrl: _baseUrlOverride,
+      );
       final request = http.Request(method, Uri.parse('$baseUrl$path'))
         ..headers.addAll(headers);
       if (body != null) {
@@ -109,8 +108,14 @@ class EngineeringOsApiClient {
         throw EngineeringOsApiException(detail);
       }
       return response;
+    } on OrchestratorRuntimeConfigurationException catch (error) {
+      throw EngineeringOsApiException(error.message);
     } on TimeoutException {
       throw const EngineeringOsApiException('انتهت مهلة الاتصال بالمحرك.');
+    } on http.ClientException {
+      throw const EngineeringOsApiException(
+        'تعذر الوصول إلى خدمة Orchestrator المهيأة.',
+      );
     }
   }
 }
