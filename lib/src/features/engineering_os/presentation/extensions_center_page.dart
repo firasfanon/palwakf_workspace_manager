@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/presentation/preview_mode_ui.dart';
 import '../application/engineering_os_controller.dart';
 import '../domain/engineering_os_models.dart';
 
@@ -41,6 +42,10 @@ class _ExtensionsCenterPageState extends ConsumerState<ExtensionsCenterPage>
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(engineeringOsControllerProvider);
+    final dataAvailable = state.summary != null && state.error == null;
+    final previewUnavailable = PreviewModeUi.isVisualPreview &&
+        state.error != null &&
+        state.summary == null;
     return Column(
       children: <Widget>[
         if (state.loading) const LinearProgressIndicator(minHeight: 2),
@@ -63,7 +68,7 @@ class _ExtensionsCenterPageState extends ConsumerState<ExtensionsCenterPage>
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    'Open Source First · كل إضافة خارجية تبدأ بالحجر والمراجعة.',
+                    'الأولوية للمصادر المفتوحة؛ كل إضافة خارجية تبدأ بالحجر والمراجعة.',
                   ),
                 ],
               ),
@@ -73,7 +78,10 @@ class _ExtensionsCenterPageState extends ConsumerState<ExtensionsCenterPage>
                   Chip(
                     avatar: const Icon(Icons.security_outlined, size: 17),
                     label: Text(
-                      '${state.summary?.quarantinedExtensions ?? 0} بالحجر',
+                      '${PreviewModeUi.metricValue(
+                        state.summary?.quarantinedExtensions ?? 0,
+                        dataAvailable: dataAvailable,
+                      )} بالحجر',
                     ),
                   ),
                   IconButton.outlined(
@@ -83,7 +91,9 @@ class _ExtensionsCenterPageState extends ConsumerState<ExtensionsCenterPage>
                     icon: const Icon(Icons.refresh),
                   ),
                   FilledButton.icon(
-                    onPressed: () => _showAddExtension(context),
+                    onPressed: previewUnavailable
+                        ? null
+                        : () => _showAddExtension(context),
                     icon: const Icon(Icons.add),
                     label: const Text('إضافة توسعة'),
                   ),
@@ -98,7 +108,9 @@ class _ExtensionsCenterPageState extends ConsumerState<ExtensionsCenterPage>
               .map((kind) => Tab(icon: Icon(kind.$3), text: kind.$2))
               .toList(growable: false),
         ),
-        if (state.error != null)
+        if (previewUnavailable)
+          const PreviewModeBanner()
+        else if (state.error != null)
           Material(
             color: Theme.of(context).colorScheme.errorContainer,
             child: ListTile(
@@ -107,19 +119,26 @@ class _ExtensionsCenterPageState extends ConsumerState<ExtensionsCenterPage>
             ),
           ),
         Expanded(
-          child: TabBarView(
-            controller: tabs,
-            children: kinds
-                .map(
-                  (kind) => _ExtensionGrid(
-                    items: state.extensions
-                        .where((item) => item.kind == kind.$1)
-                        .toList(growable: false),
-                    emptyLabel: 'لا توجد ${kind.$2} مسجلة',
-                  ),
+          child: previewUnavailable
+              ? const PreviewUnavailablePanel(
+                  icon: Icons.extension_outlined,
+                  title: 'بيانات التوسعات غير متاحة',
+                  description:
+                      'هذه معاينة بصرية ولا تعني أن سجلات المهارات أو الوكلاء أو الأدوات أو المزودين فارغة.',
                 )
-                .toList(growable: false),
-          ),
+              : TabBarView(
+                  controller: tabs,
+                  children: kinds
+                      .map(
+                        (kind) => _ExtensionGrid(
+                          items: state.extensions
+                              .where((item) => item.kind == kind.$1)
+                              .toList(growable: false),
+                          emptyLabel: 'لا توجد ${kind.$2} مسجلة',
+                        ),
+                      )
+                      .toList(growable: false),
+                ),
         ),
       ],
     );
@@ -161,7 +180,8 @@ class _ExtensionGrid extends StatelessWidget {
             const SizedBox(height: 10),
             Text(emptyLabel),
             const SizedBox(height: 4),
-            const Text('يمكن إضافة GitHub / MCP / Local / API مع حجر افتراضي.'),
+            const Text(
+                'يمكن إضافة مصدر من GitHub أو MCP أو Local أو API مع حجر افتراضي.'),
           ],
         ),
       );

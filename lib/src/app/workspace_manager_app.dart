@@ -98,7 +98,7 @@ class WorkspaceManagerApp extends ConsumerWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      theme: PalWakfTheme.light(),
+      theme: PalWakfTheme.dark(),
       routerConfig: ref.watch(workspaceRouterProvider),
       builder: (context, child) {
         return Directionality(

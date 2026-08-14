@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/presentation/preview_mode_ui.dart';
 import '../application/engineering_os_controller.dart';
 import '../domain/engineering_os_models.dart';
 
@@ -26,24 +27,38 @@ class _EngineeringTaskBoardPageState
   Widget build(BuildContext context) {
     final state = ref.watch(engineeringOsControllerProvider);
     final summary = state.summary;
+    final dataAvailable = summary != null && state.error == null;
+    final previewUnavailable =
+        PreviewModeUi.isVisualPreview && state.error != null && summary == null;
     return Column(
       children: <Widget>[
         if (state.loading) const LinearProgressIndicator(minHeight: 2),
         _Header(
-          active: state.tasks
-              .where(
-                (task) =>
-                    task.status != 'INTEGRATED' &&
-                    task.status != 'CANCELLED' &&
-                    task.status != 'SUPERSEDED',
-              )
-              .length,
-          checkpointed: summary?.remoteCheckpointedTasks ?? 0,
-          quarantined: summary?.quarantinedExtensions ?? 0,
+          active: PreviewModeUi.metricValue(
+            state.tasks
+                .where(
+                  (task) =>
+                      task.status != 'INTEGRATED' &&
+                      task.status != 'CANCELLED' &&
+                      task.status != 'SUPERSEDED',
+                )
+                .length,
+            dataAvailable: dataAvailable,
+          ),
+          checkpointed: PreviewModeUi.metricValue(
+            summary?.remoteCheckpointedTasks ?? 0,
+            dataAvailable: dataAvailable,
+          ),
+          quarantined: PreviewModeUi.metricValue(
+            summary?.quarantinedExtensions ?? 0,
+            dataAvailable: dataAvailable,
+          ),
           onRefresh: ref.read(engineeringOsControllerProvider.notifier).load,
-          onCreate: () => _showCreateTask(context),
+          onCreate: previewUnavailable ? null : () => _showCreateTask(context),
         ),
-        if (state.error != null)
+        if (previewUnavailable)
+          const PreviewModeBanner()
+        else if (state.error != null)
           Material(
             color: Theme.of(context).colorScheme.errorContainer,
             child: ListTile(
@@ -57,9 +72,16 @@ class _EngineeringTaskBoardPageState
             ),
           ),
         Expanded(
-          child: state.tasks.isEmpty
-              ? const _EmptyBoard()
-              : _Board(tasks: state.tasks),
+          child: previewUnavailable
+              ? const PreviewUnavailablePanel(
+                  icon: Icons.task_alt_outlined,
+                  title: 'بيانات المهام غير متاحة',
+                  description:
+                      'هذه معاينة بصرية ولا تمثل سجل مهام فارغًا. القيم التشغيلية ستظهر بعد الاتصال بمصدر الحقيقة.',
+                )
+              : state.tasks.isEmpty
+                  ? const _EmptyBoard()
+                  : _Board(tasks: state.tasks),
         ),
       ],
     );
@@ -93,11 +115,11 @@ class _Header extends StatelessWidget {
     required this.onCreate,
   });
 
-  final int active;
-  final int checkpointed;
-  final int quarantined;
+  final String active;
+  final String checkpointed;
+  final String quarantined;
   final VoidCallback onRefresh;
-  final VoidCallback onCreate;
+  final VoidCallback? onCreate;
 
   @override
   Widget build(BuildContext context) {
@@ -113,14 +135,14 @@ class _Header extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                'لوحة مهام Engineering OS',
+                'لوحة المهام الهندسية',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
               ),
               const SizedBox(height: 4),
               const Text(
-                'المهمة تستأنف من GitHub Remote Task Branch، وليس من جهاز سابق.',
+                'تُستأنف المهمة من فرع المهمة البعيد في GitHub، لا من جهاز سابق.',
               ),
             ],
           ),
@@ -128,9 +150,9 @@ class _Header extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: <Widget>[
-              _Metric(label: 'نشطة', value: '$active'),
-              _Metric(label: 'WIP مرفوع', value: '$checkpointed'),
-              _Metric(label: 'توسعات بالحجر', value: '$quarantined'),
+              _Metric(label: 'نشطة', value: active),
+              _Metric(label: 'نقاط العمل المرفوعة', value: checkpointed),
+              _Metric(label: 'توسعات بالحجر', value: quarantined),
               IconButton.outlined(
                 tooltip: 'تحديث',
                 onPressed: onRefresh,
@@ -171,7 +193,7 @@ class _Board extends StatelessWidget {
     ('WIP_REMOTE_CHECKPOINTED', 'WIP مرفوع'),
     ('READY_FOR_REVIEW', 'للمراجعة'),
     ('READY_FOR_INTEGRATION', 'للتكامل'),
-    ('IN_MERGE_QUEUE', 'Merge Queue'),
+    ('IN_MERGE_QUEUE', 'طابور الدمج'),
     ('RECONCILIATION_REQUIRED', 'تحتاج تسوية'),
     ('INTEGRATED', 'مدمجة'),
   ];
@@ -282,18 +304,18 @@ class _TaskCard extends StatelessWidget {
               style: Theme.of(context).textTheme.labelSmall,
             ),
             const SizedBox(height: 10),
-            _Fact(label: 'Branch', value: task.taskBranch),
-            _Fact(label: 'Base', value: shortSha(task.baseSha)),
+            _Fact(label: 'الفرع', value: task.taskBranch),
+            _Fact(label: 'الأساس', value: shortSha(task.baseSha)),
             _Fact(
-              label: 'Remote WIP',
+              label: 'نقطة العمل البعيدة',
               value: shortSha(task.latestRemoteTaskSha),
             ),
             _Fact(
-              label: 'Actor',
+              label: 'المنفذ',
               value:
                   '${task.actorType}: ${task.actorId}${task.providerId == null ? '' : ' / ${task.providerId}'}',
             ),
-            _Fact(label: 'Dependency', value: task.dependencyMode),
+            _Fact(label: 'الاعتمادية', value: task.dependencyMode),
             const SizedBox(height: 8),
             Wrap(
               spacing: 5,
@@ -352,9 +374,9 @@ class _EmptyBoard extends StatelessWidget {
         children: <Widget>[
           Icon(Icons.view_kanban_outlined, size: 48),
           SizedBox(height: 12),
-          Text('لا توجد مهام Remote-first بعد'),
+          Text('لا توجد مهام هندسية بعد'),
           SizedBox(height: 6),
-          Text('أنشئ أول مهمة؛ ستبدأ من Base SHA وفرع task/* صريحين.'),
+          Text('أنشئ أول مهمة؛ ستبدأ من أساس Git موثق وفرع task/* صريح.'),
         ],
       ),
     );

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/presentation/preview_mode_ui.dart';
 import '../../../core/theme/palwakf_theme.dart';
 import '../application/orchestrator_controller.dart';
 import '../data/orchestrator_api_client.dart';
@@ -32,6 +33,26 @@ class _OrchestratorWorkspacePageState
   Widget build(BuildContext context) {
     final state = ref.watch(orchestratorControllerProvider);
     final controller = ref.read(orchestratorControllerProvider.notifier);
+    final previewUnavailable = PreviewModeUi.isVisualPreview &&
+        state.error != null &&
+        state.capabilities == null;
+    if (previewUnavailable) {
+      return const Material(
+        child: Column(
+          children: <Widget>[
+            PreviewModeBanner(),
+            Expanded(
+              child: PreviewUnavailablePanel(
+                icon: Icons.settings_suggest_outlined,
+                title: 'بيانات التشغيل غير متاحة',
+                description:
+                    'قدرات التشغيل وصف المهام غير متصلين في المعاينة البصرية؛ الغياب هنا لا يعني أن القدرات محجوبة أو أن الصف فارغ.',
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     return Material(
       child: Column(
         children: <Widget>[
@@ -476,14 +497,14 @@ class _RuntimeCapabilitiesCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final values = <String, bool>{
-      'Task lifecycle': capabilities?.taskLifecycle ?? false,
-      'Manual relay': capabilities?.manualRelayFallback ?? false,
-      'Capability routing': capabilities?.capabilityRouting ?? false,
-      'Tool trace': capabilities?.toolDecisionTrace ?? false,
-      'Reconciliation': capabilities?.reconciliation ?? false,
-      'Automatic Agents': capabilities?.automaticAgentsAvailable ?? false,
-      'Database': capabilities?.databaseConnected ?? false,
-      'Production mutation': capabilities?.productionMutation ?? false,
+      'دورة حياة المهمة': capabilities?.taskLifecycle ?? false,
+      'الترحيل اليدوي': capabilities?.manualRelayFallback ?? false,
+      'توجيه القدرات': capabilities?.capabilityRouting ?? false,
+      'تتبع الأدوات': capabilities?.toolDecisionTrace ?? false,
+      'التسوية': capabilities?.reconciliation ?? false,
+      'الوكلاء الآليون': capabilities?.automaticAgentsAvailable ?? false,
+      'قاعدة البيانات': capabilities?.databaseConnected ?? false,
+      'تغيير الإنتاج': capabilities?.productionMutation ?? false,
     };
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 540),
@@ -496,7 +517,7 @@ class _RuntimeCapabilitiesCard extends StatelessWidget {
             children: <Widget>[
               const _SectionTitle(
                 icon: Icons.memory_outlined,
-                title: 'Runtime Capabilities',
+                title: 'قدرات التشغيل',
               ),
               const SizedBox(height: 8),
               const Text('اختر مهمة أو أنشئ مهمة جديدة لبدء العمل.'),

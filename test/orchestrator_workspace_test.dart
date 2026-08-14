@@ -138,9 +138,9 @@ void main() {
     expect(find.text('PalWakf Workspace Manager'), findsOneWidget);
     expect(find.text('صف المهام'), findsOneWidget);
     expect(find.text('ترحيل المستخدم'), findsOneWidget);
-    expect(find.text('Runtime Capabilities'), findsOneWidget);
-    expect(find.text('Automatic Agents'), findsOneWidget);
-    expect(find.text('Database'), findsOneWidget);
+    expect(find.text('قدرات التشغيل'), findsOneWidget);
+    expect(find.text('الوكلاء الآليون'), findsOneWidget);
+    expect(find.text('قاعدة البيانات'), findsOneWidget);
     expect(find.text('محجوب'), findsWidgets);
     expect(find.byTooltip('مهمة جديدة'), findsOneWidget);
     expect(find.byTooltip('إنشاء مهمة الإثبات الذاتي'), findsOneWidget);

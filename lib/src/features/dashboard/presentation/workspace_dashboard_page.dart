@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 
+import '../../../core/presentation/preview_mode_ui.dart';
 import '../../../core/theme/palwakf_theme.dart';
 import '../application/dashboard_controller.dart';
 import '../domain/dashboard_models.dart';
@@ -32,6 +33,14 @@ class _WorkspaceDashboardPageState
       return const Center(child: CircularProgressIndicator());
     }
     if (state.summary == null) {
+      if (PreviewModeUi.isVisualPreview) {
+        return const PreviewUnavailablePanel(
+          icon: Icons.dashboard_customize_outlined,
+          title: 'المعاينة البصرية للوحة العمليات',
+          description:
+              'بيانات التشغيل الحية غير متصلة في هذه البيئة؛ لا تُفسر القيم الغائبة على أنها صفر أو حالة فارغة.',
+        );
+      }
       return _DisconnectedState(
         message: state.error,
         onRetry: ref.read(dashboardControllerProvider.notifier).load,

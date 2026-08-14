@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/presentation/preview_mode_ui.dart';
 import '../features/dashboard/application/dashboard_controller.dart';
 import '../features/orchestrator/application/orchestrator_controller.dart';
 import '../features/orchestrator/presentation/service_auth_dialog.dart';
@@ -71,6 +72,7 @@ class WorkspaceApplicationShell extends ConsumerWidget {
         ref.watch(dashboardControllerProvider).summary?.connection;
     final hasToken =
         (ref.watch(orchestratorTokenProvider) ?? '').trim().isNotEmpty;
+    final previewMode = PreviewModeUi.isVisualPreview;
     return LayoutBuilder(
       builder: (context, constraints) {
         final desktop = constraints.maxWidth >= 1024;
@@ -97,27 +99,32 @@ class WorkspaceApplicationShell extends ConsumerWidget {
                   padding: const EdgeInsetsDirectional.only(end: 4),
                   child: Chip(
                     avatar: Icon(
-                      connection?.ready ?? false
-                          ? Icons.check_circle_outline
-                          : Icons.link_off_outlined,
+                      previewMode
+                          ? Icons.visibility_outlined
+                          : connection?.ready ?? false
+                              ? Icons.check_circle_outline
+                              : Icons.link_off_outlined,
                       size: 16,
                     ),
                     label: Text(
-                      connection?.ready ?? false
-                          ? connection!.localSecure
-                              ? 'محلي آمن'
-                              : 'متصل'
-                          : 'غير متصل',
+                      previewMode
+                          ? 'معاينة بصرية'
+                          : connection?.ready ?? false
+                              ? connection!.localSecure
+                                  ? 'محلي آمن'
+                                  : 'متصل'
+                              : 'غير متصل',
                     ),
                   ),
                 ),
-              IconButton(
-                tooltip: hasToken
-                    ? 'مصادقة الخدمة مهيأة في هذه الجلسة'
-                    : 'إعداد مصادقة الخدمة',
-                onPressed: () => showServiceAuthDialog(context, ref),
-                icon: Icon(hasToken ? Icons.lock : Icons.lock_open_outlined),
-              ),
+              if (!previewMode)
+                IconButton(
+                  tooltip: hasToken
+                      ? 'مصادقة الخدمة مهيأة في هذه الجلسة'
+                      : 'إعداد مصادقة الخدمة',
+                  onPressed: () => showServiceAuthDialog(context, ref),
+                  icon: Icon(hasToken ? Icons.lock : Icons.lock_open_outlined),
+                ),
               IconButton(
                 tooltip: 'تحديث الحالة الموثقة',
                 onPressed: () => _refresh(ref),
