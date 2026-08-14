@@ -388,7 +388,7 @@ class GovernedTransactionalFileApply:
         if unrelated:
             raise GovernanceError("UNRELATED_WORKTREE_DRIFT:" + ",".join(unrelated))
 
-    def _git_scalar(self, *args: str) -> str:
+    def _git_output(self, *args: str) -> str:
         result = subprocess.run(
             ["git", "-C", str(self.repo_root), *args],
             check=False,
@@ -402,14 +402,19 @@ class GovernedTransactionalFileApply:
             raise GovernanceError(
                 f"GIT_READ_FAILED:{' '.join(args)}:EXIT={result.returncode}:{detail}"
             )
-        return result.stdout.strip()
+        return result.stdout
+
+    def _git_scalar(self, *args: str) -> str:
+        return self._git_output(*args).strip()
 
     def _git_dirty_paths(self) -> set[str]:
-        output = self._git_scalar("status", "--porcelain=v1", "--untracked-files=all")
+        output = self._git_output("status", "--porcelain=v1", "--untracked-files=all")
         paths: set[str] = set()
         if not output:
             return paths
         for line in output.splitlines():
+            if len(line) < 4 or line[2] != " ":
+                raise GovernanceError(f"MALFORMED_GIT_STATUS_LINE:{line}")
             value = line[3:]
             if " -> " in value:
                 value = value.split(" -> ", 1)[1]

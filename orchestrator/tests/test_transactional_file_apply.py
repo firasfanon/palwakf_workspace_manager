@@ -257,6 +257,77 @@ def test_repository_writer_lock_blocks_parallel_apply(tmp_path: Path) -> None:
     assert not (repo / "locked.txt").exists()
 
 
+def test_git_dirty_paths_preserves_first_unstaged_status_column(tmp_path: Path) -> None:
+    repo, _ = make_repo(tmp_path)
+    (repo / "seed.txt").write_text("changed\n", encoding="utf-8", newline="\n")
+    service = GovernedTransactionalFileApply(
+        repo,
+        MemoryStateStore(),
+        execution_host_id="host-test",
+    )
+
+    assert service._git_dirty_paths() == {"seed.txt"}
+
+
+def test_git_dirty_paths_reads_first_staged_status_line(tmp_path: Path) -> None:
+    repo, _ = make_repo(tmp_path)
+    (repo / "seed.txt").write_text("changed\n", encoding="utf-8", newline="\n")
+    git(repo, "add", "seed.txt")
+    service = GovernedTransactionalFileApply(
+        repo,
+        MemoryStateStore(),
+        execution_host_id="host-test",
+    )
+
+    assert service._git_dirty_paths() == {"seed.txt"}
+
+
+def test_git_dirty_paths_reads_multiple_and_untracked_paths(tmp_path: Path) -> None:
+    repo, _ = make_repo(tmp_path)
+    (repo / "seed.txt").write_text("changed\n", encoding="utf-8", newline="\n")
+    (repo / "untracked.txt").write_text("new\n", encoding="utf-8", newline="\n")
+    service = GovernedTransactionalFileApply(
+        repo,
+        MemoryStateStore(),
+        execution_host_id="host-test",
+    )
+
+    assert service._git_dirty_paths() == {"seed.txt", "untracked.txt"}
+
+
+def test_git_dirty_paths_uses_rename_destination(tmp_path: Path) -> None:
+    repo, _ = make_repo(tmp_path)
+    old = repo / "old.txt"
+    old.write_text("old\n", encoding="utf-8", newline="\n")
+    git(repo, "add", "old.txt")
+    git(repo, "commit", "-m", "add old")
+    git(repo, "mv", "old.txt", "new.txt")
+    service = GovernedTransactionalFileApply(
+        repo,
+        MemoryStateStore(),
+        execution_host_id="host-test",
+    )
+
+    assert service._git_dirty_paths() == {"new.txt"}
+
+
+def test_target_dirty_path_is_not_misclassified_as_unrelated(tmp_path: Path) -> None:
+    repo, head = make_repo(tmp_path)
+    (repo / "seed.txt").write_text("dirty target\n", encoding="utf-8", newline="\n")
+    current = (repo / "seed.txt").read_bytes()
+    service = GovernedTransactionalFileApply(
+        repo,
+        MemoryStateStore(),
+        execution_host_id="host-test",
+    )
+    spec = existing_spec("seed.txt", current, "postimage\n")
+
+    plan = service.plan(request(head, [spec]))
+
+    assert plan.blocked is False
+    assert plan.items[0].classification == FileApplyClassification.clean_preimage
+
+
 def test_canonical_text_bytes_never_emits_bom_and_has_one_final_lf() -> None:
     assert canonical_text_bytes("a\r\n\r\n") == b"a\n"
     assert canonical_text_bytes("a") == b"a\n"
