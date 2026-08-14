@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import '../core/theme/palwakf_theme.dart';
 import '../features/dashboard/presentation/operational_list_pages.dart';
 import '../features/dashboard/presentation/workspace_dashboard_page.dart';
+import '../features/engineering_os/presentation/extensions_center_page.dart';
+import '../features/engineering_os/presentation/task_board_page.dart';
 import '../features/orchestrator/presentation/orchestrator_workspace_page.dart';
 import '../features/orchestrator/presentation/tool_health_page.dart';
 import '../features/projects/presentation/external_projects_page.dart';
@@ -18,10 +20,8 @@ final workspaceRouterProvider = Provider<GoRouter>((ref) {
     routes: <RouteBase>[
       GoRoute(path: '/', redirect: (_, __) => '/dashboard'),
       ShellRoute(
-        builder: (context, state, child) => WorkspaceApplicationShell(
-          location: state.uri.path,
-          child: child,
-        ),
+        builder: (context, state, child) =>
+            WorkspaceApplicationShell(location: state.uri.path, child: child),
         routes: <RouteBase>[
           GoRoute(
             path: '/dashboard',
@@ -29,6 +29,14 @@ final workspaceRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/tasks',
+            builder: (context, state) => const EngineeringTaskBoardPage(),
+          ),
+          GoRoute(
+            path: '/extensions',
+            builder: (context, state) => const ExtensionsCenterPage(),
+          ),
+          GoRoute(
+            path: '/operations',
             builder: (context, state) => const OrchestratorWorkspacePage(),
           ),
           GoRoute(
@@ -84,10 +92,7 @@ class WorkspaceManagerApp extends ConsumerWidget {
       title: 'مدير مساحة عمل PalWakf',
       debugShowCheckedModeBanner: false,
       locale: const Locale('ar', 'PS'),
-      supportedLocales: const <Locale>[
-        Locale('ar', 'PS'),
-        Locale('en', 'US'),
-      ],
+      supportedLocales: const <Locale>[Locale('ar', 'PS'), Locale('en', 'US')],
       localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,

@@ -32,6 +32,15 @@ from palwakf_orchestrator.dashboard_contracts import (
     RecentActivityItem,
 )
 from palwakf_orchestrator.dashboard_service import DashboardAggregationService
+from palwakf_orchestrator.engineering_os_contracts import (
+    CreateEngineeringTaskRequest,
+    EngineeringOsSummary,
+    EngineeringTaskRecord,
+    ExtensionRecord,
+    RegisterExtensionRequest,
+    RemoteCheckpointRequest,
+)
+from palwakf_orchestrator.engineering_os_service import EngineeringOsService
 from palwakf_orchestrator.errors import GovernanceError
 from palwakf_orchestrator.local_product import LocalProductService, ManagedWorkspaceStatus
 from palwakf_orchestrator.local_session import LOCAL_SESSION_COOKIE, LocalSessionManager
@@ -83,11 +92,13 @@ def create_app(
     project_service: ExternalProjectService | None = None,
     local_session_manager: LocalSessionManager | None = None,
     local_product_service: LocalProductService | None = None,
+    engineering_os_service: EngineeringOsService | None = None,
 ) -> FastAPI:
     resolved_settings = settings or get_settings()
     resolved_settings.assert_safe_binding()
     resolved_service = service or OrchestratorService(resolved_settings)
     resolved_store = state_store or SQLiteStateStore(resolved_settings.resolved_state_db_path)
+    engineering_os = engineering_os_service or EngineeringOsService(resolved_store)
     jwt_config = (
         JwtAuthConfig(
             issuer=resolved_settings.oauth_authorization_server,
@@ -173,6 +184,7 @@ def create_app(
     app.state.project_service = resolved_projects
     app.state.dashboard_service = dashboard
     app.state.local_product_service = local_product
+    app.state.engineering_os_service = engineering_os
     app.add_middleware(
         CORSMiddleware,
         allow_origin_regex=r"^https?://(127\.0\.0\.1|localhost)(:\d+)?$",
@@ -386,6 +398,7 @@ def create_app(
         except GovernanceError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
 
+    _add_engineering_os_routes(app, engineering_os)
     _add_legacy_routes(app, resolved_operator, connected)
     _add_project_routes(app, resolved_projects)
     app.mount("/mcp", mcp_http_app, name="mcp")
@@ -417,6 +430,64 @@ def _scope_for(request: Request) -> ServiceScope:
     if path.endswith("/probe"):
         return ServiceScope.probe
     return ServiceScope.dispatch
+
+
+def _add_engineering_os_routes(
+    app: FastAPI,
+    engineering_os: EngineeringOsService,
+) -> None:
+    def engineering_error(exc: GovernanceError) -> HTTPException:
+        status = 404 if str(exc) == "ENGINEERING_TASK_NOT_FOUND" else 409
+        return HTTPException(status_code=status, detail=str(exc))
+
+    @app.get("/v1/engineering-os/summary", response_model=EngineeringOsSummary)
+    async def engineering_os_summary() -> EngineeringOsSummary:
+        return engineering_os.summary()
+
+    @app.get(
+        "/v1/engineering-os/tasks",
+        response_model=list[EngineeringTaskRecord],
+    )
+    async def engineering_os_tasks() -> list[EngineeringTaskRecord]:
+        return engineering_os.list_tasks()
+
+    @app.post(
+        "/v1/engineering-os/tasks",
+        response_model=EngineeringTaskRecord,
+    )
+    async def create_engineering_os_task(
+        command: CreateEngineeringTaskRequest,
+    ) -> EngineeringTaskRecord:
+        try:
+            return engineering_os.create_task(command)
+        except GovernanceError as exc:
+            raise engineering_error(exc) from exc
+
+    @app.post(
+        "/v1/engineering-os/tasks/{task_id}/checkpoint",
+        response_model=EngineeringTaskRecord,
+    )
+    async def checkpoint_engineering_os_task(
+        task_id: str,
+        command: RemoteCheckpointRequest,
+    ) -> EngineeringTaskRecord:
+        try:
+            return engineering_os.checkpoint_task(task_id, command)
+        except GovernanceError as exc:
+            raise engineering_error(exc) from exc
+
+    @app.get("/v1/extensions", response_model=list[ExtensionRecord])
+    async def list_extensions() -> list[ExtensionRecord]:
+        return engineering_os.list_extensions()
+
+    @app.post("/v1/extensions", response_model=ExtensionRecord)
+    async def register_extension(
+        command: RegisterExtensionRequest,
+    ) -> ExtensionRecord:
+        try:
+            return engineering_os.register_extension(command)
+        except GovernanceError as exc:
+            raise engineering_error(exc) from exc
 
 
 def _add_legacy_routes(
