@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/domain/operational_data_state.dart';
+import '../../../core/presentation/preview_mode_ui.dart';
 import '../application/external_projects_controller.dart';
 import '../domain/external_project_models.dart';
 
@@ -26,19 +28,34 @@ class _ExternalProjectsPageState extends ConsumerState<ExternalProjectsPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(externalProjectsControllerProvider);
     final controller = ref.read(externalProjectsControllerProvider.notifier);
+    final availability = PreviewModeUi.resolveAvailability(
+      loading: state.loading,
+      sourceConfirmed: state.loaded,
+      hasData: state.projects.isNotEmpty,
+      error: state.error,
+    );
+    final previewUnavailable =
+        availability == OperationalDataAvailability.unavailable;
+    final writesEnabled = PreviewModeUi.canMutate(availability);
     return Material(
       child: Column(
         children: <Widget>[
           if (state.loading) const LinearProgressIndicator(minHeight: 2),
-          if (state.error != null)
+          if (previewUnavailable)
+            const PreviewModeBanner()
+          else if (state.error != null)
             _ErrorBand(message: state.error!, onRetry: controller.load),
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final intake = _ProjectIntakePanel(
                   onSubmit: controller.intake,
+                  enabled: writesEnabled,
                 );
-                final registry = _ProjectRegistry(projects: state.projects);
+                final registry = _ProjectRegistry(
+                  projects: state.projects,
+                  availability: availability,
+                );
                 if (constraints.maxWidth < 820) {
                   return ListView(
                     children: <Widget>[
@@ -66,9 +83,13 @@ class _ExternalProjectsPageState extends ConsumerState<ExternalProjectsPage> {
 }
 
 class _ProjectIntakePanel extends StatefulWidget {
-  const _ProjectIntakePanel({required this.onSubmit});
+  const _ProjectIntakePanel({
+    required this.onSubmit,
+    required this.enabled,
+  });
 
   final Future<ExternalProject?> Function(ProjectIntakeDraft draft) onSubmit;
+  final bool enabled;
 
   @override
   State<_ProjectIntakePanel> createState() => _ProjectIntakePanelState();
@@ -109,6 +130,7 @@ class _ProjectIntakePanelState extends State<_ProjectIntakePanel> {
             const Text('سلطة القراءة فقط ثابتة، ولا تنشئ فرعًا أو مهمة تنفيذ.'),
             const SizedBox(height: 20),
             TextFormField(
+              enabled: widget.enabled,
               controller: _repository,
               textDirection: TextDirection.ltr,
               decoration: const InputDecoration(
@@ -125,6 +147,7 @@ class _ProjectIntakePanelState extends State<_ProjectIntakePanel> {
             ),
             const SizedBox(height: 12),
             TextFormField(
+              enabled: widget.enabled,
               controller: _displayName,
               decoration: const InputDecoration(
                 labelText: 'اسم العرض',
@@ -148,13 +171,16 @@ class _ProjectIntakePanelState extends State<_ProjectIntakePanel> {
                 ),
               ],
               selected: <String>{_adapter},
-              onSelectionChanged: (values) {
-                setState(() => _adapter = values.single);
-              },
+              onSelectionChanged: widget.enabled
+                  ? (values) {
+                      setState(() => _adapter = values.single);
+                    }
+                  : null,
             ),
             if (_adapter == 'local_git') ...<Widget>[
               const SizedBox(height: 12),
               TextFormField(
+                enabled: widget.enabled,
                 controller: _localPath,
                 textDirection: TextDirection.ltr,
                 decoration: const InputDecoration(
@@ -167,9 +193,11 @@ class _ProjectIntakePanelState extends State<_ProjectIntakePanel> {
             ],
             const SizedBox(height: 18),
             FilledButton.icon(
-              onPressed: _submit,
+              onPressed: widget.enabled ? _submit : null,
               icon: const Icon(Icons.playlist_add),
-              label: const Text('تسجيل دون فحص'),
+              label: Text(
+                widget.enabled ? 'تسجيل دون فحص' : 'متاح في التشغيل المتصل فقط',
+              ),
             ),
             const SizedBox(height: 14),
             const _AuthorityFact(
@@ -230,9 +258,13 @@ class _AuthorityFact extends StatelessWidget {
 }
 
 class _ProjectRegistry extends StatefulWidget {
-  const _ProjectRegistry({required this.projects});
+  const _ProjectRegistry({
+    required this.projects,
+    required this.availability,
+  });
 
   final List<ExternalProject> projects;
+  final OperationalDataAvailability availability;
 
   @override
   State<_ProjectRegistry> createState() => _ProjectRegistryState();
@@ -245,6 +277,14 @@ class _ProjectRegistryState extends State<_ProjectRegistry> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.availability == OperationalDataAvailability.unavailable) {
+      return const PreviewUnavailablePanel(
+        icon: Icons.hub_outlined,
+        title: 'بيانات المشاريع غير متاحة',
+        description:
+            'هذه معاينة بصرية ولا تعني أن سجل المشاريع فارغ. ستظهر المشاريع بعد الاتصال بمصدر الحقيقة.',
+      );
+    }
     if (widget.projects.isEmpty) {
       return const Center(
         child: Column(

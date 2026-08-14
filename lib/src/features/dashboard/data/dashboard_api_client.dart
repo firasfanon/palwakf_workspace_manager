@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../../../core/config/orchestrator_runtime_config.dart';
 import '../domain/dashboard_models.dart';
 
 abstract interface class DashboardApi {
@@ -26,15 +27,10 @@ class HttpDashboardApi implements DashboardApi {
     this.bearerToken,
     this.timeout = const Duration(seconds: 15),
   })  : _client = client ?? http.Client(),
-        baseUrl = (baseUrl ??
-                const String.fromEnvironment(
-                  'ORCHESTRATOR_API_BASE_URL',
-                  defaultValue: 'http://127.0.0.1:8421',
-                ))
-            .replaceFirst(RegExp(r'/$'), '');
+        _baseUrlOverride = baseUrl;
 
   final http.Client _client;
-  final String baseUrl;
+  final String? _baseUrlOverride;
   final String? bearerToken;
   final Duration timeout;
 
@@ -68,6 +64,9 @@ class HttpDashboardApi implements DashboardApi {
 
   Future<http.Response> _request(String path) async {
     try {
+      final baseUrl = OrchestratorRuntimeConfig.resolveBaseUrl(
+        explicitBaseUrl: _baseUrlOverride,
+      );
       final request = http.Request('GET', Uri.parse('$baseUrl$path'))
         ..headers['Accept'] = 'application/json';
       final token = bearerToken?.trim();
@@ -88,6 +87,8 @@ class HttpDashboardApi implements DashboardApi {
         throw DashboardApiException('HTTP_${response.statusCode}', detail);
       }
       return response;
+    } on OrchestratorRuntimeConfigurationException catch (error) {
+      throw DashboardApiException(error.code, error.message);
     } on TimeoutException {
       throw const DashboardApiException(
         'TIMEOUT',

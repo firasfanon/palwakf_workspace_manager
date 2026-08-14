@@ -1,14 +1,49 @@
 import 'package:flutter/material.dart';
 
 import '../config/orchestrator_runtime_config.dart';
+import '../domain/operational_data_state.dart';
 import '../theme/palwakf_theme.dart';
 
 abstract final class PreviewModeUi {
   static bool get isVisualPreview =>
       OrchestratorRuntimeConfig.runtimeMode.trim().toLowerCase() == 'preview';
 
+  static OperationalDataAvailability resolveAvailability({
+    required bool loading,
+    required bool sourceConfirmed,
+    required bool hasData,
+    String? error,
+    bool policyBlocked = false,
+  }) {
+    return OperationalDataContract.resolve(
+      loading: loading,
+      sourceConfirmed: sourceConfirmed,
+      hasData: hasData,
+      preview: isVisualPreview,
+      error: error,
+      policyBlocked: policyBlocked,
+    );
+  }
+
+  static bool canMutate(OperationalDataAvailability availability) {
+    return OperationalDataContract.canMutate(
+      availability: availability,
+      preview: isVisualPreview,
+    );
+  }
+
   static String metricValue(int value, {required bool dataAvailable}) =>
       dataAvailable ? '$value' : '—';
+
+  static String metricFor(
+    int value, {
+    required OperationalDataAvailability availability,
+  }) {
+    return availability == OperationalDataAvailability.available ||
+            availability == OperationalDataAvailability.empty
+        ? '$value'
+        : '—';
+  }
 
   static String capabilityLabel(bool? value) {
     if (value == null) return 'غير متاح';

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 
+import '../../../core/domain/operational_data_state.dart';
+import '../../../core/presentation/preview_mode_ui.dart';
 import '../../../core/theme/palwakf_theme.dart';
 import '../application/dashboard_controller.dart';
 import '../domain/dashboard_models.dart';
@@ -13,8 +15,25 @@ class OperationalAlertsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(dashboardControllerProvider);
     final alerts = state.alerts;
-    if (state.loading && alerts.isEmpty) {
+    final availability = PreviewModeUi.resolveAvailability(
+      loading: state.loading,
+      sourceConfirmed: state.summary != null,
+      hasData: alerts.isNotEmpty,
+      error: state.error,
+    );
+    if (availability == OperationalDataAvailability.loading) {
       return const Center(child: CircularProgressIndicator());
+    }
+    if (availability == OperationalDataAvailability.unavailable) {
+      return const PreviewUnavailablePanel(
+        icon: Icons.notifications_outlined,
+        title: 'بيانات التنبيهات غير متاحة',
+        description:
+            'لا يمكن استنتاج وجود أو عدم وجود تنبيهات تشغيلية دون الاتصال بمصادر الحقيقة.',
+      );
+    }
+    if (availability == OperationalDataAvailability.error) {
+      return _OperationalError(message: state.error ?? 'تعذر تحميل التنبيهات.');
     }
     if (alerts.isEmpty) {
       return const _PageEmpty(
@@ -39,8 +58,24 @@ class EvidenceIndexPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(dashboardControllerProvider);
     final evidence = state.evidence;
-    if (state.loading && evidence.isEmpty) {
+    final availability = PreviewModeUi.resolveAvailability(
+      loading: state.loading,
+      sourceConfirmed: state.summary != null,
+      hasData: evidence.isNotEmpty,
+      error: state.error,
+    );
+    if (availability == OperationalDataAvailability.loading) {
       return const Center(child: CircularProgressIndicator());
+    }
+    if (availability == OperationalDataAvailability.unavailable) {
+      return const PreviewUnavailablePanel(
+        icon: Icons.fact_check_outlined,
+        title: 'بيانات الأدلة غير متاحة',
+        description: 'غياب الاتصال في المعاينة لا يعني أن فهرس الأدلة فارغ.',
+      );
+    }
+    if (availability == OperationalDataAvailability.error) {
+      return _OperationalError(message: state.error ?? 'تعذر تحميل الأدلة.');
     }
     if (evidence.isEmpty) {
       return const _PageEmpty(
@@ -84,13 +119,35 @@ class ConnectionsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final connection =
-        ref.watch(dashboardControllerProvider).summary?.connection;
+    final state = ref.watch(dashboardControllerProvider);
+    final connection = state.summary?.connection;
+    final availability = PreviewModeUi.resolveAvailability(
+      loading: state.loading,
+      sourceConfirmed: state.summary != null,
+      hasData: connection != null,
+      error: state.error,
+    );
+    if (availability == OperationalDataAvailability.loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (availability == OperationalDataAvailability.unavailable) {
+      return const PreviewUnavailablePanel(
+        icon: Icons.cable_outlined,
+        title: 'بيانات الاتصالات غير متاحة',
+        description:
+            'لا يمكن استنتاج أن الاتصالات غير مهيأة من معاينة غير متصلة بمصدر الحقيقة.',
+      );
+    }
+    if (availability == OperationalDataAvailability.error) {
+      return _OperationalError(
+        message: state.error ?? 'تعذر تحميل حالة الاتصالات.',
+      );
+    }
     if (connection == null) {
       return const _PageEmpty(
         icon: Icons.cable_outlined,
         title: 'لا توجد حالة اتصال موثقة',
-        detail: 'صادق الخدمة ثم أعد تحميل الحالة.',
+        detail: 'الخدمة المتصلة لم تُرجع حالة اتصال موثقة.',
       );
     }
     final facts = <(String, String, bool)>[
@@ -222,6 +279,39 @@ class _AlertTile extends StatelessWidget {
               style: Theme.of(context).textTheme.labelSmall,
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _OperationalError extends StatelessWidget {
+  const _OperationalError({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 760),
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Row(
+                children: <Widget>[
+                  Icon(
+                    Icons.error_outline,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text(message)),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );

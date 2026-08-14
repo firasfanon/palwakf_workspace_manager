@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../../../core/config/orchestrator_runtime_config.dart';
 import '../domain/external_project_models.dart';
 
 class ExternalProjectApiException implements Exception {
@@ -31,15 +32,10 @@ class HttpExternalProjectApi implements ExternalProjectApi {
     this.bearerToken,
     this.timeout = const Duration(seconds: 20),
   })  : _client = client ?? http.Client(),
-        baseUrl = (baseUrl ??
-                const String.fromEnvironment(
-                  'ORCHESTRATOR_API_BASE_URL',
-                  defaultValue: 'http://127.0.0.1:8421',
-                ))
-            .replaceFirst(RegExp(r'/$'), '');
+        _baseUrlOverride = baseUrl;
 
   final http.Client _client;
-  final String baseUrl;
+  final String? _baseUrlOverride;
   final String? bearerToken;
   final Duration timeout;
 
@@ -98,6 +94,9 @@ class HttpExternalProjectApi implements ExternalProjectApi {
     Map<String, dynamic>? body,
   }) async {
     try {
+      final baseUrl = OrchestratorRuntimeConfig.resolveBaseUrl(
+        explicitBaseUrl: _baseUrlOverride,
+      );
       final request = http.Request(method, Uri.parse('$baseUrl$path'))
         ..headers['Accept'] = 'application/json';
       final token = bearerToken?.trim();
@@ -125,6 +124,8 @@ class HttpExternalProjectApi implements ExternalProjectApi {
         );
       }
       return response;
+    } on OrchestratorRuntimeConfigurationException catch (error) {
+      throw ExternalProjectApiException(error.code, error.message);
     } on TimeoutException {
       throw const ExternalProjectApiException(
         'TIMEOUT',
@@ -133,7 +134,7 @@ class HttpExternalProjectApi implements ExternalProjectApi {
     } on http.ClientException {
       throw const ExternalProjectApiException(
         'CONNECTION_FAILED',
-        'تعذر الوصول إلى Orchestrator المحلي.',
+        'تعذر الوصول إلى خدمة Orchestrator المهيأة.',
       );
     }
   }

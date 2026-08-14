@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/domain/operational_data_state.dart';
+import '../../../core/presentation/preview_mode_ui.dart';
 import '../../../core/theme/palwakf_theme.dart';
 import '../application/orchestrator_controller.dart';
 import '../domain/orchestrator_models.dart';
@@ -35,31 +37,48 @@ class _ToolHealthPageState extends ConsumerState<ToolHealthPage> {
     for (final tool in state.tools) {
       if (tool.adapterId == widget.adapterId) selected = tool;
     }
+    final availability = PreviewModeUi.resolveAvailability(
+      loading: state.loading,
+      sourceConfirmed: state.capabilities != null,
+      hasData: state.tools.isNotEmpty,
+      error: state.error,
+    );
+    final previewUnavailable =
+        availability == OperationalDataAvailability.unavailable;
     return Material(
       child: Column(
         children: <Widget>[
           if (state.loading) const LinearProgressIndicator(minHeight: 2),
-          if (state.error != null)
+          if (previewUnavailable)
+            const PreviewModeBanner()
+          else if (state.error != null)
             _ErrorBand(
               message: state.error!,
               onAuthenticate: () => showServiceAuthDialog(context, ref),
             ),
           Expanded(
-            child: selected == null
-                ? _ToolHealthDashboard(
-                    tools: state.tools,
-                    alerts: state.toolAlerts,
+            child: previewUnavailable
+                ? const PreviewUnavailablePanel(
+                    icon: Icons.build_outlined,
+                    title: 'بيانات الأدوات غير متاحة',
+                    description:
+                        'هذه معاينة بصرية ولا تعني أن سجل الأدوات أو التنبيهات فارغ أو أن القيم تساوي صفرًا.',
                   )
-                : _ToolHealthDetail(
-                    tool: selected,
-                    alerts: state.toolAlerts
-                        .where(
-                            (alert) => alert.adapterId == selected!.adapterId)
-                        .toList(growable: false),
-                    onProbe: () => ref
-                        .read(orchestratorControllerProvider.notifier)
-                        .probeTool(selected!.adapterId),
-                  ),
+                : selected == null
+                    ? _ToolHealthDashboard(
+                        tools: state.tools,
+                        alerts: state.toolAlerts,
+                      )
+                    : _ToolHealthDetail(
+                        tool: selected,
+                        alerts: state.toolAlerts
+                            .where((alert) =>
+                                alert.adapterId == selected!.adapterId)
+                            .toList(growable: false),
+                        onProbe: () => ref
+                            .read(orchestratorControllerProvider.notifier)
+                            .probeTool(selected!.adapterId),
+                      ),
           ),
         ],
       ),

@@ -21,18 +21,21 @@ class ExternalProjectsState {
     this.projects = const <ExternalProject>[],
     this.realityByProject = const <String, ProjectReality>{},
     this.loading = false,
+    this.loaded = false,
     this.error,
   });
 
   final List<ExternalProject> projects;
   final Map<String, ProjectReality> realityByProject;
   final bool loading;
+  final bool loaded;
   final String? error;
 
   ExternalProjectsState copyWith({
     List<ExternalProject>? projects,
     Map<String, ProjectReality>? realityByProject,
     bool? loading,
+    bool? loaded,
     String? error,
     bool clearError = false,
   }) {
@@ -40,6 +43,7 @@ class ExternalProjectsState {
       projects: projects ?? this.projects,
       realityByProject: realityByProject ?? this.realityByProject,
       loading: loading ?? this.loading,
+      loaded: loaded ?? this.loaded,
       error: clearError ? null : error ?? this.error,
     );
   }
@@ -52,7 +56,10 @@ class ExternalProjectsController extends StateNotifier<ExternalProjectsState> {
 
   Future<void> load() async {
     await _guard(() async {
-      state = state.copyWith(projects: await _api.listProjects());
+      state = state.copyWith(
+        projects: await _api.listProjects(),
+        loaded: true,
+      );
     });
   }
 
@@ -60,7 +67,10 @@ class ExternalProjectsController extends StateNotifier<ExternalProjectsState> {
     ExternalProject? created;
     await _guard(() async {
       created = await _api.intake(draft);
-      state = state.copyWith(projects: await _api.listProjects());
+      state = state.copyWith(
+        projects: await _api.listProjects(),
+        loaded: true,
+      );
     });
     return created;
   }
@@ -74,7 +84,10 @@ class ExternalProjectsController extends StateNotifier<ExternalProjectsState> {
   Future<void> probe(String projectId) async {
     await _guard(() async {
       _storeReality(await _api.probe(projectId));
-      state = state.copyWith(projects: await _api.listProjects());
+      state = state.copyWith(
+        projects: await _api.listProjects(),
+        loaded: true,
+      );
     });
   }
 

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/domain/operational_data_state.dart';
+import '../../../core/presentation/preview_mode_ui.dart';
 import '../../../core/theme/palwakf_theme.dart';
 import '../../dashboard/application/dashboard_controller.dart';
 import '../application/external_projects_controller.dart';
@@ -31,37 +33,54 @@ class _ProjectRealityPageState extends ConsumerState<ProjectRealityPage> {
     final state = ref.watch(externalProjectsControllerProvider);
     final controller = ref.read(externalProjectsControllerProvider.notifier);
     final reality = state.realityByProject[widget.projectId];
+    final availability = PreviewModeUi.resolveAvailability(
+      loading: state.loading,
+      sourceConfirmed: reality != null,
+      hasData: reality != null,
+      error: state.error,
+    );
+    final previewUnavailable =
+        availability == OperationalDataAvailability.unavailable;
     return Material(
       child: Column(
         children: <Widget>[
           if (state.loading) const LinearProgressIndicator(minHeight: 2),
-          if (state.error != null)
+          if (previewUnavailable)
+            const PreviewModeBanner()
+          else if (state.error != null)
             _RealityError(
               message: state.error!,
               onProbe: () => controller.probe(widget.projectId),
             ),
           Expanded(
-            child: reality == null
-                ? _UnprobedState(
-                    onProbe: () => controller.probe(widget.projectId),
+            child: previewUnavailable
+                ? const PreviewUnavailablePanel(
+                    icon: Icons.radar_outlined,
+                    title: 'بيانات واقع المشروع غير متاحة',
+                    description:
+                        'لا يمكن استنتاج غياب خط الأساس أو المهام أو الأدلة من معاينة غير متصلة.',
                   )
-                : _RealityView(
-                    reality: reality,
-                    onPrepare: (candidateId) async {
-                      final prepared = await controller.prepareTask(
-                        widget.projectId,
-                        candidateId,
-                      );
-                      if (!context.mounted || !prepared) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'تم تجهيز الغلاف فقط. لم يتم إرسال أي مهمة.',
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                : reality == null
+                    ? _UnprobedState(
+                        onProbe: () => controller.probe(widget.projectId),
+                      )
+                    : _RealityView(
+                        reality: reality,
+                        onPrepare: (candidateId) async {
+                          final prepared = await controller.prepareTask(
+                            widget.projectId,
+                            candidateId,
+                          );
+                          if (!context.mounted || !prepared) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'تم تجهيز الغلاف فقط. لم يتم إرسال أي مهمة.',
+                              ),
+                            ),
+                          );
+                        },
+                      ),
           ),
         ],
       ),
@@ -112,6 +131,7 @@ class _RealityView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final dashboard = ref.watch(dashboardControllerProvider);
+    final dashboardAvailable = dashboard.summary != null;
     final projectSummary = dashboard.summary?.projects
         .where((item) => item.projectId == reality.projectId)
         .firstOrNull;
@@ -175,17 +195,23 @@ class _RealityView extends ConsumerWidget {
                           ),
                           _ProjectFact(
                             label: 'المهام',
-                            value: '${projectSummary?.taskCount ?? 0}',
+                            value: dashboardAvailable
+                                ? '${projectSummary?.taskCount ?? 0}'
+                                : '—',
                           ),
                           _ProjectFact(
                             label: 'فجوات الأدوات',
-                            value: '${projectSummary?.toolGapCount ?? 0}',
+                            value: dashboardAvailable
+                                ? '${projectSummary?.toolGapCount ?? 0}'
+                                : '—',
                           ),
                           _ProjectFact(
                             label: 'كاتب مستودع نشط',
-                            value: projectSummary?.activeWriter ?? false
-                                ? 'نعم'
-                                : 'لا',
+                            value: !dashboardAvailable
+                                ? '—'
+                                : projectSummary?.activeWriter ?? false
+                                    ? 'نعم'
+                                    : 'لا',
                           ),
                         ],
                       ),
@@ -254,22 +280,24 @@ class _RealityView extends ConsumerWidget {
                     _Section(
                       title: 'مهام المشروع',
                       icon: Icons.task_alt_outlined,
-                      child: projectSummary == null ||
-                              projectSummary.taskCount == 0
-                          ? const Text('لا توجد مهام مرتبطة في المخزن.')
-                          : Column(
-                              children: <Widget>[
-                                _ProjectFact(
-                                  label: 'إجمالي المهام',
-                                  value: '${projectSummary.taskCount}',
+                      child: !dashboardAvailable
+                          ? const Text('بيانات مهام المشروع غير متاحة.')
+                          : projectSummary == null ||
+                                  projectSummary.taskCount == 0
+                              ? const Text('لا توجد مهام مرتبطة في المخزن.')
+                              : Column(
+                                  children: <Widget>[
+                                    _ProjectFact(
+                                      label: 'إجمالي المهام',
+                                      value: '${projectSummary.taskCount}',
+                                    ),
+                                    _ProjectFact(
+                                      label: 'المرشح الأعلى',
+                                      value: projectSummary.topCandidateTitle ??
+                                          'UNKNOWN',
+                                    ),
+                                  ],
                                 ),
-                                _ProjectFact(
-                                  label: 'المرشح الأعلى',
-                                  value: projectSummary.topCandidateTitle ??
-                                      'UNKNOWN',
-                                ),
-                              ],
-                            ),
                     ),
                   ],
                 ),
@@ -313,23 +341,25 @@ class _RealityView extends ConsumerWidget {
                     _Section(
                       title: 'الأدلة الآمنة',
                       icon: Icons.fact_check_outlined,
-                      child: evidence.isEmpty
-                          ? const Text('لا توجد مراجع دليل مرتبطة وآمنة.')
-                          : Column(
-                              children: evidence
-                                  .map(
-                                    (item) => ListTile(
-                                      contentPadding: EdgeInsets.zero,
-                                      title: Text(item.evidenceType),
-                                      subtitle: SelectableText(
-                                        item.safeReference,
-                                        textDirection: TextDirection.ltr,
-                                      ),
-                                      trailing: Text(item.status),
-                                    ),
-                                  )
-                                  .toList(growable: false),
-                            ),
+                      child: !dashboardAvailable
+                          ? const Text('بيانات الأدلة غير متاحة.')
+                          : evidence.isEmpty
+                              ? const Text('لا توجد مراجع دليل مرتبطة وآمنة.')
+                              : Column(
+                                  children: evidence
+                                      .map(
+                                        (item) => ListTile(
+                                          contentPadding: EdgeInsets.zero,
+                                          title: Text(item.evidenceType),
+                                          subtitle: SelectableText(
+                                            item.safeReference,
+                                            textDirection: TextDirection.ltr,
+                                          ),
+                                          trailing: Text(item.status),
+                                        ),
+                                      )
+                                      .toList(growable: false),
+                                ),
                     ),
                   ],
                 ),
