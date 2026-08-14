@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 import os
 import subprocess
 from datetime import UTC, datetime
@@ -27,6 +28,9 @@ class CapabilityState(BaseModel):
     status: str
     blocker: str | None = None
     last_success_at: datetime | None = None
+    installed: bool | None = None
+    authorized: bool | None = None
+    policy: str | None = None
 
 
 class ManagedWorkspaceStatus(BaseModel):
@@ -54,6 +58,10 @@ class ManagedWorkspaceStatus(BaseModel):
     orchestrator: CapabilityState
     refreshed_at: datetime
     provenance: list[str]
+    governed_branch: str | None = None
+    checkout_branch: str | None = None
+    checkout_head: str | None = None
+    governed_remote_head: str | None = None
 
 
 class GitHubReadClient(Protocol):
@@ -109,8 +117,10 @@ class LocalProductService:
         )
 
     def register(self, *, refresh_remote: bool = True) -> ManagedWorkspaceStatus:
+        checkout_branch = self._git("branch", "--show-current") or self._branch
         local_head = self._git("rev-parse", "HEAD")
-        remote_head = self._remote_head()
+        remote_head = self._remote_head(checkout_branch)
+        governed_remote_head = self._remote_head(self._branch)
         clean = not bool(self._git("status", "--porcelain"))
         pr_head: str | None = None
         pr_state = "UNKNOWN"
@@ -181,7 +191,7 @@ class LocalProductService:
         status = ManagedWorkspaceStatus(
             registered=True,
             repository=self._repository,
-            branch=self._branch,
+            branch=checkout_branch,
             pull_request_number=self._pull_request_number,
             local_head=local_head,
             remote_head=remote_head,
@@ -200,9 +210,15 @@ class LocalProductService:
             else (latest_verified.last_event if latest_verified else None),
             github=github_state,
             agents_sdk=self._module_state("agents"),
-            codex=self._module_state("openai_codex"),
-            authentication=CapabilityState(status="VERIFIED"),
-            orchestrator=CapabilityState(status="CONNECTED"),
+            codex=self._codex_state(),
+            authentication=CapabilityState(
+                status="VERIFIED",
+                authorized=True,
+            ),
+            orchestrator=CapabilityState(
+                status="CONNECTED",
+                authorized=True,
+            ),
             refreshed_at=now,
             provenance=[
                 "LOCAL_GIT",
@@ -211,6 +227,10 @@ class LocalProductService:
                 "OPERATOR_TASK_STORE",
                 "REPOSITORY_WRITER_STORE",
             ],
+            governed_branch=self._branch,
+            checkout_branch=checkout_branch,
+            checkout_head=local_head,
+            governed_remote_head=governed_remote_head,
         )
         state = self._store.load()
         state["managed_workspace"] = status.model_dump(mode="json")
@@ -299,8 +319,8 @@ class LocalProductService:
             )
         return task
 
-    def _remote_head(self) -> str | None:
-        value = self._git("ls-remote", "origin", f"refs/heads/{self._branch}")
+    def _remote_head(self, branch: str) -> str | None:
+        value = self._git("ls-remote", "origin", f"refs/heads/{branch}")
         return value.split(maxsplit=1)[0] if value else None
 
     @staticmethod
@@ -353,9 +373,29 @@ Wait for every shell command output and return the required structured result.
         return text if text.startswith("https://") else None
 
     @staticmethod
+    def _codex_state() -> CapabilityState:
+        installed = importlib.util.find_spec("openai_codex") is not None
+        return CapabilityState(
+            status="SUSPENDED_BY_POLICY",
+            blocker="CODEX_DEVELOPMENT_GLOBALLY_SUSPENDED",
+            installed=installed,
+            authorized=False,
+            policy="GLOBAL_GOVERNANCE_2026-08-08",
+        )
+
+    @staticmethod
     def _module_state(module: str) -> CapabilityState:
         try:
             __import__(module)
         except ImportError:
-            return CapabilityState(status="BLOCKED", blocker=f"{module.upper()}_NOT_INSTALLED")
-        return CapabilityState(status="AVAILABLE")
+            return CapabilityState(
+                status="BLOCKED",
+                blocker=f"{module.upper()}_NOT_INSTALLED",
+                installed=False,
+                authorized=False,
+            )
+        return CapabilityState(
+            status="AVAILABLE",
+            installed=True,
+            authorized=True,
+        )

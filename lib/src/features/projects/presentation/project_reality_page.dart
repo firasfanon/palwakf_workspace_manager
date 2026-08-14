@@ -5,6 +5,7 @@ import '../../../core/domain/operational_data_state.dart';
 import '../../../core/presentation/preview_mode_ui.dart';
 import '../../../core/theme/palwakf_theme.dart';
 import '../../dashboard/application/dashboard_controller.dart';
+import '../../orchestrator/application/operational_authorization.dart';
 import '../application/external_projects_controller.dart';
 import '../domain/external_project_models.dart';
 
@@ -31,6 +32,10 @@ class _ProjectRealityPageState extends ConsumerState<ProjectRealityPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(externalProjectsControllerProvider);
+    final authorization = ref.watch(operationalAuthorizationProvider);
+    final authorizationValue = authorization.asData?.value;
+    final canDispatch = authorizationValue?.canDispatch ?? false;
+    final canProbe = authorizationValue?.canProbeTools ?? false;
     final controller = ref.read(externalProjectsControllerProvider.notifier);
     final reality = state.realityByProject[widget.projectId];
     final availability = PreviewModeUi.resolveAvailability(
@@ -50,7 +55,8 @@ class _ProjectRealityPageState extends ConsumerState<ProjectRealityPage> {
           else if (state.error != null)
             _RealityError(
               message: state.error!,
-              onProbe: () => controller.probe(widget.projectId),
+              onProbe:
+                  canProbe ? () => controller.probe(widget.projectId) : null,
             ),
           Expanded(
             child: previewUnavailable
@@ -62,10 +68,14 @@ class _ProjectRealityPageState extends ConsumerState<ProjectRealityPage> {
                   )
                 : reality == null
                     ? _UnprobedState(
-                        onProbe: () => controller.probe(widget.projectId),
+                        onProbe: canProbe
+                            ? () => controller.probe(widget.projectId)
+                            : null,
                       )
                     : _RealityView(
                         reality: reality,
+                        canDispatch: canDispatch,
+                        canProbe: canProbe,
                         onPrepare: (candidateId) async {
                           final prepared = await controller.prepareTask(
                             widget.projectId,
@@ -91,7 +101,7 @@ class _ProjectRealityPageState extends ConsumerState<ProjectRealityPage> {
 class _UnprobedState extends StatelessWidget {
   const _UnprobedState({required this.onProbe});
 
-  final VoidCallback onProbe;
+  final VoidCallback? onProbe;
 
   @override
   Widget build(BuildContext context) {
@@ -123,9 +133,16 @@ class _UnprobedState extends StatelessWidget {
 }
 
 class _RealityView extends ConsumerWidget {
-  const _RealityView({required this.reality, required this.onPrepare});
+  const _RealityView({
+    required this.reality,
+    required this.canDispatch,
+    required this.canProbe,
+    required this.onPrepare,
+  });
 
   final ProjectReality reality;
+  final bool canDispatch;
+  final bool canProbe;
   final Future<void> Function(String candidateId) onPrepare;
 
   @override
@@ -170,9 +187,11 @@ class _RealityView extends ConsumerWidget {
               ),
               IconButton(
                 tooltip: 'فحص قراءة فقط',
-                onPressed: () => ref
-                    .read(externalProjectsControllerProvider.notifier)
-                    .probe(reality.projectId),
+                onPressed: canProbe
+                    ? () => ref
+                        .read(externalProjectsControllerProvider.notifier)
+                        .probe(reality.projectId)
+                    : null,
                 icon: const Icon(Icons.radar),
               ),
             ],
@@ -327,6 +346,7 @@ class _RealityView extends ConsumerWidget {
                             .map(
                               (candidate) => _CandidateCard(
                                 candidate: candidate,
+                                enabled: canDispatch,
                                 onPrepare: () =>
                                     onPrepare(candidate.candidateId),
                               ),
@@ -545,9 +565,14 @@ class _ToolDecisionTile extends StatelessWidget {
 }
 
 class _CandidateCard extends StatelessWidget {
-  const _CandidateCard({required this.candidate, required this.onPrepare});
+  const _CandidateCard({
+    required this.candidate,
+    required this.enabled,
+    required this.onPrepare,
+  });
 
   final CandidateWorkItem candidate;
+  final bool enabled;
   final VoidCallback onPrepare;
 
   @override
@@ -585,7 +610,7 @@ class _CandidateCard extends StatelessWidget {
             Align(
               alignment: AlignmentDirectional.centerEnd,
               child: FilledButton.tonalIcon(
-                onPressed: candidate.blocked ? null : onPrepare,
+                onPressed: candidate.blocked || !enabled ? null : onPrepare,
                 icon: const Icon(Icons.drafts_outlined),
                 label: const Text('تجهيز غلاف مهمة'),
               ),
@@ -647,7 +672,7 @@ class _RealityError extends StatelessWidget {
   const _RealityError({required this.message, required this.onProbe});
 
   final String message;
-  final VoidCallback onProbe;
+  final VoidCallback? onProbe;
 
   @override
   Widget build(BuildContext context) {

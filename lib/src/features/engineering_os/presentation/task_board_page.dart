@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/presentation/preview_mode_ui.dart';
+import '../../orchestrator/application/operational_authorization.dart';
 import '../application/engineering_os_controller.dart';
 import '../domain/engineering_os_models.dart';
 
@@ -26,6 +27,8 @@ class _EngineeringTaskBoardPageState
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(engineeringOsControllerProvider);
+    final authorization = ref.watch(operationalAuthorizationProvider);
+    final canDispatch = authorization.asData?.value.canDispatch ?? false;
     final summary = state.summary;
     final dataAvailable = summary != null && state.error == null;
     final previewUnavailable =
@@ -54,7 +57,9 @@ class _EngineeringTaskBoardPageState
             dataAvailable: dataAvailable,
           ),
           onRefresh: ref.read(engineeringOsControllerProvider.notifier).load,
-          onCreate: previewUnavailable ? null : () => _showCreateTask(context),
+          onCreate: previewUnavailable || !canDispatch
+              ? null
+              : () => _showCreateTask(context),
         ),
         if (previewUnavailable)
           const PreviewModeBanner()

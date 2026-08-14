@@ -3,9 +3,28 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:palwakf_workspace_manager/src/features/projects/application/external_projects_controller.dart';
 import 'package:palwakf_workspace_manager/src/features/projects/data/external_project_api_client.dart';
+import 'package:palwakf_workspace_manager/src/features/orchestrator/application/operational_authorization.dart';
 import 'package:palwakf_workspace_manager/src/features/projects/domain/external_project_models.dart';
 import 'package:palwakf_workspace_manager/src/features/projects/presentation/external_projects_page.dart';
 import 'package:palwakf_workspace_manager/src/features/projects/presentation/project_reality_page.dart';
+
+const fullWidgetAuthorization = OperationalAuthorizationContext(
+  clientId: 'external-project-widget-full',
+  scopes: <String>[
+    'tasks:read',
+    'tasks:dispatch',
+    'tasks:continue',
+    'tasks:cancel',
+    'tasks:verify',
+    'tools:probe',
+  ],
+  readOnly: false,
+  canDispatch: true,
+  canContinue: true,
+  canCancel: true,
+  canVerify: true,
+  canProbeTools: true,
+);
 
 const project = ExternalProject(
   projectId: 'FIRASFANON_PAL_EYES',
@@ -124,10 +143,17 @@ class FakeExternalProjectApi implements ExternalProjectApi {
   }
 }
 
-Widget app(Widget child, FakeExternalProjectApi api) {
+Widget app(
+  Widget child,
+  FakeExternalProjectApi api, {
+  OperationalAuthorizationContext authorization = fullWidgetAuthorization,
+}) {
   return ProviderScope(
     overrides: <Override>[
       externalProjectApiProvider.overrideWithValue(api),
+      operationalAuthorizationProvider.overrideWith(
+        (ref) async => authorization,
+      ),
     ],
     child: MaterialApp(
       locale: const Locale('ar'),
@@ -148,7 +174,10 @@ void main() {
     expect(find.text('إدخال مشروع'), findsOneWidget);
     expect(find.text('بعيون فلسطينية'), findsWidgets);
     expect(find.text('firasfanon/Pal_Eyes'), findsWidgets);
-    expect(find.text('READ_ONLY_ZERO_MUTATION'), findsOneWidget);
+    expect(
+      find.text('لا تنفيذ لكود المشروع أثناء التسجيل'),
+      findsOneWidget,
+    );
     expect(find.text('Supabase محظور'), findsOneWidget);
   });
 

@@ -170,21 +170,28 @@ class _ManagedWorkspaceBand extends StatelessWidget {
             children: capabilities.entries
                 .map(
                   (entry) => _StateChip(
-                    label: '${entry.key}: ${entry.value.status}',
-                    warning: entry.value.status == 'BLOCKED',
+                    label: '${entry.key}: ${_capabilityLabel(entry.value)}',
+                    warning: entry.value.status == 'BLOCKED' ||
+                        entry.value.status == 'SUSPENDED_BY_POLICY',
                   ),
                 )
                 .toList(growable: false),
           ),
           const SizedBox(height: 12),
           _FactRow(
-            label: 'الرؤوس local / remote / PR',
+            label: 'فرع التشغيل الحالي',
             value:
-                '${head(status.localHead)} / ${head(status.remoteHead)} / ${head(status.pullRequestHead)}',
+                '${status.checkoutBranch ?? status.branch} · ${head(status.checkoutHead ?? status.localHead)} / remote ${head(status.remoteHead)}',
+          ),
+          _FactRow(
+            label: 'الفرع الحاكم المتكامل',
+            value:
+                '${status.governedBranch ?? 'UNKNOWN'} · ${head(status.governedRemoteHead)}',
           ),
           _FactRow(
             label: 'PR #${status.pullRequestNumber}',
-            value: '${status.pullRequestState} · CI ${status.ciStatus}',
+            value:
+                '${status.pullRequestState} · ${head(status.pullRequestHead)} · CI ${status.ciStatus}',
           ),
           _FactRow(
             label: 'الشجرة والكاتب',
@@ -198,6 +205,15 @@ class _ManagedWorkspaceBand extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _capabilityLabel(CapabilityState state) {
+    if (state.status == 'SUSPENDED_BY_POLICY') {
+      return state.installed == true
+          ? 'مثبت · موقوف بالسياسة'
+          : 'موقوف بالسياسة';
+    }
+    return state.status;
   }
 }
 

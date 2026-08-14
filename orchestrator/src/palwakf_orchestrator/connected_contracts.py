@@ -37,6 +37,17 @@ class ClientPrincipal(BaseModel):
             raise PermissionError(f"missing required scope: {scope.value}")
 
 
+class SessionAuthorizationContext(BaseModel):
+    client_id: str
+    scopes: list[ServiceScope]
+    read_only: bool
+    can_dispatch: bool
+    can_continue: bool
+    can_cancel: bool
+    can_verify: bool
+    can_probe_tools: bool
+
+
 class ConnectedDispatchRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

@@ -59,7 +59,10 @@ class TaskStatusSummary(BaseModel):
     active_task_ids: list[str]
     latest_verified_task_id: str | None
     latest_verified_at: datetime | None
-    provenance: Literal["OPERATOR_TASK_STORE"] = "OPERATOR_TASK_STORE"
+    provenance: Literal[
+        "OPERATOR_TASK_STORE",
+        "UNIFIED_OPERATOR_AND_ENGINEERING_OS_TASK_STORES",
+    ] = "OPERATOR_TASK_STORE"
 
 
 class ToolHealthSummary(BaseModel):

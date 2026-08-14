@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/presentation/preview_mode_ui.dart';
+import '../../orchestrator/application/operational_authorization.dart';
 import '../application/engineering_os_controller.dart';
 import '../domain/engineering_os_models.dart';
 
@@ -42,6 +43,8 @@ class _ExtensionsCenterPageState extends ConsumerState<ExtensionsCenterPage>
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(engineeringOsControllerProvider);
+    final authorization = ref.watch(operationalAuthorizationProvider);
+    final canDispatch = authorization.asData?.value.canDispatch ?? false;
     final dataAvailable = state.summary != null && state.error == null;
     final previewUnavailable = PreviewModeUi.isVisualPreview &&
         state.error != null &&
@@ -91,7 +94,7 @@ class _ExtensionsCenterPageState extends ConsumerState<ExtensionsCenterPage>
                     icon: const Icon(Icons.refresh),
                   ),
                   FilledButton.icon(
-                    onPressed: previewUnavailable
+                    onPressed: previewUnavailable || !canDispatch
                         ? null
                         : () => _showAddExtension(context),
                     icon: const Icon(Icons.add),

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/domain/operational_data_state.dart';
 import '../../../core/presentation/preview_mode_ui.dart';
+import '../../orchestrator/application/operational_authorization.dart';
 import '../application/external_projects_controller.dart';
 import '../domain/external_project_models.dart';
 
@@ -27,6 +28,8 @@ class _ExternalProjectsPageState extends ConsumerState<ExternalProjectsPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(externalProjectsControllerProvider);
+    final authorization = ref.watch(operationalAuthorizationProvider);
+    final canDispatch = authorization.asData?.value.canDispatch ?? false;
     final controller = ref.read(externalProjectsControllerProvider.notifier);
     final availability = PreviewModeUi.resolveAvailability(
       loading: state.loading,
@@ -36,7 +39,7 @@ class _ExternalProjectsPageState extends ConsumerState<ExternalProjectsPage> {
     );
     final previewUnavailable =
         availability == OperationalDataAvailability.unavailable;
-    final writesEnabled = PreviewModeUi.canMutate(availability);
+    final writesEnabled = PreviewModeUi.canMutate(availability) && canDispatch;
     return Material(
       child: Column(
         children: <Widget>[
@@ -196,13 +199,13 @@ class _ProjectIntakePanelState extends State<_ProjectIntakePanel> {
               onPressed: widget.enabled ? _submit : null,
               icon: const Icon(Icons.playlist_add),
               label: Text(
-                widget.enabled ? 'تسجيل دون فحص' : 'متاح في التشغيل المتصل فقط',
+                widget.enabled ? 'تسجيل دون فحص' : 'يتطلب صلاحية كتابة تشغيلية',
               ),
             ),
             const SizedBox(height: 14),
             const _AuthorityFact(
               icon: Icons.visibility_outlined,
-              label: 'READ_ONLY_ZERO_MUTATION',
+              label: 'لا تنفيذ لكود المشروع أثناء التسجيل',
             ),
             const _AuthorityFact(
               icon: Icons.storage_outlined,

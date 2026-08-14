@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../core/domain/operational_data_state.dart';
 import '../../../core/presentation/preview_mode_ui.dart';
 import '../../../core/theme/palwakf_theme.dart';
+import '../application/operational_authorization.dart';
 import '../application/orchestrator_controller.dart';
 import '../domain/orchestrator_models.dart';
 import 'service_auth_dialog.dart';
@@ -33,6 +34,8 @@ class _ToolHealthPageState extends ConsumerState<ToolHealthPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(orchestratorControllerProvider);
+    final authorization = ref.watch(operationalAuthorizationProvider);
+    final canProbe = authorization.asData?.value.canProbeTools ?? false;
     ToolOperationalHealth? selected;
     for (final tool in state.tools) {
       if (tool.adapterId == widget.adapterId) selected = tool;
@@ -75,9 +78,11 @@ class _ToolHealthPageState extends ConsumerState<ToolHealthPage> {
                             .where((alert) =>
                                 alert.adapterId == selected!.adapterId)
                             .toList(growable: false),
-                        onProbe: () => ref
-                            .read(orchestratorControllerProvider.notifier)
-                            .probeTool(selected!.adapterId),
+                        onProbe: canProbe
+                            ? () => ref
+                                .read(orchestratorControllerProvider.notifier)
+                                .probeTool(selected!.adapterId)
+                            : null,
                       ),
           ),
         ],
@@ -143,7 +148,7 @@ class _ToolHealthDetail extends StatelessWidget {
 
   final ToolOperationalHealth tool;
   final List<ToolHealthAlert> alerts;
-  final VoidCallback onProbe;
+  final VoidCallback? onProbe;
 
   @override
   Widget build(BuildContext context) {

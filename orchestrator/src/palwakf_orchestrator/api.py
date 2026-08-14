@@ -19,6 +19,7 @@ from palwakf_orchestrator.connected_contracts import (
     QueueSnapshot,
     ServiceReadiness,
     ServiceScope,
+    SessionAuthorizationContext,
     ToolHealthAlert,
     ToolOperationalHealth,
     ToolProbeRequest,
@@ -156,6 +157,7 @@ def create_app(
         resolved_settings.workspace_root,
         stale_seconds=resolved_settings.stale_project_seconds,
         local_product=local_product,
+        engineering_os=engineering_os,
     )
     limiter = BoundedRateLimiter(resolved_settings.requests_per_minute)
     mcp_http_app = create_mcp_server(
@@ -232,6 +234,28 @@ def create_app(
         if not readiness.ready:
             raise HTTPException(status_code=503, detail=readiness.model_dump(mode="json"))
         return readiness
+
+    @app.get("/v1/auth/context", response_model=SessionAuthorizationContext)
+    async def authorization_context(request: Request) -> SessionAuthorizationContext:
+        principal = request.state.principal
+        scopes = sorted(principal.scopes, key=lambda scope: scope.value)
+        mutation_scopes = {
+            ServiceScope.dispatch,
+            ServiceScope.continue_task,
+            ServiceScope.cancel,
+            ServiceScope.verify,
+            ServiceScope.probe,
+        }
+        return SessionAuthorizationContext(
+            client_id=principal.client_id,
+            scopes=scopes,
+            read_only=not any(scope in principal.scopes for scope in mutation_scopes),
+            can_dispatch=ServiceScope.dispatch in principal.scopes,
+            can_continue=ServiceScope.continue_task in principal.scopes,
+            can_cancel=ServiceScope.cancel in principal.scopes,
+            can_verify=ServiceScope.verify in principal.scopes,
+            can_probe_tools=ServiceScope.probe in principal.scopes,
+        )
 
     @app.post("/local/session/issue")
     async def issue_local_session(request: Request) -> dict[str, str]:

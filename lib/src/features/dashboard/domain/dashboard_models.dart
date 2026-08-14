@@ -70,17 +70,29 @@ class DashboardSummary {
 }
 
 class CapabilityState {
-  const CapabilityState({required this.status, this.blocker});
+  const CapabilityState({
+    required this.status,
+    this.blocker,
+    this.installed,
+    this.authorized,
+    this.policy,
+  });
 
   factory CapabilityState.fromJson(Map<String, dynamic> json) {
     return CapabilityState(
       status: json['status'] as String,
       blocker: json['blocker'] as String?,
+      installed: json['installed'] as bool?,
+      authorized: json['authorized'] as bool?,
+      policy: json['policy'] as String?,
     );
   }
 
   final String status;
   final String? blocker;
+  final bool? installed;
+  final bool? authorized;
+  final String? policy;
 }
 
 class ManagedWorkspaceStatus {
@@ -105,6 +117,10 @@ class ManagedWorkspaceStatus {
     this.activeWriterTaskId,
     this.currentTaskId,
     this.latestVerifiedTaskId,
+    this.governedBranch,
+    this.checkoutBranch,
+    this.checkoutHead,
+    this.governedRemoteHead,
   });
 
   factory ManagedWorkspaceStatus.fromJson(Map<String, dynamic> json) {
@@ -125,6 +141,10 @@ class ManagedWorkspaceStatus {
       activeWriterTaskId: json['active_writer_task_id'] as String?,
       currentTaskId: json['current_task_id'] as String?,
       latestVerifiedTaskId: json['latest_verified_task_id'] as String?,
+      governedBranch: json['governed_branch'] as String?,
+      checkoutBranch: json['checkout_branch'] as String?,
+      checkoutHead: json['checkout_head'] as String?,
+      governedRemoteHead: json['governed_remote_head'] as String?,
       github: capability('github'),
       agentsSdk: capability('agents_sdk'),
       codex: capability('codex'),
@@ -148,6 +168,10 @@ class ManagedWorkspaceStatus {
   final String? activeWriterTaskId;
   final String? currentTaskId;
   final String? latestVerifiedTaskId;
+  final String? governedBranch;
+  final String? checkoutBranch;
+  final String? checkoutHead;
+  final String? governedRemoteHead;
   final CapabilityState github;
   final CapabilityState agentsSdk;
   final CapabilityState codex;

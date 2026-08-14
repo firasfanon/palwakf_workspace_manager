@@ -23,6 +23,11 @@ from palwakf_orchestrator.dashboard_contracts import (
     TaskStatusSummary,
     ToolHealthSummary,
 )
+from palwakf_orchestrator.engineering_os_contracts import (
+    EngineeringTaskRecord,
+    EngineeringTaskStatus,
+)
+from palwakf_orchestrator.engineering_os_service import EngineeringOsService
 from palwakf_orchestrator.local_product import LocalProductService
 from palwakf_orchestrator.operator_contracts import OperatorTaskRecord, OperatorTaskStatus
 from palwakf_orchestrator.operator_service import OperatorService
@@ -38,6 +43,13 @@ _TERMINAL_TASK_STATUSES = {
     OperatorTaskStatus.timed_out,
     OperatorTaskStatus.cancelled,
 }
+_ENGINEERING_TERMINAL_STATUSES = {
+    EngineeringTaskStatus.integrated,
+    EngineeringTaskStatus.failed,
+    EngineeringTaskStatus.cancelled,
+    EngineeringTaskStatus.superseded,
+}
+_ENGINEERING_ACTIVE_STATUSES = set(EngineeringTaskStatus) - _ENGINEERING_TERMINAL_STATUSES
 
 
 class DashboardAggregationService:
@@ -52,6 +64,7 @@ class DashboardAggregationService:
         stale_seconds: int = 86_400,
         now: Callable[[], datetime] | None = None,
         local_product: LocalProductService | None = None,
+        engineering_os: EngineeringOsService | None = None,
     ) -> None:
         self._operator = operator
         self._projects = projects
@@ -61,13 +74,21 @@ class DashboardAggregationService:
         self._stale_after = timedelta(seconds=stale_seconds)
         self._now = now or (lambda: datetime.now(UTC))
         self._local_product = local_product
+        self._engineering_os = engineering_os
 
     def summary(self) -> DashboardSummary:
         now = self._now()
-        tasks = self._operator.list_tasks()
-        project_summaries = self._project_summaries(tasks, now)
+        operator_tasks = self._operator.list_tasks()
+        engineering_tasks = (
+            self._engineering_os.list_tasks() if self._engineering_os is not None else []
+        )
+        project_summaries = self._project_summaries(
+            operator_tasks,
+            engineering_tasks,
+            now,
+        )
         alerts = self.alerts()
-        task_summary = self._task_summary(tasks, now)
+        task_summary = self._task_summary(operator_tasks, engineering_tasks, now)
         tool_summary = self._tool_summary()
         readiness = self._connected.readiness()
         metrics = self._connected.metrics()
@@ -80,6 +101,18 @@ class DashboardAggregationService:
             local_secure=readiness.mode.value == "LOCAL_SECURE_MODE",
             last_successful_codex_execution_at=metrics.last_successful_codex_execution_at,
         )
+        managed_workspace = (
+            self._local_product.status() if self._local_product is not None else None
+        )
+        if managed_workspace is not None and managed_workspace.current_task_id is None:
+            current_engineering_task = next(
+                (task for task in engineering_tasks if task.status in _ENGINEERING_ACTIVE_STATUSES),
+                None,
+            )
+            if current_engineering_task is not None:
+                managed_workspace = managed_workspace.model_copy(
+                    update={"current_task_id": current_engineering_task.task_id}
+                )
         return DashboardSummary(
             generated_at=now,
             freshness=FreshnessState.fresh,
@@ -94,17 +127,26 @@ class DashboardAggregationService:
             critical_alert_count=sum(item.severity == "critical" for item in alerts),
             projects=project_summaries,
             connection=connection,
-            checkpoints=self._checkpoints(tasks),
+            checkpoints=self._checkpoints(operator_tasks, engineering_tasks),
             actions=self._actions(project_summaries, alerts, task_summary),
-            managed_workspace=(
-                self._local_product.status() if self._local_product is not None else None
-            ),
+            managed_workspace=managed_workspace,
+            provenance=[
+                "OPERATOR_TASK_STORE",
+                "ENGINEERING_OS_TASK_STORE",
+                "EXTERNAL_PROJECT_REGISTRY",
+                "TOOL_HEALTH_STORE",
+                "CONNECTED_SERVICE_READINESS",
+            ],
         )
 
     def alerts(self) -> list[OperationalAlertSummary]:
         now = self._now()
         values: list[OperationalAlertSummary] = []
         for alert in self._connected.tool_health.alerts():
+            message, required_action = self._localized_tool_alert(
+                alert.code,
+                alert.adapter_id,
+            )
             values.append(
                 OperationalAlertSummary(
                     alert_id=alert.alert_id,
@@ -112,8 +154,8 @@ class DashboardAggregationService:
                     source_kind="tool",
                     source_id=alert.adapter_id,
                     code=alert.code,
-                    message=alert.message,
-                    required_action=alert.operator_action,
+                    message=message,
+                    required_action=required_action,
                     observed_at=alert.observed_at,
                     freshness=FreshnessState.fresh,
                 )
@@ -136,11 +178,13 @@ class DashboardAggregationService:
                         source_id=project.project_id,
                         code=code,
                         message=(
-                            project.blockers[0]
-                            if project.blockers
-                            else "Project reality requires a current read-only probe"
+                            "المشروع محجوب وفق حالة الواقع المسجلة."
+                            if code == "PROJECT_BLOCKED"
+                            else "يوجد انحراف بين رأس المشروع المرصود والمرجع المسجل."
+                            if code == "PROJECT_HEAD_DRIFT"
+                            else "بيانات واقع المشروع قديمة أو غير متاحة حاليًا."
                         ),
-                        required_action="Review the project reality before governed work",
+                        required_action="راجع واقع المشروع بفحص قراءة موثق قبل أي عمل محكوم.",
                         observed_at=project.updated_at,
                         freshness=freshness,
                     )
@@ -169,11 +213,15 @@ class DashboardAggregationService:
                         source_kind="task",
                         source_id=task.task_id,
                         code=f"TASK_{task.status.value.upper()}",
-                        message=task.blocker or task.last_event,
-                        required_action=(
-                            "Resolve the recorded blocker"
+                        message=(
+                            "المهمة لديها مانع مسجل يتطلب المعالجة."
                             if task.blocker
-                            else "Review the task checkpoint"
+                            else "المهمة وصلت إلى حالة تتطلب مراجعة بشرية."
+                        ),
+                        required_action=(
+                            "عالج المانع المسجل قبل استئناف المهمة."
+                            if task.blocker
+                            else "راجع نقطة استئناف المهمة وحالة التحقق."
                         ),
                         observed_at=task.updated_at,
                         freshness=self._freshness(task.updated_at, now),
@@ -314,7 +362,10 @@ class DashboardAggregationService:
         return values[:limit]
 
     def _project_summaries(
-        self, tasks: list[OperatorTaskRecord], now: datetime
+        self,
+        operator_tasks: list[OperatorTaskRecord],
+        engineering_tasks: list[EngineeringTaskRecord],
+        now: datetime,
     ) -> list[PortfolioProjectSummary]:
         result: list[PortfolioProjectSummary] = []
         if self._local_product is not None:
@@ -340,6 +391,13 @@ class DashboardAggregationService:
                 )
                 if condition
             ]
+            workspace_engineering_tasks = [
+                task
+                for task in engineering_tasks
+                if task.repository.casefold() == workspace.repository.casefold()
+                or task.project_id.casefold()
+                in {"palwakf_workspace_manager", "palwakf-workspace-manager"}
+            ]
             result.append(
                 PortfolioProjectSummary(
                     project_id="PALWAKF_WORKSPACE_MANAGER",
@@ -348,8 +406,8 @@ class DashboardAggregationService:
                     status="registered",
                     readiness="READY" if ready else "ATTENTION_REQUIRED",
                     attention_required=not ready,
-                    observed_branch=workspace.branch,
-                    observed_head=workspace.local_head,
+                    observed_branch=workspace.checkout_branch or workspace.branch,
+                    observed_head=workspace.checkout_head or workspace.local_head,
                     last_probe_at=workspace.refreshed_at,
                     freshness=FreshnessState.fresh,
                     stack=["Flutter", "Python", "FastAPI"],
@@ -359,7 +417,7 @@ class DashboardAggregationService:
                     drift_status="ALIGNED" if heads_match else "DRIFTED",
                     blockers=blockers,
                     tool_gap_count=sum(
-                        state.status == "BLOCKED"
+                        state.status in {"BLOCKED", "SUSPENDED_BY_POLICY"}
                         for state in (
                             workspace.github,
                             workspace.agents_sdk,
@@ -370,8 +428,12 @@ class DashboardAggregationService:
                     ),
                     top_candidate_id=None,
                     top_candidate_title=None,
-                    task_count=sum(
-                        task.project_id == "PALWAKF_WORKSPACE_MANAGER" for task in tasks
+                    task_count=(
+                        sum(
+                            task.project_id == "PALWAKF_WORKSPACE_MANAGER"
+                            for task in operator_tasks
+                        )
+                        + len(workspace_engineering_tasks)
                     ),
                     active_writer=workspace.active_writer_task_id is not None,
                     evidence_count=0,
@@ -385,9 +447,15 @@ class DashboardAggregationService:
             except Exception:
                 report = None
             freshness = self._freshness(project.last_probe_at, now)
-            project_tasks = [
+            project_operator_tasks = [
                 task
-                for task in tasks
+                for task in operator_tasks
+                if task.project_id == project.project_id
+                or task.repository.casefold() == project.repository_full_name.casefold()
+            ]
+            project_engineering_tasks = [
+                task
+                for task in engineering_tasks
                 if task.project_id == project.project_id
                 or task.repository.casefold() == project.repository_full_name.casefold()
             ]
@@ -427,28 +495,33 @@ class DashboardAggregationService:
                     ),
                     top_candidate_id=candidates[0].candidate_id if candidates else None,
                     top_candidate_title=candidates[0].title if candidates else None,
-                    task_count=len(project_tasks),
+                    task_count=len(project_operator_tasks) + len(project_engineering_tasks),
                     active_writer=self._store.writer_for(project.repository_full_name) is not None,
                     evidence_count=len(project.source_of_truth_references),
                 )
             )
         return result
 
-    def _task_summary(self, tasks: list[OperatorTaskRecord], now: datetime) -> TaskStatusSummary:
-        counts = Counter(task.status.value for task in tasks)
+    def _task_summary(
+        self,
+        operator_tasks: list[OperatorTaskRecord],
+        engineering_tasks: list[EngineeringTaskRecord],
+        now: datetime,
+    ) -> TaskStatusSummary:
+        counts = Counter(task.status.value for task in operator_tasks)
+        engineering_counts = Counter(task.status for task in engineering_tasks)
         stale = sum(
             task.status not in _TERMINAL_TASK_STATUSES
             and self._freshness(task.updated_at, now) == FreshnessState.stale
-            for task in tasks
-        )
-        verified = sorted(
-            (task for task in tasks if task.status == OperatorTaskStatus.verified),
-            key=lambda task: task.updated_at,
-            reverse=True,
+            for task in operator_tasks
+        ) + sum(
+            task.status in _ENGINEERING_ACTIVE_STATUSES
+            and self._freshness(task.updated_at, now) == FreshnessState.stale
+            for task in engineering_tasks
         )
         active = [
             task.task_id
-            for task in tasks
+            for task in operator_tasks
             if task.status
             in {
                 OperatorTaskStatus.queued,
@@ -456,23 +529,61 @@ class DashboardAggregationService:
                 OperatorTaskStatus.awaiting_approval,
                 OperatorTaskStatus.pending_verification,
             }
+        ] + [
+            task.task_id
+            for task in engineering_tasks
+            if task.status in _ENGINEERING_ACTIVE_STATUSES
         ]
+        verified_candidates = [
+            (task.task_id, task.updated_at)
+            for task in operator_tasks
+            if task.status == OperatorTaskStatus.verified
+        ] + [
+            (task.task_id, task.updated_at)
+            for task in engineering_tasks
+            if task.status == EngineeringTaskStatus.integrated
+        ]
+        verified_candidates.sort(key=lambda item: item[1], reverse=True)
+        latest_verified = verified_candidates[0] if verified_candidates else None
+
         return TaskStatusSummary(
-            total=len(tasks),
-            pending=counts["pending"],
-            queued=counts["queued"],
-            running=counts["running"],
-            awaiting_approval=counts["awaiting_approval"],
-            failed=counts["failed"],
-            pending_verification=counts["pending_verification"],
-            verified=counts["verified"],
-            drifted=counts["drifted"],
+            total=len(operator_tasks) + len(engineering_tasks),
+            pending=(
+                counts["pending"]
+                + engineering_counts[EngineeringTaskStatus.planned]
+                + engineering_counts[EngineeringTaskStatus.ready]
+                + engineering_counts[EngineeringTaskStatus.blocked_dependency]
+            ),
+            queued=(
+                counts["queued"] + engineering_counts[EngineeringTaskStatus.wip_remote_checkpointed]
+            ),
+            running=(counts["running"] + engineering_counts[EngineeringTaskStatus.in_progress]),
+            awaiting_approval=(
+                counts["awaiting_approval"]
+                + engineering_counts[EngineeringTaskStatus.ready_for_integration]
+                + engineering_counts[EngineeringTaskStatus.in_merge_queue]
+            ),
+            failed=(counts["failed"] + engineering_counts[EngineeringTaskStatus.failed]),
+            pending_verification=(
+                counts["pending_verification"]
+                + engineering_counts[EngineeringTaskStatus.ready_for_review]
+            ),
+            verified=(counts["verified"] + engineering_counts[EngineeringTaskStatus.integrated]),
+            drifted=(
+                counts["drifted"]
+                + engineering_counts[EngineeringTaskStatus.reconciliation_required]
+            ),
             timed_out=counts["timed_out"],
-            cancelled=counts["cancelled"],
+            cancelled=(
+                counts["cancelled"]
+                + engineering_counts[EngineeringTaskStatus.cancelled]
+                + engineering_counts[EngineeringTaskStatus.superseded]
+            ),
             stale=stale,
             active_task_ids=active[:20],
-            latest_verified_task_id=verified[0].task_id if verified else None,
-            latest_verified_at=verified[0].updated_at if verified else None,
+            latest_verified_task_id=latest_verified[0] if latest_verified else None,
+            latest_verified_at=latest_verified[1] if latest_verified else None,
+            provenance="UNIFIED_OPERATOR_AND_ENGINEERING_OS_TASK_STORES",
         )
 
     def _tool_summary(self) -> ToolHealthSummary:
@@ -504,17 +615,21 @@ class DashboardAggregationService:
             required_attention=attention,
         )
 
-    def _checkpoints(self, tasks: list[OperatorTaskRecord]) -> list[ResumeCheckpointSummary]:
+    def _checkpoints(
+        self,
+        operator_tasks: list[OperatorTaskRecord],
+        engineering_tasks: list[EngineeringTaskRecord],
+    ) -> list[ResumeCheckpointSummary]:
         values: list[ResumeCheckpointSummary] = []
-        for task in sorted(tasks, key=lambda item: item.updated_at, reverse=True):
+        for task in operator_tasks:
             if task.status in _TERMINAL_TASK_STATUSES:
                 continue
             next_action = (
-                "Verify the recorded result"
+                "تحقق من النتيجة المسجلة."
                 if task.status == OperatorTaskStatus.pending_verification
-                else "Resolve the recorded blocker"
+                else "عالج المانع المسجل."
                 if task.blocker
-                else "Resume from the latest task event"
+                else "استأنف من آخر حدث مسجل للمهمة."
             )
             values.append(
                 ResumeCheckpointSummary(
@@ -526,6 +641,27 @@ class DashboardAggregationService:
                     evidence_reference=self._first_safe_reference(task.evidence),
                 )
             )
+        for engineering_task in engineering_tasks:
+            if engineering_task.status not in _ENGINEERING_ACTIVE_STATUSES:
+                continue
+            next_action = (
+                "حلّ التسوية المطلوبة قبل الاستمرار."
+                if engineering_task.status == EngineeringTaskStatus.reconciliation_required
+                else "استأنف من نقطة WIP المرفوعة على فرع المهمة البعيد."
+                if engineering_task.wip_checkpoint_status == "REMOTE_CHECKPOINTED"
+                else "ابدأ من Base SHA الموثق للمهمة."
+            )
+            values.append(
+                ResumeCheckpointSummary(
+                    checkpoint_id=f"engineering-{engineering_task.task_id}",
+                    task_id=engineering_task.task_id,
+                    status=engineering_task.status.value,
+                    updated_at=engineering_task.updated_at,
+                    next_action=next_action,
+                    evidence_reference=self._first_safe_reference(engineering_task.evidence),
+                )
+            )
+        values.sort(key=lambda item: item.updated_at, reverse=True)
         return values[:10]
 
     @staticmethod
@@ -537,29 +673,54 @@ class DashboardAggregationService:
         return [
             DashboardAction(
                 action_id="review-alerts",
-                label="Review operational alerts",
+                label="مراجعة التنبيهات التشغيلية",
                 route="/alerts",
                 enabled=bool(alerts),
-                disabled_reason=None if alerts else "No current alerts",
+                disabled_reason=None if alerts else "لا توجد تنبيهات حالية",
                 authority="READ_ONLY_REVIEW",
             ),
             DashboardAction(
                 action_id="resume-tasks",
-                label="Open governed tasks",
+                label="فتح المهام المحكومة",
                 route="/tasks",
                 enabled=bool(tasks.active_task_ids),
-                disabled_reason=None if tasks.active_task_ids else "No active task checkpoint",
+                disabled_reason=None
+                if tasks.active_task_ids
+                else "لا توجد نقطة استئناف لمهمة نشطة",
                 authority="EXISTING_TASK_WORKFLOW",
             ),
             DashboardAction(
                 action_id="review-projects",
-                label="Review project reality",
+                label="مراجعة واقع المشاريع",
                 route="/projects",
                 enabled=bool(projects),
-                disabled_reason=None if projects else "No registered projects",
+                disabled_reason=None if projects else "لا توجد مشاريع مسجلة",
                 authority="READ_ONLY_PROJECT_REALITY",
             ),
         ]
+
+    @staticmethod
+    def _localized_tool_alert(code: str, adapter_id: str) -> tuple[str, str]:
+        localized = {
+            "AUTHENTICATION_UNVERIFIED": (
+                "لا توجد أدلة حالية تثبت مصادقة الأداة أو المزود.",
+                "شغّل فحصًا موثقًا للمصادقة دون عرض أي قيمة سرية.",
+            ),
+            "HEALTH_EVIDENCE_STALE_OR_UNAVAILABLE": (
+                "دليل الصحة التشغيلية للأداة قديم أو غير متاح.",
+                "افحص الأداة وأرفق دليلًا حديثًا غير سري.",
+            ),
+            "PERMISSION_BLOCKED": (
+                "صلاحية الأداة محجوبة وفق السياسة الحالية.",
+                "راجع سياسة الصلاحيات قبل أي محاولة تشغيل.",
+            ),
+        }
+        if code in localized:
+            return localized[code]
+        return (
+            f"سُجل تنبيه تشغيلي للأداة {adapter_id} بالرمز {code}.",
+            "راجع حالة الأداة والأدلة التشغيلية قبل اتخاذ إجراء.",
+        )
 
     def _freshness(self, observed_at: datetime | None, now: datetime) -> FreshnessState:
         if observed_at is None:

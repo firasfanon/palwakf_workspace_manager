@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/presentation/preview_mode_ui.dart';
 import '../../../core/theme/palwakf_theme.dart';
+import '../application/operational_authorization.dart';
 import '../application/orchestrator_controller.dart';
 import '../data/orchestrator_api_client.dart';
 import '../domain/orchestrator_models.dart';
@@ -32,6 +33,8 @@ class _OrchestratorWorkspacePageState
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(orchestratorControllerProvider);
+    final authorizationState = ref.watch(operationalAuthorizationProvider);
+    final authorization = authorizationState.asData?.value;
     final controller = ref.read(orchestratorControllerProvider.notifier);
     final previewUnavailable = PreviewModeUi.isVisualPreview &&
         state.error != null &&
@@ -57,6 +60,8 @@ class _OrchestratorWorkspacePageState
       child: Column(
         children: <Widget>[
           _CapabilityStrip(capabilities: state.capabilities),
+          if (authorization?.readOnly ?? false)
+            const _ReadOnlyAuthorizationBand(),
           if (state.error != null)
             _RecoverableError(
               message: state.error!,
@@ -70,12 +75,17 @@ class _OrchestratorWorkspacePageState
                 final queue = _TaskQueue(
                   state: state,
                   onSelect: controller.selectTask,
-                  onCreate: () => _showNewTask(context),
-                  onCreateProof: controller.createProofTask,
+                  onCreate: authorization?.canDispatch ?? false
+                      ? () => _showNewTask(context)
+                      : null,
+                  onCreateProof: authorization?.canDispatch ?? false
+                      ? controller.createProofTask
+                      : null,
                 );
                 final detail = _TaskDetail(
                   state: state,
                   controller: controller,
+                  authorization: authorization,
                 );
                 if (constraints.maxWidth < 760) {
                   return Column(
@@ -193,6 +203,31 @@ class _CapabilityStrip extends StatelessWidget {
   }
 }
 
+class _ReadOnlyAuthorizationBand extends StatelessWidget {
+  const _ReadOnlyAuthorizationBand();
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 9),
+        child: Row(
+          children: <Widget>[
+            Icon(Icons.lock_outline, size: 18),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'الجلسة الحالية للقراءة فقط؛ أوامر التغيير معطلة في الواجهة ومرفوضة من الخادم.',
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _RecoverableError extends StatelessWidget {
   const _RecoverableError({
     required this.message,
@@ -238,8 +273,8 @@ class _TaskQueue extends StatelessWidget {
 
   final OrchestratorWorkspaceState state;
   final ValueChanged<String> onSelect;
-  final VoidCallback onCreate;
-  final VoidCallback onCreateProof;
+  final VoidCallback? onCreate;
+  final VoidCallback? onCreateProof;
 
   @override
   Widget build(BuildContext context) {
@@ -422,10 +457,15 @@ class _StatusDot extends StatelessWidget {
 }
 
 class _TaskDetail extends StatelessWidget {
-  const _TaskDetail({required this.state, required this.controller});
+  const _TaskDetail({
+    required this.state,
+    required this.controller,
+    required this.authorization,
+  });
 
   final OrchestratorWorkspaceState state;
   final OrchestratorController controller;
+  final OperationalAuthorizationContext? authorization;
 
   @override
   Widget build(BuildContext context) {
@@ -454,7 +494,11 @@ class _TaskDetail extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          _TaskHeader(task: task, controller: controller),
+          _TaskHeader(
+            task: task,
+            controller: controller,
+            authorization: authorization,
+          ),
           const TabBar(
             isScrollable: true,
             tabs: <Widget>[
@@ -473,11 +517,13 @@ class _TaskDetail extends StatelessWidget {
                   invocations: state.invocations,
                   reconciliation: state.reconciliation,
                   onPlan: controller.planTools,
+                  canMutate: authorization?.canDispatch ?? false,
                 ),
                 _RelayTab(
                   task: task,
                   package: state.manualPackage,
                   controller: controller,
+                  canMutate: authorization?.canDispatch ?? false,
                 ),
                 _EventsTab(task: task),
               ],
@@ -555,10 +601,15 @@ class _RuntimeCapabilitiesCard extends StatelessWidget {
 }
 
 class _TaskHeader extends StatelessWidget {
-  const _TaskHeader({required this.task, required this.controller});
+  const _TaskHeader({
+    required this.task,
+    required this.controller,
+    required this.authorization,
+  });
 
   final OperatorTask task;
   final OrchestratorController controller;
+  final OperationalAuthorizationContext? authorization;
 
   @override
   Widget build(BuildContext context) {
@@ -587,7 +638,8 @@ class _TaskHeader extends StatelessWidget {
             runSpacing: 8,
             children: <Widget>[
               FilledButton.icon(
-                onPressed: task.status == OrchestratorTaskStatus.cancelled ||
+                onPressed: !(authorization?.canDispatch ?? false) ||
+                        task.status == OrchestratorTaskStatus.cancelled ||
                         (task.requiresExplicitAuthorization &&
                             task.authorizedAt == null)
                     ? null
@@ -597,23 +649,28 @@ class _TaskHeader extends StatelessWidget {
               ),
               if (task.requiresExplicitAuthorization)
                 FilledButton.tonalIcon(
-                  onPressed:
-                      task.authorizedAt == null ? controller.authorize : null,
+                  onPressed: (authorization?.canDispatch ?? false) &&
+                          task.authorizedAt == null
+                      ? controller.authorize
+                      : null,
                   icon: const Icon(Icons.gavel_outlined),
                   label: Text(
                     task.authorizedAt == null ? 'تفويض التنفيذ' : 'مفوّضة',
                   ),
                 ),
               OutlinedButton.icon(
-                onPressed: task.status == OrchestratorTaskStatus.failed ||
-                        task.status == OrchestratorTaskStatus.awaitingApproval
+                onPressed: (authorization?.canContinue ?? false) &&
+                        (task.status == OrchestratorTaskStatus.failed ||
+                            task.status ==
+                                OrchestratorTaskStatus.awaitingApproval)
                     ? controller.continueTask
                     : null,
                 icon: const Icon(Icons.play_arrow),
                 label: const Text('متابعة'),
               ),
               OutlinedButton.icon(
-                onPressed: task.status == OrchestratorTaskStatus.verified ||
+                onPressed: !(authorization?.canCancel ?? false) ||
+                        task.status == OrchestratorTaskStatus.verified ||
                         task.status == OrchestratorTaskStatus.cancelled
                     ? null
                     : controller.cancel,
@@ -621,10 +678,11 @@ class _TaskHeader extends StatelessWidget {
                 label: const Text('إلغاء'),
               ),
               OutlinedButton.icon(
-                onPressed:
-                    task.status == OrchestratorTaskStatus.pendingVerification
-                        ? () => _showVerificationDialog(context, controller)
-                        : null,
+                onPressed: (authorization?.canVerify ?? false) &&
+                        task.status ==
+                            OrchestratorTaskStatus.pendingVerification
+                    ? () => _showVerificationDialog(context, controller)
+                    : null,
                 icon: const Icon(Icons.fact_check_outlined),
                 label: const Text('تحقق مستقل'),
               ),
@@ -771,19 +829,21 @@ class _ToolPlanTab extends StatelessWidget {
     required this.invocations,
     required this.reconciliation,
     required this.onPlan,
+    required this.canMutate,
   });
 
   final ToolPlan? plan;
   final List<ToolInvocation> invocations;
   final ToolReconciliation? reconciliation;
   final VoidCallback onPlan;
+  final bool canMutate;
 
   @override
   Widget build(BuildContext context) {
     if (plan == null) {
       return Center(
         child: FilledButton.icon(
-          onPressed: onPlan,
+          onPressed: canMutate ? onPlan : null,
           icon: const Icon(Icons.route_outlined),
           label: const Text('إنشاء خطة الأدوات'),
         ),
@@ -944,11 +1004,13 @@ class _RelayTab extends StatelessWidget {
     required this.task,
     required this.package,
     required this.controller,
+    required this.canMutate,
   });
 
   final OperatorTask task;
   final ManualDispatchPackage? package;
   final OrchestratorController controller;
+  final bool canMutate;
 
   @override
   Widget build(BuildContext context) {
@@ -986,7 +1048,7 @@ class _RelayTab extends StatelessWidget {
           Align(
             alignment: AlignmentDirectional.centerStart,
             child: FilledButton.icon(
-              onPressed: controller.generateManualPackage,
+              onPressed: canMutate ? controller.generateManualPackage : null,
               icon: const Icon(Icons.inventory_2_outlined),
               label: const Text('إنشاء الحزمة'),
             ),
@@ -1024,18 +1086,20 @@ class _RelayTab extends StatelessWidget {
             runSpacing: 8,
             children: <Widget>[
               OutlinedButton.icon(
-                onPressed: controller.markManualDispatched,
+                onPressed: canMutate ? controller.markManualDispatched : null,
                 icon: const Icon(Icons.outbox_outlined),
                 label: const Text('تم الترحيل'),
               ),
               OutlinedButton.icon(
-                onPressed: () => _recordAcknowledgement(context),
+                onPressed:
+                    canMutate ? () => _recordAcknowledgement(context) : null,
                 icon: const Icon(Icons.link_outlined),
-                label: const Text('تسجيل إقرار Codex'),
+                label: const Text('تسجيل إقرار التنفيذ الخارجي'),
               ),
               OutlinedButton.icon(
-                onPressed:
-                    task.threadId == null ? null : () => _importResult(context),
+                onPressed: !canMutate || task.threadId == null
+                    ? null
+                    : () => _importResult(context),
                 icon: const Icon(Icons.file_download_done_outlined),
                 label: const Text('استيراد النتيجة'),
               ),
@@ -1056,7 +1120,7 @@ class _RelayTab extends StatelessWidget {
     final value = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('إقرار Codex'),
+        title: const Text('إقرار التنفيذ الخارجي'),
         content: TextField(
           controller: input,
           decoration:
