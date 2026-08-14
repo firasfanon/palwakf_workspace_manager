@@ -419,6 +419,8 @@ def create_app(
 
 def _scope_for(request: Request) -> ServiceScope:
     path = request.url.path
+    if path == "/local/session/issue":
+        return ServiceScope.read
     if request.method in {"GET", "HEAD", "OPTIONS"}:
         return ServiceScope.read
     if path.endswith("/continue"):
