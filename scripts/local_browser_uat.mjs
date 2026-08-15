@@ -48,10 +48,36 @@ page.on("requestfailed", (request) => {
 
 async function enableSemantics() {
   const placeholder = page.locator("flt-semantics-placeholder");
-  if (await placeholder.count()) {
-    await placeholder.first().evaluate((element) => element.click());
-    await page.waitForTimeout(500);
+  if (!(await placeholder.count())) return;
+
+  await placeholder.first().evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    element.dispatchEvent(
+      new MouseEvent("click", {
+        bubbles: true,
+        clientX: Math.floor(rect.left + rect.width / 2),
+        clientY: Math.floor(rect.top + rect.height / 2),
+      }),
+    );
+  });
+
+  const semantics = page.locator("flt-semantics");
+  const deadline = Date.now() + 10_000;
+  let stableSamples = 0;
+
+  while (Date.now() < deadline) {
+    const count = await semantics.count();
+    stableSamples = count > 0 ? stableSamples + 1 : 0;
+
+    if (stableSamples >= 3) {
+      console.log(`SEMANTICS_STABLE_COUNT=${count}`);
+      return;
+    }
+
+    await page.waitForTimeout(200);
   }
+
+  throw new Error("FLUTTER_SEMANTICS_TREE_NOT_STABLE");
 }
 
 async function activate(locator) {
@@ -106,7 +132,7 @@ try {
     JSON.stringify(taskSemantics, null, 2),
   );
   await page
-    .getByRole("button", { name: "إنشاء مهمة الإثبات الذاتي", exact: true })
+    .getByRole("button", { name: "مهمة جديدة", exact: true })
     .waitFor();
   await page.screenshot({
     path: path.join(artifactRoot, "tasks-desktop.png"),
