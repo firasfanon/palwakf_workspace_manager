@@ -220,3 +220,46 @@ def test_tool_plan_and_actual_reconciliation_are_separate(tmp_path: Path) -> Non
     reconciliation = service.reconcile_tools(task.task_id)
     assert reconciliation.reconciled is False
     assert reconciliation.actual_adapter_ids == []
+
+
+@pytest.mark.asyncio
+async def test_workspace_write_routes_to_governed_relay_instead_of_autonomous_codex(
+    tmp_path: Path,
+) -> None:
+    service = OperatorService(
+        tmp_path,
+        verifier=FakeVerifier(),
+        automatic_agents_available=True,
+    )
+    from palwakf_orchestrator.operator_contracts import TaskAuthorizationRequest
+
+    task = service.create_task(
+        create_request(
+            task_id="PALWAKF_WORKSPACE_MANAGER_SELF_HOSTED_LAST_EXECUTION_CARD_V1",
+            automatic_failure_code=None,
+            requires_explicit_authorization=True,
+        )
+    )
+    service.authorize_task(
+        task.task_id,
+        TaskAuthorizationRequest(
+            expected_head=HEAD,
+            authority_reference=task.authority_reference,
+            acknowledgement="AUTHORIZE_GOVERNED_EXECUTION",
+        ),
+        principal_id="test-governance",
+    )
+    plan = service.plan_tools(task.task_id, tool_request(task.task_id))
+
+    assert plan.dispatch_blocked is False
+    assert any(
+        decision.capability_id == "governed.patch_relay" and decision.selected_adapter_id == "codex"
+        for decision in plan.decisions
+    )
+
+    result = await service.dispatch_task(task.task_id)
+
+    assert result.status == OperatorTaskStatus.failed
+    assert result.blocker == "AUTONOMOUS_DEVELOPMENT_SUSPENDED_BY_POLICY"
+    package = service.generate_manual_package(task.task_id)
+    assert package.relay_provider_id == "codex"

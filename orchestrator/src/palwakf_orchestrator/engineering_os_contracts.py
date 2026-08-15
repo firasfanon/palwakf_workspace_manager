@@ -6,6 +6,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from palwakf_orchestrator.provider_contracts import RoleAuthority
+
 
 class EngineeringTaskStatus(StrEnum):
     planned = "PLANNED"
@@ -135,6 +137,7 @@ class RegisterExtensionRequest(BaseModel):
     open_source: bool
     license: str | None = Field(default=None, max_length=160)
     capabilities: list[str] = Field(default_factory=list, max_length=128)
+    declared_roles: list[str] = Field(default_factory=list, max_length=64)
     required_permissions: list[str] = Field(default_factory=list, max_length=64)
     allowed_projects: list[str] = Field(default_factory=list, max_length=64)
     risk_class: RiskClass = "MEDIUM"
@@ -151,6 +154,8 @@ class ExtensionRecord(BaseModel):
     open_source: bool
     license: str | None = None
     capabilities: list[str]
+    declared_roles: list[str] = Field(default_factory=list)
+    role_authorities: dict[str, RoleAuthority] = Field(default_factory=dict)
     required_permissions: list[str]
     allowed_projects: list[str]
     risk_class: RiskClass

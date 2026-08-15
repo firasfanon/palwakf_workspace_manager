@@ -83,4 +83,72 @@ void main() {
     expect(capabilities.automaticAgentsAvailable, isFalse);
     expect(capabilities.databaseConnected, isFalse);
   });
+
+  test('tool health preserves role-specific authority', () {
+    final tool = ToolOperationalHealth.fromJson(<String, dynamic>{
+      'adapter_id': 'codex',
+      'display_name': 'Codex',
+      'required': true,
+      'connection': <String, dynamic>{
+        'value': 'available',
+        'provenance': 'VERIFIED_PLATFORM_UI'
+      },
+      'authentication': <String, dynamic>{
+        'value': 'SET',
+        'provenance': 'VERIFIED_RUNTIME_PROBE'
+      },
+      'permission': <String, dynamic>{
+        'value': 'authorized',
+        'provenance': 'VERIFIED_PLATFORM_UI'
+      },
+      'entitlement': <String, dynamic>{
+        'value': null,
+        'provenance': 'NOT_EXPOSED_BY_PROVIDER'
+      },
+      'quota': <String, dynamic>{
+        'value': 'AVAILABLE',
+        'provenance': 'VERIFIED_RUNTIME_PROBE'
+      },
+      'usage': <String, dynamic>{
+        'value': null,
+        'provenance': 'NOT_EXPOSED_BY_PROVIDER'
+      },
+      'cost': <String, dynamic>{
+        'value': null,
+        'provenance': 'NOT_EXPOSED_BY_PROVIDER'
+      },
+      'balance': <String, dynamic>{
+        'value': null,
+        'provenance': 'NOT_EXPOSED_BY_PROVIDER'
+      },
+      'credit_expiry': <String, dynamic>{
+        'value': null,
+        'provenance': 'NOT_EXPOSED_BY_PROVIDER'
+      },
+      'renewal': <String, dynamic>{
+        'value': null,
+        'provenance': 'NOT_EXPOSED_BY_PROVIDER'
+      },
+      'rate_limit': <String, dynamic>{
+        'value': null,
+        'provenance': 'NOT_EXPOSED_BY_PROVIDER'
+      },
+      'freshness': <String, dynamic>{
+        'value': 'fresh',
+        'provenance': 'VERIFIED_PLATFORM_UI'
+      },
+      'operator_actions': <String>[],
+      'evidence': <String>[],
+      'role_authorities': <String, dynamic>{
+        'autonomous_development': 'SUSPENDED',
+        'governed_patch_relay': 'AUTHORIZED_GOVERNED_SCOPE',
+        'git_transport': 'AUTHORIZED_GOVERNED_SCOPE',
+      },
+    });
+
+    expect(tool.quota.displayValue, 'AVAILABLE');
+    expect(tool.roleAuthorities['autonomous_development'], 'SUSPENDED');
+    expect(tool.roleAuthorities['governed_patch_relay'],
+        'AUTHORIZED_GOVERNED_SCOPE');
+  });
 }

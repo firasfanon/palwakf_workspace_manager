@@ -15,6 +15,7 @@ from palwakf_orchestrator.engineering_os_contracts import (
 )
 from palwakf_orchestrator.errors import GovernanceError
 from palwakf_orchestrator.persistence import StateStore
+from palwakf_orchestrator.provider_contracts import quarantined_role_authorities
 
 TASKS_KEY = "engineering_os_tasks_v1"
 EXTENSIONS_KEY = "engineering_os_extensions_v1"
@@ -125,6 +126,7 @@ class EngineeringOsService:
         now = utc_now()
         record = ExtensionRecord(
             **request.model_dump(),
+            role_authorities=quarantined_role_authorities(request.declared_roles),
             lifecycle=ExtensionLifecycle.quarantined,
             created_at=now,
             updated_at=now,

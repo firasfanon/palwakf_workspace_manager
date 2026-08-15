@@ -105,6 +105,7 @@ class ToolOperationalHealth {
     required this.freshness,
     required this.operatorActions,
     required this.evidence,
+    this.roleAuthorities = const <String, String>{},
   });
 
   factory ToolOperationalHealth.fromJson(Map<String, dynamic> json) {
@@ -132,6 +133,10 @@ class ToolOperationalHealth {
       freshness: fact('freshness'),
       operatorActions: strings('operator_actions'),
       evidence: strings('evidence'),
+      roleAuthorities: Map<String, String>.from(
+        json['role_authorities'] as Map<String, dynamic>? ??
+            const <String, dynamic>{},
+      ),
     );
   }
 
@@ -152,6 +157,7 @@ class ToolOperationalHealth {
   final HealthFact freshness;
   final List<String> operatorActions;
   final List<String> evidence;
+  final Map<String, String> roleAuthorities;
 }
 
 class ToolHealthAlert {

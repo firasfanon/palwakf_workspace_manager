@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' show DateFormat;
 
 import '../../../core/domain/operational_data_state.dart';
 import '../../../core/presentation/preview_mode_ui.dart';
@@ -194,6 +194,22 @@ class _ToolHealthDetail extends StatelessWidget {
           ...alerts.map((alert) => _AlertRow(alert: alert)),
         ],
         const SizedBox(height: 18),
+        if (tool.roleAuthorities.isNotEmpty) ...<Widget>[
+          Text(
+            'الأدوار والصلاحيات',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+          ...tool.roleAuthorities.entries.map(
+            (entry) => ListTile(
+              dense: true,
+              leading: const Icon(Icons.policy_outlined),
+              title: Text(_roleLabel(entry.key)),
+              trailing: Text(_authorityLabel(entry.value)),
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
         DecoratedBox(
           decoration: BoxDecoration(
             border: Border.all(color: Theme.of(context).dividerColor),
@@ -236,6 +252,8 @@ class _ToolRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final roleSummary = _toolRoleSummary(tool);
+    final roleLimited = roleSummary != null;
     final isFresh = tool.freshness.value == 'fresh';
     return InkWell(
       onTap: onTap,
@@ -249,10 +267,16 @@ class _ToolRow extends StatelessWidget {
         child: Row(
           children: <Widget>[
             Icon(
-              isFresh ? Icons.check_circle_outline : Icons.schedule_outlined,
-              color: isFresh
-                  ? PalWakfTheme.successGreen
-                  : Theme.of(context).colorScheme.tertiary,
+              roleLimited
+                  ? Icons.policy_outlined
+                  : isFresh
+                      ? Icons.check_circle_outline
+                      : Icons.schedule_outlined,
+              color: roleLimited
+                  ? Theme.of(context).colorScheme.tertiary
+                  : isFresh
+                      ? PalWakfTheme.successGreen
+                      : Theme.of(context).colorScheme.tertiary,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -264,7 +288,8 @@ class _ToolRow extends StatelessWidget {
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                   Text(
-                    '${tool.authentication.displayValue} · ${tool.quota.displayValue}',
+                    roleSummary ??
+                        '${tool.authentication.displayValue} · ${tool.quota.displayValue}',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -368,7 +393,24 @@ class _AlertRow extends StatelessWidget {
         children: <Widget>[
           Icon(Icons.warning_amber, color: Theme.of(context).colorScheme.error),
           const SizedBox(width: 10),
-          Expanded(child: Text('${alert.adapterId}: ${alert.message}')),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text('${alert.adapterId}: ${alert.message}'),
+                const SizedBox(height: 3),
+                Text(
+                  'الإجراء: ${alert.operatorAction}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                Text(
+                  alert.code,
+                  textDirection: TextDirection.ltr,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -409,5 +451,43 @@ String _provenanceLabel(String value) {
     'NOT_APPLICABLE' => 'غير منطبق',
     'STALE' => 'دليل قديم',
     _ => value,
+  };
+}
+
+String? _toolRoleSummary(ToolOperationalHealth tool) {
+  final autonomous = tool.roleAuthorities['autonomous_development'];
+  final relay = tool.roleAuthorities['governed_patch_relay'];
+  final git = tool.roleAuthorities['git_transport'];
+  if (autonomous == 'SUSPENDED' &&
+      relay == 'AUTHORIZED_GOVERNED_SCOPE' &&
+      git == 'AUTHORIZED_GOVERNED_SCOPE') {
+    return 'نقل Git/patch محكوم · التطوير المستقل موقوف';
+  }
+  return null;
+}
+
+String _roleLabel(String role) {
+  return switch (role) {
+    'autonomous_development' => 'التطوير المستقل',
+    'autonomous_decision_making' => 'القرار المستقل',
+    'independent_debugging' => 'التصحيح المستقل',
+    'governed_patch_relay' => 'نقل patch محكوم',
+    'git_transport' => 'نقل Git',
+    'commit_push_pr' => 'Commit / Push / PR',
+    'reasoning' => 'الاستدلال',
+    'test_execution' => 'تشغيل الاختبارات',
+    _ => role,
+  };
+}
+
+String _authorityLabel(String authority) {
+  return switch (authority) {
+    'AUTHORIZED' => 'مصرح',
+    'AUTHORIZED_GOVERNED_SCOPE' => 'مصرح ضمن نطاق محكوم',
+    'REQUIRES_APPROVAL' => 'يتطلب موافقة',
+    'SUSPENDED' => 'موقوف',
+    'FORBIDDEN' => 'محظور',
+    'NOT_AUTHORIZED' => 'غير مصرح',
+    _ => authority,
   };
 }

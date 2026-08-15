@@ -51,6 +51,7 @@ def test_engineering_os_routes_create_task_and_extension() -> None:
             "open_source": True,
             "license": "MIT",
             "capabilities": ["source.read"],
+            "declared_roles": ["governed_patch_relay"],
             "required_permissions": ["read"],
             "allowed_projects": ["PALWAKF_WORKSPACE_MANAGER"],
             "risk_class": "LOW",
@@ -59,6 +60,8 @@ def test_engineering_os_routes_create_task_and_extension() -> None:
     )
     assert extension.status_code == 200
     assert extension.json()["lifecycle"] == "QUARANTINED"
+    assert extension.json()["declared_roles"] == ["governed_patch_relay"]
+    assert extension.json()["role_authorities"] == {"governed_patch_relay": "NOT_AUTHORIZED"}
 
     summary = api.get("/v1/engineering-os/summary")
     assert summary.status_code == 200

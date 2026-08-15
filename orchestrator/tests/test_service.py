@@ -50,14 +50,18 @@ class FakePlanner:
         return PlanningResult(
             plan=DispatchPlan(
                 summary="Read-only inspection",
-                codex_prompt=f"Inspect without writes: {request.prompt}",
+                executor_prompt=f"Inspect without writes: {request.prompt}",
                 requires_workspace_write=False,
             ),
+            reasoning_provider_id="fake-reasoning-provider",
+            reasoning_response_id="resp-test",
             agents_response_id="resp-test",
         )
 
 
 class FakeGateway:
+    executor_id = "fake-executor"
+
     async def run(self, prompt: str, workspace: Path) -> GatewayResult:
         assert prompt.startswith("Inspect without writes:")
         return GatewayResult(
@@ -102,7 +106,11 @@ async def test_dispatch_uses_planner_and_selected_gateway(tmp_path: Path) -> Non
     response = await build_service(tmp_path).dispatch(request)
 
     assert response.status == "completed"
+    assert response.reasoning_provider_id == "fake-reasoning-provider"
+    assert response.reasoning_response_id == "resp-test"
     assert response.agents_response_id == "resp-test"
+    assert response.executor_id == "fake-executor"
+    assert response.executor_thread_id == "thread-test"
     assert response.codex_thread_id == "thread-test"
     assert response.boundaries.production_mutation is False
 

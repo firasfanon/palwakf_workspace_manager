@@ -117,12 +117,16 @@ async def test_dashboard_includes_engineering_os_task_truth(tmp_path: Path) -> N
     assert body["checkpoints"][0]["task_id"] == "WM-SEMANTIC-UAT-1"
 
 
-def test_codex_installation_is_not_reported_as_execution_authority() -> None:
+def test_codex_installation_is_not_reported_as_global_execution_authority() -> None:
     state = LocalProductService._codex_state()
 
-    assert state.status == "SUSPENDED_BY_POLICY"
-    assert state.authorized is False
-    assert state.policy == "GLOBAL_GOVERNANCE_2026-08-08"
+    assert state.status == "GOVERNED_RELAY_ONLY"
+    assert state.authorized is None
+    assert state.policy == "GLOBAL_GOVERNANCE_2026-08-15"
+    assert state.role_authorities["autonomous_development"].value == "SUSPENDED"
+    assert state.role_authorities["autonomous_decision_making"].value == "FORBIDDEN"
+    assert state.role_authorities["governed_patch_relay"].value == "AUTHORIZED_GOVERNED_SCOPE"
+    assert state.role_authorities["git_transport"].value == "AUTHORIZED_GOVERNED_SCOPE"
 
 
 def test_checkout_branch_truth_is_separate_from_governed_branch(

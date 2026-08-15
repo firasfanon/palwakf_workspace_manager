@@ -99,6 +99,8 @@ class DashboardAggregationService:
             store_healthy=readiness.store_healthy,
             workers_started=readiness.workers_started,
             local_secure=readiness.mode.value == "LOCAL_SECURE_MODE",
+            reasoning_provider_state="PENDING_NOT_ACTIVATED",
+            last_successful_executor_execution_at=(metrics.last_successful_executor_execution_at),
             last_successful_codex_execution_at=metrics.last_successful_codex_execution_at,
         )
         managed_workspace = (

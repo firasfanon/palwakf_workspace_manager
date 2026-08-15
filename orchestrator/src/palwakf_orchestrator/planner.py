@@ -70,5 +70,7 @@ class AgentsPlanner:
         )
         return PlanningResult(
             plan=plan,
+            reasoning_provider_id="openai-agents",
+            reasoning_response_id=result.last_response_id,
             agents_response_id=result.last_response_id,
         )

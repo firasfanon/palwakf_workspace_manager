@@ -117,10 +117,12 @@ class ConnectionReadinessSummary(BaseModel):
     workers_started: bool
     local_secure: bool
     public_unauthenticated_endpoint: Literal[False] = False
+    reasoning_provider_state: str = "PENDING_NOT_ACTIVATED"
     chatgpt_live_state: Literal["PENDING_NOT_ACTIVATED"] = "PENDING_NOT_ACTIVATED"
     execution_host_compatibility: Literal["CURRENT_RUNTIME_BOUND"] = "CURRENT_RUNTIME_BOUND"
     tool_executor_compatibility: Literal["CURRENT_RUNTIME_BOUND"] = "CURRENT_RUNTIME_BOUND"
-    last_successful_codex_execution_at: datetime | None
+    last_successful_executor_execution_at: datetime | None = None
+    last_successful_codex_execution_at: datetime | None = None
 
 
 class EvidenceIndexItem(BaseModel):

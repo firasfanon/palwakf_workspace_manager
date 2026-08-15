@@ -11,7 +11,7 @@ from palwakf_orchestrator.contracts import (
     SovereigntyBoundaries,
     Transport,
 )
-from palwakf_orchestrator.gateways import CodexGateway, CodexMcpGateway, CodexSdkGateway
+from palwakf_orchestrator.gateways import CodexMcpGateway, CodexSdkGateway, ExecutorGateway
 from palwakf_orchestrator.governance import GovernanceGate
 from palwakf_orchestrator.planner import AgentsPlanner, Planner
 
@@ -23,7 +23,7 @@ class OrchestratorService:
         *,
         gate: GovernanceGate | None = None,
         planner: Planner | None = None,
-        gateways: dict[Transport, CodexGateway] | None = None,
+        gateways: dict[Transport, ExecutorGateway] | None = None,
     ) -> None:
         self._settings = settings
         self._gate = gate or GovernanceGate(settings.workspace_root)
@@ -66,10 +66,11 @@ class OrchestratorService:
     async def _execute(self, request: DispatchRequest) -> DispatchResponse:
         repository_state = self._gate.verify_repository(request)
         planning = await self._planner.plan(request, repository_state)
+        gateway = self._gateways[request.transport]
         if request.boundaries.workspace_write:
             self._gate.verify_plan(planning.plan, request)
-            gateway_result = await self._gateways[request.transport].run(
-                planning.plan.codex_prompt,
+            gateway_result = await gateway.run(
+                planning.plan.effective_executor_prompt,
                 self._settings.workspace_root,
                 workspace_write=True,
             )
@@ -79,8 +80,8 @@ class OrchestratorService:
             )
         else:
             self._gate.verify_plan(planning.plan)
-            gateway_result = await self._gateways[request.transport].run(
-                planning.plan.codex_prompt,
+            gateway_result = await gateway.run(
+                planning.plan.effective_executor_prompt,
                 self._settings.workspace_root,
             )
             verifier = getattr(self._gate, "verify_result_repository", None)
@@ -97,6 +98,10 @@ class OrchestratorService:
             repository_state=repository_state,
             result_repository_state=result_repository_state,
             plan_summary=planning.plan.summary,
+            reasoning_provider_id=planning.reasoning_provider_id,
+            reasoning_response_id=planning.reasoning_response_id,
+            executor_id=gateway.executor_id,
+            executor_thread_id=gateway_result.thread_id,
             agents_response_id=planning.agents_response_id,
             codex_thread_id=gateway_result.thread_id,
             final_response=gateway_result.final_response,

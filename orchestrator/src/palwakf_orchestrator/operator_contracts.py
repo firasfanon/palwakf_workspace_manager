@@ -132,6 +132,7 @@ class ManualDispatchPackage(BaseModel):
     idempotency_key: str
     canonical_envelope_sha256: str
     automatic_failure_code: str
+    relay_provider_id: str = "codex"
     generated_at: datetime
     automatic_connectivity_acceptance: Literal[False] = False
 

@@ -113,6 +113,8 @@ class ExtensionRecord {
     required this.sourceReference,
     required this.openSource,
     required this.capabilities,
+    this.declaredRoles = const <String>[],
+    this.roleAuthorities = const <String, String>{},
     required this.requiredPermissions,
     required this.riskClass,
     required this.lifecycle,
@@ -129,6 +131,8 @@ class ExtensionRecord {
   final bool openSource;
   final String? license;
   final List<String> capabilities;
+  final List<String> declaredRoles;
+  final Map<String, String> roleAuthorities;
   final List<String> requiredPermissions;
   final String riskClass;
   final String lifecycle;
@@ -150,6 +154,11 @@ class ExtensionRecord {
       openSource: json['open_source'] as bool,
       license: json['license'] as String?,
       capabilities: strings('capabilities'),
+      declaredRoles: strings('declared_roles'),
+      roleAuthorities: Map<String, String>.from(
+        json['role_authorities'] as Map<String, dynamic>? ??
+            const <String, dynamic>{},
+      ),
       requiredPermissions: strings('required_permissions'),
       riskClass: json['risk_class'] as String,
       lifecycle: json['lifecycle'] as String,
@@ -219,6 +228,7 @@ class NewExtensionDraft {
     required this.sourceReference,
     required this.openSource,
     required this.capabilities,
+    this.declaredRoles = const <String>[],
     this.license,
   });
 
@@ -231,6 +241,7 @@ class NewExtensionDraft {
   final bool openSource;
   final String? license;
   final List<String> capabilities;
+  final List<String> declaredRoles;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
         'extension_id': extensionId,
@@ -242,6 +253,7 @@ class NewExtensionDraft {
         'open_source': openSource,
         'license': license,
         'capabilities': capabilities,
+        'declared_roles': declaredRoles,
         'required_permissions': const <String>[],
         'allowed_projects': const <String>['PALWAKF_WORKSPACE_MANAGER'],
         'risk_class': 'MEDIUM',

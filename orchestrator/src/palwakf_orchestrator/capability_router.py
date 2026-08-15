@@ -21,7 +21,7 @@ def default_registry_path() -> Path:
     return (
         Path(__file__).resolve().parents[2]
         / "data"
-        / "PALWAKF_TOOL_ROLE_AND_INVOCATION_REGISTRY_R1_20260729.json"
+        / "PALWAKF_TOOL_ROLE_AND_INVOCATION_REGISTRY_R2_20260815.json"
     )
 
 
@@ -51,7 +51,7 @@ def workspace_manager_profile() -> ProjectCapabilityProfile:
         domain_tags=["engineering-operations", "governance", "self-hosting"],
         stack=["Flutter", "Python", "FastAPI", "GitHub Actions", "Vercel"],
         required_capabilities=[
-            "code.execution",
+            "governed.patch_relay",
             "source.control",
             "continuous.integration",
             "runtime.verification",
@@ -68,7 +68,7 @@ def workspace_manager_profile() -> ProjectCapabilityProfile:
         ],
         prohibited_capabilities=["relational.runtime"],
         preferred_adapters={
-            "code.execution": ["codex"],
+            "governed.patch_relay": ["codex"],
             "source.control": ["github"],
             "continuous.integration": ["github-actions"],
             "runtime.verification": ["local-runtime"],
@@ -95,7 +95,7 @@ def workspace_manager_profile() -> ProjectCapabilityProfile:
             "manifest_sha256",
         ],
         profile_source="docs/governance/PLATFORM_GUIDE_PIN.md",
-        profile_version="1.0.0",
+        profile_version="1.1.0",
     )
 
 

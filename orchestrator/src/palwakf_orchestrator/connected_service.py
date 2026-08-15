@@ -310,6 +310,14 @@ class ConnectedApplicationService:
             dispatch_latency_ms=duration("dispatch_latency_ms"),
             executor_duration_ms=duration("executor_duration_ms"),
             verification_duration_ms=duration("verification_duration_ms"),
+            last_successful_executor_execution_at=max(
+                (
+                    task.completed_at
+                    for task in tasks
+                    if task.execution_receipt and task.completed_at is not None
+                ),
+                default=None,
+            ),
             last_successful_codex_execution_at=max(
                 (
                     task.completed_at

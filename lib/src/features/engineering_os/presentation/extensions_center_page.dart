@@ -271,6 +271,21 @@ class _ExtensionCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodySmall,
             ),
+            if (item.declaredRoles.isNotEmpty) ...<Widget>[
+              const SizedBox(height: 4),
+              Text(
+                item.declaredRoles
+                    .take(3)
+                    .map(
+                      (role) =>
+                          '$role: ${item.roleAuthorities[role] ?? "NOT_AUTHORIZED"}',
+                    )
+                    .join(' · '),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
           ],
         ),
       ),
@@ -306,6 +321,7 @@ class _NewExtensionDialogState extends State<_NewExtensionDialog> {
   final source = TextEditingController();
   final license = TextEditingController();
   final capabilities = TextEditingController();
+  final declaredRoles = TextEditingController();
   String kind = 'SKILL';
   String sourceKind = 'GITHUB';
   bool openSource = true;
@@ -319,6 +335,7 @@ class _NewExtensionDialogState extends State<_NewExtensionDialog> {
       source,
       license,
       capabilities,
+      declaredRoles,
     ]) {
       controller.dispose();
     }
@@ -386,6 +403,17 @@ class _NewExtensionDialogState extends State<_NewExtensionDialog> {
                   ltr: true,
                 ),
                 _field(capabilities, 'Capabilities مفصولة بفاصلة', ltr: true),
+                _field(
+                  declaredRoles,
+                  'الأدوار المطلوبة (اختياري) مفصولة بفاصلة',
+                  ltr: true,
+                ),
+                const Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    'الأدوار المعلنة لا تمنح صلاحية؛ كل توسعة خارجية تبقى غير مصرح لها أثناء الحجر.',
+                  ),
+                ),
               ],
             ),
           ),
@@ -436,6 +464,11 @@ class _NewExtensionDialogState extends State<_NewExtensionDialog> {
         openSource: openSource,
         license: license.text.trim().isEmpty ? null : license.text.trim(),
         capabilities: capabilities.text
+            .split(',')
+            .map((value) => value.trim())
+            .where((value) => value.isNotEmpty)
+            .toList(growable: false),
+        declaredRoles: declaredRoles.text
             .split(',')
             .map((value) => value.trim())
             .where((value) => value.isNotEmpty)

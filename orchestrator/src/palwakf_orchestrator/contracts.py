@@ -46,12 +46,30 @@ class DispatchPlan(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     summary: str = Field(min_length=1, max_length=1_000)
-    codex_prompt: str = Field(min_length=10, max_length=30_000)
+    executor_prompt: str | None = Field(default=None, min_length=10, max_length=30_000)
+    codex_prompt: str | None = Field(default=None, min_length=10, max_length=30_000)
     requires_workspace_write: bool = False
+
+    @model_validator(mode="after")
+    def normalize_executor_prompt(self) -> DispatchPlan:
+        if self.executor_prompt is None and self.codex_prompt is None:
+            raise ValueError("executor_prompt is required")
+        if self.executor_prompt is None:
+            self.executor_prompt = self.codex_prompt
+        if self.codex_prompt is None:
+            self.codex_prompt = self.executor_prompt
+        return self
+
+    @property
+    def effective_executor_prompt(self) -> str:
+        assert self.executor_prompt is not None
+        return self.executor_prompt
 
 
 class PlanningResult(BaseModel):
     plan: DispatchPlan
+    reasoning_provider_id: str = "openai-agents"
+    reasoning_response_id: str | None = None
     agents_response_id: str | None = None
 
 
@@ -81,6 +99,10 @@ class DispatchResponse(BaseModel):
     repository_state: RepositoryState
     result_repository_state: RepositoryState
     plan_summary: str
+    reasoning_provider_id: str = "openai-agents"
+    reasoning_response_id: str | None = None
+    executor_id: str = "codex"
+    executor_thread_id: str | None = None
     agents_response_id: str | None = None
     codex_thread_id: str | None = None
     final_response: str

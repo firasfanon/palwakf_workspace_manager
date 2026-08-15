@@ -15,6 +15,7 @@ from palwakf_orchestrator.connected_contracts import (
 )
 from palwakf_orchestrator.errors import GovernanceError
 from palwakf_orchestrator.persistence import StateStore
+from palwakf_orchestrator.provider_contracts import RoleAuthority
 
 
 def _unknown(note: str = "Provider does not expose a verified value") -> HealthFact:
@@ -39,6 +40,7 @@ class ToolHealthService:
             for adapter in self._registry.adapters_for(capability)
         }
         self._items = self._restore() or self._seed()
+        self._reconcile_role_authorities()
         self._persist()
 
     def list_health(self) -> list[ToolOperationalHealth]:
@@ -85,8 +87,8 @@ class ToolHealthService:
                         adapter_id=item.adapter_id,
                         severity=ToolHealthAlertSeverity.warning,
                         code="AUTHENTICATION_UNVERIFIED",
-                        message="Authentication has no current provider or runtime evidence",
-                        operator_action="Run an authenticated adapter probe",
+                        message="لا توجد أدلة حالية تثبت مصادقة الأداة أو المزود.",
+                        operator_action="شغّل فحصًا موثقًا للمصادقة دون عرض أي قيمة سرية.",
                         observed_at=now,
                     )
                 )
@@ -97,8 +99,8 @@ class ToolHealthService:
                         adapter_id=item.adapter_id,
                         severity=ToolHealthAlertSeverity.warning,
                         code="HEALTH_EVIDENCE_STALE_OR_UNAVAILABLE",
-                        message="Operational health evidence is not fresh",
-                        operator_action="Probe the adapter and attach non-secret evidence",
+                        message="دليل الصحة التشغيلية للأداة قديم أو غير متاح.",
+                        operator_action="افحص الأداة وأرفق دليلًا حديثًا غير سري.",
                         observed_at=now,
                     )
                 )
@@ -132,7 +134,8 @@ class ToolHealthService:
                     provenance=ValueProvenance.stale,
                 ),
                 operator_actions=["Run an authenticated adapter probe"],
-                evidence=["tool-registry:R1_20260729"],
+                evidence=["tool-registry:R2_20260815"],
+                role_authorities=self._role_authorities(metadata),
             )
 
         codex = items["codex"]
@@ -156,6 +159,18 @@ class ToolHealthService:
         )
         codex.evidence.append("RUNTIME_RECOVERY_V3:PASS")
         return items
+
+    @staticmethod
+    def _role_authorities(metadata: dict[str, object]) -> dict[str, RoleAuthority]:
+        raw = metadata.get("role_authorities", {})
+        if not isinstance(raw, dict):
+            return {}
+        return {str(role): RoleAuthority(str(authority)) for role, authority in raw.items()}
+
+    def _reconcile_role_authorities(self) -> None:
+        for adapter_id, item in self._items.items():
+            metadata = self._registry.adapter(adapter_id)
+            item.role_authorities = self._role_authorities(metadata)
 
     def _restore(self) -> dict[str, ToolOperationalHealth]:
         values = self._store.load().get("tool_health", {})

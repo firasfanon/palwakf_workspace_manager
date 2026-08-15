@@ -24,9 +24,11 @@ CODEX_WRITE_DEVELOPER_INSTRUCTIONS = """
 Operate only inside the current PalWakf Workspace Manager repository.
 The user explicitly authorized the single governed task in the prompt.
 Do not access secrets, environment values, databases, Supabase, production,
-or any external project. Make only the requested focused source change.
-Run the requested deterministic checks, commit once, and push only the current
-governed branch. Return the required structured result after every shell call
+or any external project. Apply only the explicitly governed relay payload and
+requested focused source change; do not redesign architecture, expand scope,
+or perform independent debugging. Run the requested deterministic checks,
+commit once, and push only the current governed branch. Return the required
+structured result after every shell call
 has completed and its output has been received.
 """.strip()
 
@@ -63,7 +65,9 @@ class _CodexEventNoiseFilter(logging.Filter):
         return not record.getMessage().startswith("Failed to validate notification")
 
 
-class CodexGateway(Protocol):
+class ExecutorGateway(Protocol):
+    executor_id: str
+
     async def run(
         self,
         prompt: str,
@@ -73,7 +77,14 @@ class CodexGateway(Protocol):
     ) -> GatewayResult: ...
 
 
+class CodexGateway(ExecutorGateway, Protocol):
+    # Compatibility protocol alias for existing Codex-specific callers.
+    pass
+
+
 class CodexSdkGateway:
+    executor_id = "codex"
+
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
 
@@ -136,6 +147,8 @@ class CodexSdkGateway:
 
 
 class CodexMcpGateway:
+    executor_id = "codex"
+
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
 

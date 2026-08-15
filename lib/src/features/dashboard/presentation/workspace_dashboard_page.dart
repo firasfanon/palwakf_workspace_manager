@@ -172,7 +172,8 @@ class _ManagedWorkspaceBand extends StatelessWidget {
                   (entry) => _StateChip(
                     label: '${entry.key}: ${_capabilityLabel(entry.value)}',
                     warning: entry.value.status == 'BLOCKED' ||
-                        entry.value.status == 'SUSPENDED_BY_POLICY',
+                        entry.value.status == 'SUSPENDED_BY_POLICY' ||
+                        entry.value.status == 'GOVERNED_RELAY_ONLY',
                   ),
                 )
                 .toList(growable: false),
@@ -208,6 +209,11 @@ class _ManagedWorkspaceBand extends StatelessWidget {
   }
 
   String _capabilityLabel(CapabilityState state) {
+    if (state.status == 'GOVERNED_RELAY_ONLY') {
+      return state.installed == true
+          ? 'مثبت · نقل Git محكوم · التطوير المستقل موقوف'
+          : 'نقل Git محكوم · المنفذ غير مثبت محليًا';
+    }
     if (state.status == 'SUSPENDED_BY_POLICY') {
       return state.installed == true
           ? 'مثبت · موقوف بالسياسة'
@@ -525,8 +531,8 @@ class _ConnectionPanel extends StatelessWidget {
                 : 'غير جاهز',
           ),
           _FactRow(
-            label: 'ChatGPT المباشر',
-            value: connection.chatgptLiveState,
+            label: 'مزود الاستدلال المباشر',
+            value: connection.reasoningProviderState,
           ),
           _FactRow(
             label: 'توافق الاستئناف',

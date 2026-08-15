@@ -76,6 +76,7 @@ class CapabilityState {
     this.installed,
     this.authorized,
     this.policy,
+    this.roleAuthorities = const <String, String>{},
   });
 
   factory CapabilityState.fromJson(Map<String, dynamic> json) {
@@ -85,6 +86,10 @@ class CapabilityState {
       installed: json['installed'] as bool?,
       authorized: json['authorized'] as bool?,
       policy: json['policy'] as String?,
+      roleAuthorities: Map<String, String>.from(
+        json['role_authorities'] as Map<String, dynamic>? ??
+            const <String, dynamic>{},
+      ),
     );
   }
 
@@ -93,6 +98,7 @@ class CapabilityState {
   final bool? installed;
   final bool? authorized;
   final String? policy;
+  final Map<String, String> roleAuthorities;
 }
 
 class ManagedWorkspaceStatus {
@@ -336,9 +342,11 @@ class ConnectionReadinessSummary {
     required this.storeHealthy,
     required this.workersStarted,
     required this.localSecure,
-    required this.chatgptLiveState,
+    this.reasoningProviderState = 'PENDING_NOT_ACTIVATED',
+    this.chatgptLiveState = 'PENDING_NOT_ACTIVATED',
     required this.executionHostCompatibility,
     required this.toolExecutorCompatibility,
+    this.lastSuccessfulExecutorExecutionAt,
     this.lastSuccessfulCodexExecutionAt,
   });
 
@@ -350,10 +358,17 @@ class ConnectionReadinessSummary {
       storeHealthy: json['store_healthy'] as bool,
       workersStarted: json['workers_started'] as bool,
       localSecure: json['local_secure'] as bool,
-      chatgptLiveState: json['chatgpt_live_state'] as String,
+      reasoningProviderState: json['reasoning_provider_state'] as String? ??
+          json['chatgpt_live_state'] as String? ??
+          'PENDING_NOT_ACTIVATED',
+      chatgptLiveState:
+          json['chatgpt_live_state'] as String? ?? 'PENDING_NOT_ACTIVATED',
       executionHostCompatibility:
           json['execution_host_compatibility'] as String,
       toolExecutorCompatibility: json['tool_executor_compatibility'] as String,
+      lastSuccessfulExecutorExecutionAt: _date(
+          json['last_successful_executor_execution_at'] ??
+              json['last_successful_codex_execution_at']),
       lastSuccessfulCodexExecutionAt:
           _date(json['last_successful_codex_execution_at']),
     );
@@ -365,9 +380,11 @@ class ConnectionReadinessSummary {
   final bool storeHealthy;
   final bool workersStarted;
   final bool localSecure;
+  final String reasoningProviderState;
   final String chatgptLiveState;
   final String executionHostCompatibility;
   final String toolExecutorCompatibility;
+  final DateTime? lastSuccessfulExecutorExecutionAt;
   final DateTime? lastSuccessfulCodexExecutionAt;
 }
 

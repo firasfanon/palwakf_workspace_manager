@@ -7,6 +7,14 @@ import 'package:palwakf_workspace_manager/src/features/orchestrator/data/orchest
 import 'package:palwakf_workspace_manager/src/features/orchestrator/domain/orchestrator_models.dart';
 
 class FakeOrchestratorApi implements OrchestratorApi {
+  FakeOrchestratorApi({
+    this.tools = const <ToolOperationalHealth>[],
+    this.alerts = const <ToolHealthAlert>[],
+  });
+
+  final List<ToolOperationalHealth> tools;
+  final List<ToolHealthAlert> alerts;
+
   @override
   Future<RuntimeCapabilities> capabilities() async {
     return const RuntimeCapabilities(
@@ -26,15 +34,14 @@ class FakeOrchestratorApi implements OrchestratorApi {
   Future<List<OperatorTask>> listTasks() async => const <OperatorTask>[];
 
   @override
-  Future<List<ToolOperationalHealth>> toolsHealth() async =>
-      const <ToolOperationalHealth>[];
+  Future<List<ToolOperationalHealth>> toolsHealth() async => tools;
 
   @override
   Future<ToolOperationalHealth> toolHealth(String adapterId) =>
       throw UnimplementedError();
 
   @override
-  Future<List<ToolHealthAlert>> toolAlerts() async => const <ToolHealthAlert>[];
+  Future<List<ToolHealthAlert>> toolAlerts() async => alerts;
 
   @override
   Future<ToolOperationalHealth> probeTool(String adapterId) =>
@@ -170,5 +177,81 @@ void main() {
     expect(find.text('الأدوات'), findsWidgets);
     expect(find.text('سجل الأدوات'), findsOneWidget);
     expect(find.text('لا توجد بيانات مصادق عليها'), findsOneWidget);
+  });
+
+  testWidgets('tools surface separates Codex relay authority from development',
+      (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    const unknown =
+        HealthFact(value: null, provenance: 'NOT_EXPOSED_BY_PROVIDER');
+    const codex = ToolOperationalHealth(
+      adapterId: 'codex',
+      displayName: 'Codex',
+      requiredAdapter: true,
+      connection: unknown,
+      authentication:
+          HealthFact(value: 'SET', provenance: 'VERIFIED_RUNTIME_PROBE'),
+      permission:
+          HealthFact(value: 'authorized', provenance: 'VERIFIED_PLATFORM_UI'),
+      entitlement: unknown,
+      quota:
+          HealthFact(value: 'AVAILABLE', provenance: 'VERIFIED_RUNTIME_PROBE'),
+      usage: unknown,
+      cost: unknown,
+      balance: unknown,
+      creditExpiry: unknown,
+      renewal: unknown,
+      rateLimit: unknown,
+      freshness: HealthFact(value: 'fresh', provenance: 'VERIFIED_PLATFORM_UI'),
+      operatorActions: <String>[],
+      evidence: <String>[],
+      roleAuthorities: <String, String>{
+        'autonomous_development': 'SUSPENDED',
+        'governed_patch_relay': 'AUTHORIZED_GOVERNED_SCOPE',
+        'git_transport': 'AUTHORIZED_GOVERNED_SCOPE',
+      },
+    );
+    final alert = ToolHealthAlert(
+      alertId: 'github-authentication',
+      adapterId: 'github',
+      severity: 'warning',
+      code: 'AUTHENTICATION_UNVERIFIED',
+      message: 'لا توجد أدلة حالية تثبت مصادقة الأداة أو المزود.',
+      operatorAction: 'شغّل فحصًا موثقًا للمصادقة دون عرض أي قيمة سرية.',
+      observedAt: DateTime.utc(2026, 8, 15),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: <Override>[
+          orchestratorApiProvider.overrideWithValue(
+            FakeOrchestratorApi(
+              tools: const <ToolOperationalHealth>[codex],
+              alerts: <ToolHealthAlert>[alert],
+            ),
+          ),
+        ],
+        child: const WorkspaceManagerApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('الأدوات'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('نقل Git/patch محكوم · التطوير المستقل موقوف'),
+        findsOneWidget);
+    expect(find.textContaining('SET · AVAILABLE'), findsNothing);
+    expect(
+        find.textContaining('لا توجد أدلة حالية تثبت مصادقة الأداة أو المزود.'),
+        findsOneWidget);
+    expect(find.textContaining('شغّل فحصًا موثقًا للمصادقة'), findsOneWidget);
+    expect(find.text('AUTHENTICATION_UNVERIFIED'), findsOneWidget);
   });
 }

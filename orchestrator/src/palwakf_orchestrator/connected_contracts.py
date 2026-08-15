@@ -12,6 +12,7 @@ from palwakf_orchestrator.operator_contracts import (
     TaskCapabilityRequest,
     VerificationRequest,
 )
+from palwakf_orchestrator.provider_contracts import RoleAuthority
 
 
 class ServiceMode(StrEnum):
@@ -99,7 +100,8 @@ class OperationalMetrics(BaseModel):
     dispatch_latency_ms: int | None
     executor_duration_ms: int | None
     verification_duration_ms: int | None
-    last_successful_codex_execution_at: datetime | None
+    last_successful_executor_execution_at: datetime | None = None
+    last_successful_codex_execution_at: datetime | None = None
     store_healthy: bool
 
 
@@ -140,6 +142,7 @@ class ToolOperationalHealth(BaseModel):
     freshness: HealthFact
     operator_actions: list[str]
     evidence: list[str]
+    role_authorities: dict[str, RoleAuthority] = Field(default_factory=dict)
     secret_values_exposed: Literal[False] = False
 
 

@@ -305,6 +305,21 @@ class OperatorService:
             task.task_id != SELF_HOSTED_PROOF_TASK_ID or not task.requires_explicit_authorization
         ):
             raise GovernanceError("workspace-write is restricted to the governed proof task")
+        governed_relay = any(
+            decision.capability_id == "governed.patch_relay"
+            and decision.selected_adapter_id is not None
+            for decision in plan.decisions
+        )
+        if workspace_write and governed_relay:
+            code = "AUTONOMOUS_DEVELOPMENT_SUSPENDED_BY_POLICY"
+            task.automatic_failure_code = code
+            return self._transition(
+                task,
+                OperatorTaskStatus.failed,
+                "AUTOMATIC_DISPATCH_BLOCKED_BY_PROVIDER_ROLE_POLICY",
+                code,
+                blocker=code,
+            )
         if self._orchestrator is None:
             raise GovernanceError("automatic orchestrator is unavailable")
 
@@ -326,7 +341,7 @@ class OperatorService:
                 }
             )
         )
-        task.thread_id = response.codex_thread_id
+        task.thread_id = response.executor_thread_id
         task.execution_receipt = response.execution_receipt
         task.before_head = response.repository_state.local_head
         task.after_head = response.result_repository_state.local_head
@@ -491,6 +506,7 @@ class OperatorService:
             "automatic_failure_code": (
                 task.automatic_failure_code or "OPERATOR_SELECTED_USER_RELAY"
             ),
+            "relay_provider_id": "codex",
         }
         self._assert_secret_free(envelope)
         canonical = json.dumps(
@@ -532,7 +548,7 @@ class OperatorService:
             task,
             OperatorTaskStatus.running,
             "USER_RELAY_DISPATCHED",
-            "Operator marked the package as relayed to Codex",
+            "Operator marked the governed package as relayed to the selected provider",
             blocker=None,
         )
 
@@ -549,8 +565,8 @@ class OperatorService:
         return self._transition(
             task,
             OperatorTaskStatus.running,
-            "CODEX_ACKNOWLEDGED",
-            "Codex acknowledgement and thread reference persisted",
+            "RELAY_PROVIDER_ACKNOWLEDGED",
+            "Relay provider acknowledgement and thread reference persisted",
             blocker=None,
         )
 
@@ -666,10 +682,10 @@ class OperatorService:
             ToolInvocationReceipt(
                 invocation_id=f"inv-{uuid4()}",
                 task_id=task_id,
-                capability_id="codex-shell",
+                capability_id="executor.shell",
                 adapter_id="codex",
                 status=("completed" if output.get("exit_code") in {None, 0} else "failed"),
-                evidence=["CORRELATED_CODEX_TOOL_OUTPUT"],
+                evidence=["CORRELATED_EXECUTOR_TOOL_OUTPUT"],
                 occurred_at=datetime.now(UTC),
                 tool_call_id=str(output.get("tool_call_id") or ""),
                 command_summary=str(output.get("command_summary") or ""),

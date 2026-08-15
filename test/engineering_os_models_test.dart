@@ -56,6 +56,10 @@ void main() {
       'open_source': true,
       'license': 'MIT',
       'capabilities': <String>['source.analysis'],
+      'declared_roles': <String>['knowledge.skill'],
+      'role_authorities': <String, dynamic>{
+        'knowledge.skill': 'NOT_AUTHORIZED',
+      },
       'required_permissions': <String>['read'],
       'risk_class': 'LOW',
       'lifecycle': 'QUARANTINED',
@@ -63,5 +67,7 @@ void main() {
     });
     expect(extension.lifecycle, 'QUARANTINED');
     expect(extension.openSource, isTrue);
+    expect(extension.declaredRoles, <String>['knowledge.skill']);
+    expect(extension.roleAuthorities['knowledge.skill'], 'NOT_AUTHORIZED');
   });
 }

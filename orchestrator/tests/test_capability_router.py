@@ -38,7 +38,8 @@ def test_backend_task_selects_minimum_and_excludes_irrelevant_tools() -> None:
     decisions = decision_map(plan)
 
     assert plan.dispatch_blocked is False
-    assert decisions["code.execution"].selected_adapter_id == "codex"
+    assert decisions["governed.patch_relay"].selected_adapter_id == "codex"
+    assert "code.execution" not in decisions
     assert decisions["source.control"].selected_adapter_id == "github"
     assert decisions["continuous.integration"].selected_adapter_id == "github-actions"
     assert decisions["runtime.verification"].selected_adapter_id == "local-runtime"
@@ -175,4 +176,27 @@ def test_blocked_required_adapter_prevents_dispatch() -> None:
     plan = router.plan(request(required=[]), workspace_manager_profile())
 
     assert plan.dispatch_blocked is True
+    assert "NO_USABLE_ADAPTER:governed.patch_relay" in plan.blockers
+
+
+def test_autonomous_code_execution_fails_closed_without_authorized_executor() -> None:
+    plan = CapabilityRouter().plan(
+        request(required=["code.execution"]),
+        workspace_manager_profile(),
+    )
+    decisions = decision_map(plan)
+
+    assert plan.dispatch_blocked is True
+    assert decisions["code.execution"].selected_adapter_id is None
+    assert decisions["code.execution"].blocked is True
     assert "NO_USABLE_ADAPTER:code.execution" in plan.blockers
+
+
+def test_codex_registry_role_authority_separates_relay_from_autonomous_development() -> None:
+    metadata = CapabilityRouter().registry.adapter("codex")
+
+    assert metadata["lifecycle"] == "available"
+    assert metadata["permission_status"] == "authorized"
+    assert metadata["role_authorities"]["autonomous_development"] == "SUSPENDED"
+    assert metadata["role_authorities"]["governed_patch_relay"] == "AUTHORIZED_GOVERNED_SCOPE"
+    assert metadata["role_authorities"]["git_transport"] == "AUTHORIZED_GOVERNED_SCOPE"

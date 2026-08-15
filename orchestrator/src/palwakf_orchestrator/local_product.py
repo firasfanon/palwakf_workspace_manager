@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 import httpx
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from palwakf_orchestrator.errors import GovernanceError
 from palwakf_orchestrator.operator_contracts import (
@@ -19,6 +19,7 @@ from palwakf_orchestrator.operator_contracts import (
 )
 from palwakf_orchestrator.operator_service import OperatorService
 from palwakf_orchestrator.persistence import StateStore
+from palwakf_orchestrator.provider_contracts import CODEX_ROLE_AUTHORITIES, RoleAuthority
 
 SELF_HOSTED_PROOF_TASK_ID = "PALWAKF_WORKSPACE_MANAGER_SELF_HOSTED_LAST_EXECUTION_CARD_V1"
 SELF_HOSTED_PROOF_IDEMPOTENCY_KEY = "palwakf-self-hosted-last-execution-card-v1"
@@ -31,6 +32,7 @@ class CapabilityState(BaseModel):
     installed: bool | None = None
     authorized: bool | None = None
     policy: str | None = None
+    role_authorities: dict[str, RoleAuthority] = Field(default_factory=dict)
 
 
 class ManagedWorkspaceStatus(BaseModel):
@@ -376,11 +378,12 @@ Wait for every shell command output and return the required structured result.
     def _codex_state() -> CapabilityState:
         installed = importlib.util.find_spec("openai_codex") is not None
         return CapabilityState(
-            status="SUSPENDED_BY_POLICY",
-            blocker="CODEX_DEVELOPMENT_GLOBALLY_SUSPENDED",
+            status="GOVERNED_RELAY_ONLY",
+            blocker="AUTONOMOUS_DEVELOPMENT_SUSPENDED",
             installed=installed,
-            authorized=False,
-            policy="GLOBAL_GOVERNANCE_2026-08-08",
+            authorized=None,
+            policy="GLOBAL_GOVERNANCE_2026-08-15",
+            role_authorities=dict(CODEX_ROLE_AUTHORITIES),
         )
 
     @staticmethod
