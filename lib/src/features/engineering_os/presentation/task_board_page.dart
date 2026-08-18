@@ -79,12 +79,7 @@ class _EngineeringTaskBoardPageState
           ),
         Expanded(
           child: previewUnavailable
-              ? const PreviewUnavailablePanel(
-                  icon: Icons.task_alt_outlined,
-                  title: 'بيانات المهام غير متاحة',
-                  description:
-                      'هذه معاينة بصرية ولا تمثل سجل مهام فارغًا. القيم التشغيلية ستظهر بعد الاتصال بمصدر الحقيقة.',
-                )
+              ? const _TaskBoardPreviewUnavailable()
               : state.tasks.isEmpty
                   ? const _EmptyBoard()
                   : _Board(tasks: state.tasks),
@@ -109,6 +104,99 @@ class _EngineeringTaskBoardPageState
         context,
       ).showSnackBar(SnackBar(content: Text(error.toString())));
     }
+  }
+}
+
+class _TaskBoardPreviewUnavailable extends StatelessWidget {
+  const _TaskBoardPreviewUnavailable();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      children: <Widget>[
+        Expanded(
+          child: PreviewUnavailablePanel(
+            icon: Icons.task_alt_outlined,
+            title: 'بيانات المهام غير متاحة',
+            description:
+                'هذه معاينة بصرية ولا تمثل سجل مهام فارغًا. القيم التشغيلية ستظهر بعد الاتصال بمصدر الحقيقة.',
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.fromLTRB(20, 0, 20, 20),
+          child: EngineeringTaskPreviewCapabilitySample(),
+        ),
+      ],
+    );
+  }
+}
+
+class EngineeringTaskPreviewCapabilitySample extends StatelessWidget {
+  const EngineeringTaskPreviewCapabilitySample({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return SizedBox(
+      width: double.infinity,
+      child: Card(
+        key: const ValueKey<String>(
+          'engineering-task-preview-capability-sample',
+        ),
+        margin: EdgeInsets.zero,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 18,
+            runSpacing: 12,
+            children: <Widget>[
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 760),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Icon(
+                      Icons.visibility_outlined,
+                      color: scheme.secondary,
+                    ),
+                    const SizedBox(width: 12),
+                    Flexible(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text(
+                            'نموذج معاينة غير تشغيلي',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleSmall
+                                ?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'هذا المثال يعرض موضع وسلوك عناصر الواجهة فقط؛ لا يمثل مهمة أو حالة أو قيمة تشغيلية حقيقية.',
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              OutlinedButton.icon(
+                key: const ValueKey<String>(
+                  'preview-task-operations-capability-sample',
+                ),
+                onPressed: () => context.go('/operations'),
+                icon: const Icon(Icons.settings_suggest_outlined, size: 18),
+                label: const Text('مركز التشغيل'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
