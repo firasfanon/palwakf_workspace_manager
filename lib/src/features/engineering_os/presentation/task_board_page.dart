@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/presentation/preview_mode_ui.dart';
 import '../../orchestrator/application/operational_authorization.dart';
@@ -187,10 +188,17 @@ class _Metric extends StatelessWidget {
   }
 }
 
-class _Board extends StatelessWidget {
+class _Board extends StatefulWidget {
   const _Board({required this.tasks});
 
   final List<EngineeringTask> tasks;
+
+  @override
+  State<_Board> createState() => _BoardState();
+}
+
+class _BoardState extends State<_Board> {
+  final ScrollController _horizontalController = ScrollController();
 
   static const columns = <(String, String)>[
     ('READY', 'جاهزة'),
@@ -204,10 +212,19 @@ class _Board extends StatelessWidget {
   ];
 
   @override
+  void dispose() {
+    _horizontalController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final tasks = widget.tasks;
     return Scrollbar(
+      controller: _horizontalController,
       thumbVisibility: true,
       child: SingleChildScrollView(
+        controller: _horizontalController,
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
         child: Row(
@@ -332,6 +349,18 @@ class _TaskCard extends StatelessWidget {
                     .take(2)
                     .map((scope) => Chip(label: Text(scope))),
               ],
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: OutlinedButton.icon(
+                key: ValueKey<String>(
+                  'engineering-task-operations-${task.taskId}',
+                ),
+                onPressed: () => context.go('/operations'),
+                icon: const Icon(Icons.settings_suggest_outlined, size: 18),
+                label: const Text('مركز التشغيل'),
+              ),
             ),
           ],
         ),
