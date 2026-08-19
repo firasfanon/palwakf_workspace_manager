@@ -2,10 +2,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../orchestrator/application/orchestrator_controller.dart';
 import '../data/external_project_api_client.dart';
+import '../data/project_task_bridge_api_client.dart';
 import '../domain/external_project_models.dart';
 
 final externalProjectApiProvider = Provider<ExternalProjectApi>((ref) {
   return HttpExternalProjectApi(
+    bearerToken: ref.watch(orchestratorTokenProvider),
+  );
+});
+
+final projectTaskBridgeApiProvider = Provider<ProjectTaskBridgeApi>((ref) {
+  return HttpProjectTaskBridgeApi(
     bearerToken: ref.watch(orchestratorTokenProvider),
   );
 });

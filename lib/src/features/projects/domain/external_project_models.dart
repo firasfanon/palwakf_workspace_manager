@@ -234,6 +234,35 @@ class CandidateWorkItem {
   final String? blocker;
 }
 
+class ProjectCandidateEngineeringTaskDraft {
+  const ProjectCandidateEngineeringTaskDraft({
+    required this.taskId,
+    required this.ownerId,
+    required this.actorId,
+    required this.actorType,
+    required this.scopePatterns,
+    this.providerId,
+  });
+
+  final String taskId;
+  final String ownerId;
+  final String actorId;
+  final String actorType;
+  final String? providerId;
+  final List<String> scopePatterns;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'task_id': taskId,
+        'owner_id': ownerId,
+        'actor_id': actorId,
+        'actor_type': actorType,
+        'provider_id': providerId,
+        'scope_patterns': scopePatterns,
+        'risk_class': 'MEDIUM',
+        'mutation_class': 'source-write',
+      };
+}
+
 class ProjectReality {
   const ProjectReality({
     required this.projectId,

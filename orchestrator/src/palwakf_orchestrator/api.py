@@ -72,6 +72,7 @@ from palwakf_orchestrator.operator_service import OperatorService
 from palwakf_orchestrator.persistence import SQLiteStateStore, StateStore
 from palwakf_orchestrator.project_contracts import (
     CandidateWorkItem,
+    CreateProjectEngineeringTaskRequest,
     ExternalProjectRealityReport,
     ExternalProjectRecord,
     PrepareGovernedTaskEnvelopeRequest,
@@ -433,7 +434,7 @@ def create_app(
     _add_engineering_os_routes(app, engineering_os)
     _add_execution_run_routes(app, execution_runs)
     _add_legacy_routes(app, resolved_operator, connected)
-    _add_project_routes(app, resolved_projects)
+    _add_project_routes(app, resolved_projects, engineering_os)
     app.mount("/mcp", mcp_http_app, name="mcp")
 
     @app.get("/{ui_path:path}", include_in_schema=False)
@@ -755,6 +756,7 @@ def _add_legacy_routes(
 def _add_project_routes(
     app: FastAPI,
     projects: ExternalProjectService,
+    engineering_os: EngineeringOsService,
 ) -> None:
     def project_error(exc: GovernanceError) -> HTTPException:
         status = (
@@ -834,5 +836,24 @@ def _add_project_routes(
     ) -> PrepareGovernedTaskEnvelopeResponse:
         try:
             return projects.prepare_task_envelope(project_id, command.candidate_id)
+        except GovernanceError as exc:
+            raise project_error(exc) from exc
+
+    @app.post(
+        "/v1/projects/{project_id}/candidate-work-items/{candidate_id}/engineering-task",
+        response_model=EngineeringTaskRecord,
+    )
+    async def create_external_project_engineering_task(
+        project_id: str,
+        candidate_id: str,
+        command: CreateProjectEngineeringTaskRequest,
+    ) -> EngineeringTaskRecord:
+        try:
+            prepared = projects.prepare_engineering_task_request(
+                project_id,
+                candidate_id,
+                command,
+            )
+            return engineering_os.create_task(prepared)
         except GovernanceError as exc:
             raise project_error(exc) from exc

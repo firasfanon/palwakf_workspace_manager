@@ -6,6 +6,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from palwakf_orchestrator.engineering_os_contracts import ActorType, MutationClass, RiskClass
+
 
 class ProjectAdapterKind(StrEnum):
     github_repository = "github_repository"
@@ -40,9 +42,7 @@ class ProjectToolDecision(BaseModel):
 
 
 class ProjectCapabilityProfile(BaseModel):
-    profile_version: Literal["PROJECT_CAPABILITY_PROFILE_V1"] = (
-        "PROJECT_CAPABILITY_PROFILE_V1"
-    )
+    profile_version: Literal["PROJECT_CAPABILITY_PROFILE_V1"] = "PROJECT_CAPABILITY_PROFILE_V1"
     project_id: str
     observed_head: str
     stack: list[str]
@@ -178,6 +178,19 @@ class ProjectIntakeRequest(BaseModel):
         pattern=r"^[0-9a-fA-F]{40}$",
     )
     authority_mode: Literal["READ_ONLY_ZERO_MUTATION"] = "READ_ONLY_ZERO_MUTATION"
+
+
+class CreateProjectEngineeringTaskRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    task_id: str = Field(pattern=r"^[A-Z0-9][A-Z0-9_-]{2,127}$")
+    owner_id: str = Field(min_length=2, max_length=160)
+    actor_id: str = Field(min_length=2, max_length=160)
+    actor_type: ActorType = ActorType.human
+    provider_id: str | None = Field(default=None, max_length=160)
+    scope_patterns: list[str] = Field(min_length=1, max_length=64)
+    risk_class: RiskClass = "MEDIUM"
+    mutation_class: MutationClass = "source-write"
 
 
 class PrepareGovernedTaskEnvelopeResponse(BaseModel):

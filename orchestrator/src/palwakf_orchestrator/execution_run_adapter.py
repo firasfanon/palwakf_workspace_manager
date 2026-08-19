@@ -67,6 +67,10 @@ class ExecutionRunAdapter:
             raise GovernanceError("EXECUTION_RUN_PARENT_TERMINAL")
         if parent.mutation_class == "external-write" and request.sandbox != "read-only":
             raise GovernanceError("EXECUTION_RUN_EXTERNAL_WRITE_NOT_SUPPORTED")
+        if parent.repository != "firasfanon/palwakf_workspace_manager":
+            raise GovernanceError(
+                "EXECUTION_RUN_EXTERNAL_REPOSITORY_RUNTIME_NOT_SUPPORTED"
+            )
 
         sandbox = request.sandbox
         if sandbox is None:
@@ -75,7 +79,7 @@ class ExecutionRunAdapter:
         operator_request = CreateOperatorTaskRequest(
             task_id=request.execution_run_id,
             project_id=parent.project_id,
-            repository=parent.repository,
+            repository="firasfanon/palwakf_workspace_manager",
             branch=parent.task_branch,
             expected_head=(parent.latest_remote_task_sha or parent.base_sha),
             authority_reference=request.authority_reference,

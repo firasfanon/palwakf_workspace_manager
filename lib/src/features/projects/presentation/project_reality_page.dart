@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/domain/operational_data_state.dart';
 import '../../../core/presentation/preview_mode_ui.dart';
@@ -7,6 +8,7 @@ import '../../../core/theme/palwakf_theme.dart';
 import '../../dashboard/application/dashboard_controller.dart';
 import '../../orchestrator/application/operational_authorization.dart';
 import '../application/external_projects_controller.dart';
+import '../data/project_task_bridge_api_client.dart';
 import '../domain/external_project_models.dart';
 
 class ProjectRealityPage extends ConsumerStatefulWidget {
@@ -90,11 +92,58 @@ class _ProjectRealityPageState extends ConsumerState<ProjectRealityPage> {
                             ),
                           );
                         },
+                        onCreateTask: (candidate) =>
+                            _createCandidateTask(reality, candidate),
                       ),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _createCandidateTask(
+    ProjectReality reality,
+    CandidateWorkItem candidate,
+  ) async {
+    final draft = await showDialog<ProjectCandidateEngineeringTaskDraft>(
+      context: context,
+      builder: (context) => _CreateCandidateTaskDialog(
+        reality: reality,
+        candidate: candidate,
+      ),
+    );
+    if (draft == null || !mounted) return;
+
+    try {
+      final created =
+          await ref.read(projectTaskBridgeApiProvider).createEngineeringTask(
+                reality.projectId,
+                candidate.candidateId,
+                draft,
+              );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تم إنشاء المهمة ${created.taskId}.')),
+      );
+      context.go(
+        Uri(
+          path: '/operations',
+          queryParameters: <String, String>{
+            'engineeringTaskId': created.taskId,
+          },
+        ).toString(),
+      );
+    } on ProjectTaskBridgeApiException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message)),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
+    }
   }
 }
 
@@ -138,12 +187,14 @@ class _RealityView extends ConsumerWidget {
     required this.canDispatch,
     required this.canProbe,
     required this.onPrepare,
+    required this.onCreateTask,
   });
 
   final ProjectReality reality;
   final bool canDispatch;
   final bool canProbe;
   final Future<void> Function(String candidateId) onPrepare;
+  final Future<void> Function(CandidateWorkItem candidate) onCreateTask;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -349,6 +400,7 @@ class _RealityView extends ConsumerWidget {
                                 enabled: canDispatch,
                                 onPrepare: () =>
                                     onPrepare(candidate.candidateId),
+                                onCreate: () => onCreateTask(candidate),
                               ),
                             )
                             .toList(growable: false),
@@ -569,14 +621,17 @@ class _CandidateCard extends StatelessWidget {
     required this.candidate,
     required this.enabled,
     required this.onPrepare,
+    required this.onCreate,
   });
 
   final CandidateWorkItem candidate;
   final bool enabled;
   final VoidCallback onPrepare;
+  final VoidCallback onCreate;
 
   @override
   Widget build(BuildContext context) {
+    final disabled = candidate.blocked || !enabled;
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       child: Padding(
@@ -607,18 +662,223 @@ class _CandidateCard extends StatelessWidget {
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 12),
-            Align(
-              alignment: AlignmentDirectional.centerEnd,
-              child: FilledButton.tonalIcon(
-                onPressed: candidate.blocked || !enabled ? null : onPrepare,
-                icon: const Icon(Icons.drafts_outlined),
-                label: const Text('تجهيز غلاف مهمة'),
-              ),
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 8,
+              runSpacing: 8,
+              children: <Widget>[
+                OutlinedButton.icon(
+                  onPressed: disabled ? null : onPrepare,
+                  icon: const Icon(Icons.drafts_outlined),
+                  label: const Text('تجهيز غلاف مهمة'),
+                ),
+                FilledButton.icon(
+                  key: ValueKey<String>(
+                    'create-engineering-task-${candidate.candidateId}',
+                  ),
+                  onPressed: disabled ? null : onCreate,
+                  icon: const Icon(Icons.add_task),
+                  label: const Text('إنشاء مهمة تشغيلية'),
+                ),
+              ],
             ),
           ],
         ),
       ),
     );
+  }
+}
+
+class _CreateCandidateTaskDialog extends StatefulWidget {
+  const _CreateCandidateTaskDialog({
+    required this.reality,
+    required this.candidate,
+  });
+
+  final ProjectReality reality;
+  final CandidateWorkItem candidate;
+
+  @override
+  State<_CreateCandidateTaskDialog> createState() =>
+      _CreateCandidateTaskDialogState();
+}
+
+class _CreateCandidateTaskDialogState
+    extends State<_CreateCandidateTaskDialog> {
+  final formKey = GlobalKey<FormState>();
+  late final TextEditingController taskId;
+  final owner = TextEditingController(text: 'firas');
+  final actor = TextEditingController(text: 'firas');
+  final provider = TextEditingController();
+  late final TextEditingController scopes;
+  String actorType = 'HUMAN';
+
+  @override
+  void initState() {
+    super.initState();
+    taskId = TextEditingController(
+      text: _suggestTaskId(widget.candidate.candidateId),
+    );
+    scopes = TextEditingController(text: _suggestScopes(widget.reality));
+  }
+
+  @override
+  void dispose() {
+    taskId.dispose();
+    owner.dispose();
+    actor.dispose();
+    provider.dispose();
+    scopes.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final branchPreview = taskId.text.trim().isEmpty
+        ? 'task/<TASK_ID>'
+        : 'task/${taskId.text.trim()}';
+    return AlertDialog(
+      title: const Text('إنشاء مهمة تشغيلية من المرشح'),
+      content: SizedBox(
+        width: 680,
+        child: Form(
+          key: formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Text(
+                  widget.candidate.title,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 12),
+                _readonly('المستودع', widget.reality.repositoryFullName),
+                _readonly('HEAD المرصود', widget.reality.observedHead),
+                _readonly('الفرع المشتق', branchPreview),
+                const SizedBox(height: 12),
+                _field(taskId, 'Task ID', ltr: true, onChanged: (_) {
+                  setState(() {});
+                }),
+                _field(owner, 'Owner'),
+                _field(actor, 'Actor'),
+                DropdownButtonFormField<String>(
+                  initialValue: actorType,
+                  decoration: const InputDecoration(labelText: 'Actor Type'),
+                  items: const <DropdownMenuItem<String>>[
+                    DropdownMenuItem(value: 'HUMAN', child: Text('Human')),
+                    DropdownMenuItem(value: 'AGENT', child: Text('Agent')),
+                    DropdownMenuItem(value: 'LLM', child: Text('LLM')),
+                  ],
+                  onChanged: (value) =>
+                      setState(() => actorType = value ?? 'HUMAN'),
+                ),
+                const SizedBox(height: 10),
+                _field(provider, 'Provider ID (اختياري)', ltr: true),
+                _field(scopes, 'نطاقات التعديل مفصولة بفاصلة', ltr: true),
+                const SizedBox(height: 8),
+                const Text(
+                  'المشروع والمستودع وHEAD والفرع لا تُرسل كسلطة من الواجهة؛ يشتقها الخادم من واقع المشروع المرصود.',
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('إلغاء'),
+        ),
+        FilledButton(
+          onPressed: _submit,
+          child: const Text('إنشاء المهمة'),
+        ),
+      ],
+    );
+  }
+
+  Widget _readonly(String label, String value) {
+    return ListTile(
+      dense: true,
+      contentPadding: EdgeInsets.zero,
+      title: Text(label),
+      subtitle: SelectableText(
+        value,
+        textDirection: TextDirection.ltr,
+      ),
+    );
+  }
+
+  Widget _field(
+    TextEditingController controller,
+    String label, {
+    bool ltr = false,
+    ValueChanged<String>? onChanged,
+  }) {
+    final optional = label.contains('اختياري');
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: TextFormField(
+        controller: controller,
+        textDirection: ltr ? TextDirection.ltr : null,
+        onChanged: onChanged,
+        decoration: InputDecoration(labelText: label),
+        validator: (value) {
+          if (optional) return null;
+          return (value ?? '').trim().isEmpty ? 'مطلوب' : null;
+        },
+      ),
+    );
+  }
+
+  void _submit() {
+    if (!formKey.currentState!.validate()) return;
+    final parsedScopes = scopes.text
+        .split(',')
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toList(growable: false);
+    if (parsedScopes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('يجب تحديد نطاق تعديل واحد على الأقل.')),
+      );
+      return;
+    }
+    Navigator.pop(
+      context,
+      ProjectCandidateEngineeringTaskDraft(
+        taskId: taskId.text.trim(),
+        ownerId: owner.text.trim(),
+        actorId: actor.text.trim(),
+        actorType: actorType,
+        providerId: provider.text.trim().isEmpty ? null : provider.text.trim(),
+        scopePatterns: parsedScopes,
+      ),
+    );
+  }
+
+  static String _suggestTaskId(String candidateId) {
+    var normalized =
+        candidateId.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9_-]'), '-');
+    if (normalized.length < 3) {
+      normalized = 'TASK-$normalized';
+    }
+    if (!RegExp(r'^[A-Z0-9]').hasMatch(normalized)) {
+      normalized = 'TASK-$normalized';
+    }
+    return normalized.length <= 128 ? normalized : normalized.substring(0, 128);
+  }
+
+  static String _suggestScopes(ProjectReality reality) {
+    final stack = reality.stack.map((value) => value.toLowerCase()).toSet();
+    final values = <String>[];
+    if (stack.contains('flutter') || stack.contains('dart')) {
+      values.addAll(<String>['lib/**', 'test/**']);
+    }
+    if (stack.contains('python')) {
+      values.addAll(<String>['src/**', 'tests/**']);
+    }
+    return values.toSet().join(',');
   }
 }
 
