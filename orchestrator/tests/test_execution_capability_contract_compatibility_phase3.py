@@ -286,8 +286,16 @@ def test_cpm13_projection_rejects_reconciliation_drift(tmp_path: Path) -> None:
         )
 
 
-def test_cpm13_manual_relay_still_requires_independent_verification(tmp_path: Path) -> None:
+def test_cpm13_manual_relay_still_requires_independent_verification(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     service = OperatorService(tmp_path, verifier=FakeVerifier())
+    monkeypatch.setattr(
+        service,
+        "_changed_files",
+        lambda before_head, after_head: ["orchestrator/src/example.py"],
+    )
     task = service.create_task(create_request())
     package = service.generate_manual_package(task.task_id)
 

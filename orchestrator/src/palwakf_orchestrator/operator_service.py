@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import fnmatch
 import hashlib
 import json
 import re
@@ -39,7 +40,8 @@ from palwakf_orchestrator.persistence import MemoryStateStore, StateStore
 from palwakf_orchestrator.service import OrchestratorService
 
 SECRET_PATTERN = re.compile(
-    r"(?:sk-[A-Za-z0-9_-]{16,}|bearer\s+[A-Za-z0-9._-]{16,}|"
+    r"(?:(?<![A-Za-z0-9_-])sk-[A-Za-z0-9_-]{16,}|"
+    r"bearer\s+[A-Za-z0-9._-]{16,}|"
     r"(?:api[_-]?key|token|password|secret)\s*[:=]\s*\S+)",
     re.IGNORECASE,
 )
@@ -127,7 +129,14 @@ class OperatorService:
             raise GovernanceError(f"unknown project capability profile: {project_id}")
         return profile
 
-    def create_task(self, request: CreateOperatorTaskRequest) -> OperatorTaskRecord:
+    def create_task(
+        self,
+        request: CreateOperatorTaskRequest,
+        *,
+        allow_task_branch: bool = False,
+    ) -> OperatorTaskRecord:
+        if request.branch != "agent/workspace-manager-foundation-v1" and not allow_task_branch:
+            raise GovernanceError("TASK_BRANCH_REQUIRES_ENGINEERING_RUN_ADAPTER")
         existing_task_id = self._idempotency_tasks.get(request.idempotency_key)
         if existing_task_id:
             existing = self._tasks[existing_task_id]
@@ -346,6 +355,16 @@ class OperatorService:
         task.before_head = response.repository_state.local_head
         task.after_head = response.result_repository_state.local_head
         task.changed_files = self._changed_files(task.before_head, task.after_head)
+        scope_violations = self._scope_violations(task, task.changed_files)
+        if scope_violations:
+            task.evidence = [f"scope-violation:{path}" for path in scope_violations]
+            return self._transition(
+                task,
+                OperatorTaskStatus.failed,
+                "EXECUTION_SCOPE_VIOLATION",
+                "EXECUTION_RESULT_OUTSIDE_AUTHORIZED_SCOPE",
+                blocker="EXECUTION_RESULT_OUTSIDE_AUTHORIZED_SCOPE",
+            )
         task.tests = [
             str(output.get("command_summary"))
             for output in response.tool_outputs
@@ -359,7 +378,9 @@ class OperatorService:
             f"task:{task.task_id}:execution-receipt",
             f"task:{task.task_id}:tool-output-correlation",
         ]
-        self._record_planned_invocations(task_id, response.tool_outputs)
+        self._record_planned_invocations(
+            task_id, response.tool_outputs, executor_id=response.executor_id
+        )
         return self._transition(
             task,
             OperatorTaskStatus.pending_verification,
@@ -387,7 +408,7 @@ class OperatorService:
             timeout=30,
         )
         if result.returncode != 0:
-            return []
+            raise GovernanceError("GIT_DIFF_CHANGED_FILES_UNAVAILABLE")
         return [line for line in result.stdout.splitlines() if line]
 
     def continue_task(self, task_id: str) -> OperatorTaskRecord:
@@ -482,6 +503,8 @@ class OperatorService:
 
     def generate_manual_package(self, task_id: str) -> ManualDispatchPackage:
         task = self.get_task(task_id)
+        if task.requires_explicit_authorization and task.authorized_at is None:
+            raise GovernanceError("explicit task authorization is required before manual package")
         if not (task.automatic_failure_code or task.manual_fallback_selected):
             raise GovernanceError(
                 "manual fallback requires an automatic failure or explicit selection"
@@ -506,7 +529,7 @@ class OperatorService:
             "automatic_failure_code": (
                 task.automatic_failure_code or "OPERATOR_SELECTED_USER_RELAY"
             ),
-            "relay_provider_id": "codex",
+            "relay_provider_id": task.relay_provider_id,
         }
         self._assert_secret_free(envelope)
         canonical = json.dumps(
@@ -588,9 +611,18 @@ class OperatorService:
         if request.thread_reference != task.thread_id:
             raise GovernanceError("manual result thread reference does not match acknowledgement")
         self._assert_secret_free(request.model_dump(mode="json"))
+        actual_changed_files = self._changed_files(request.before_head, request.after_head)
+        scope_violations = self._scope_violations(task, actual_changed_files)
+        if scope_violations:
+            raise GovernanceError(
+                "EXECUTION_RESULT_OUTSIDE_AUTHORIZED_SCOPE:" + ",".join(scope_violations)
+            )
+        declared_changed_files = [value.replace("\\", "/") for value in request.changed_files]
+        if sorted(declared_changed_files) != sorted(actual_changed_files):
+            raise GovernanceError("MANUAL_RESULT_CHANGED_FILES_MISMATCH_GIT_TRUTH")
         task.before_head = request.before_head
         task.after_head = request.after_head
-        task.changed_files = request.changed_files
+        task.changed_files = actual_changed_files
         task.tests = request.tests
         task.evidence = request.evidence
         task.execution_receipt = request.package_receipt
@@ -663,6 +695,8 @@ class OperatorService:
         self,
         task_id: str,
         tool_outputs: list[dict[str, object]],
+        *,
+        executor_id: str,
     ) -> None:
         plan = self.tool_decisions(task_id)
         planned = [
@@ -683,7 +717,7 @@ class OperatorService:
                 invocation_id=f"inv-{uuid4()}",
                 task_id=task_id,
                 capability_id="executor.shell",
-                adapter_id="codex",
+                adapter_id=executor_id,
                 status=("completed" if output.get("exit_code") in {None, 0} else "failed"),
                 evidence=["CORRELATED_EXECUTOR_TOOL_OUTPUT"],
                 occurred_at=datetime.now(UTC),
@@ -695,6 +729,27 @@ class OperatorService:
             for output in tool_outputs
         ]
         self._invocations[task_id] = [*planned, *captured]
+
+    @staticmethod
+    def _scope_violations(
+        task: OperatorTaskRecord,
+        changed_files: list[str],
+    ) -> list[str]:
+        if not task.scope_patterns:
+            return []
+        patterns = [value.replace("\\", "/") for value in task.scope_patterns]
+        violations: list[str] = []
+        for value in changed_files:
+            raw = value.replace("\\", "/")
+            parts = raw.split("/")
+            invalid = not raw or raw.startswith("/") or ".." in parts or ":" in parts[0]
+            normalized = raw[2:] if raw.startswith("./") else raw
+            allowed = not invalid and any(
+                fnmatch.fnmatchcase(normalized, pattern) for pattern in patterns
+            )
+            if not allowed:
+                violations.append(value)
+        return violations
 
     @staticmethod
     def _optional_int(value: object) -> int | None:

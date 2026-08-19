@@ -47,7 +47,9 @@ class CreateOperatorTaskRequest(BaseModel):
     task_id: str = Field(pattern=r"^[A-Z0-9][A-Z0-9_-]{2,127}$")
     project_id: str = Field(min_length=2, max_length=128)
     repository: Literal["firasfanon/palwakf_workspace_manager"]
-    branch: Literal["agent/workspace-manager-foundation-v1"]
+    branch: str = Field(
+        pattern=r"^(?:agent/workspace-manager-foundation-v1|task/[A-Za-z0-9._/-]{3,180})$"
+    )
     expected_head: str = Field(pattern=r"^[0-9a-fA-F]{40}$")
     authority_reference: str = Field(min_length=8, max_length=2_000)
     prompt: str = Field(min_length=10, max_length=20_000)
@@ -60,6 +62,11 @@ class CreateOperatorTaskRequest(BaseModel):
     automatic_failure_code: str | None = Field(default=None, max_length=256)
     manual_fallback_selected: bool = False
     requires_explicit_authorization: bool = False
+    scope_patterns: list[str] = Field(default_factory=list, max_length=64)
+    relay_provider_id: str = Field(
+        default="codex",
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{1,127}$",
+    )
 
 
 class OperatorTaskRecord(BaseModel):
@@ -79,6 +86,8 @@ class OperatorTaskRecord(BaseModel):
     automatic_failure_code: str | None = None
     manual_fallback_selected: bool = False
     requires_explicit_authorization: bool = False
+    scope_patterns: list[str] = Field(default_factory=list)
+    relay_provider_id: str = "codex"
     authorized_at: datetime | None = None
     authorized_by: str | None = None
     dispatch_mode: DispatchMode = DispatchMode.automatic

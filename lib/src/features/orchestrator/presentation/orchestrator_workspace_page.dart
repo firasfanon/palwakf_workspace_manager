@@ -7,13 +7,21 @@ import 'package:intl/intl.dart';
 
 import '../../../core/presentation/preview_mode_ui.dart';
 import '../../../core/theme/palwakf_theme.dart';
+import '../../engineering_os/application/execution_run_controller.dart';
+import '../../engineering_os/domain/engineering_os_models.dart';
+import '../../engineering_os/domain/execution_run_models.dart';
 import '../application/operational_authorization.dart';
 import '../application/orchestrator_controller.dart';
 import '../data/orchestrator_api_client.dart';
 import '../domain/orchestrator_models.dart';
 
 class OrchestratorWorkspacePage extends ConsumerStatefulWidget {
-  const OrchestratorWorkspacePage({super.key});
+  const OrchestratorWorkspacePage({
+    super.key,
+    this.engineeringTaskId,
+  });
+
+  final String? engineeringTaskId;
 
   @override
   ConsumerState<OrchestratorWorkspacePage> createState() =>
@@ -25,14 +33,45 @@ class _OrchestratorWorkspacePageState
   @override
   void initState() {
     super.initState();
-    Future<void>.microtask(
-      () => ref.read(orchestratorControllerProvider.notifier).load(),
+    Future<void>.microtask(_loadWorkspace);
+  }
+
+  Future<void> _loadWorkspace() async {
+    final orchestrator = ref.read(orchestratorControllerProvider.notifier);
+    await orchestrator.load();
+    final engineeringTaskId = widget.engineeringTaskId;
+    if (engineeringTaskId == null || engineeringTaskId.isEmpty) return;
+    final runs = ref.read(
+      executionRunContextControllerProvider(engineeringTaskId).notifier,
     );
+    await runs.load();
+    if (!mounted) return;
+    final executionContext = ref
+        .read(
+          executionRunContextControllerProvider(engineeringTaskId),
+        )
+        .context;
+    if (executionContext != null && executionContext.runs.isNotEmpty) {
+      await orchestrator.selectTask(
+        executionContext.runs.first.executionRunId,
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(orchestratorControllerProvider);
+    final engineeringTaskId = widget.engineeringTaskId;
+    final executionState =
+        engineeringTaskId == null || engineeringTaskId.isEmpty
+            ? null
+            : ref.watch(
+                executionRunContextControllerProvider(engineeringTaskId),
+              );
+    final workspaceState = _focusedWorkspaceState(
+      state,
+      executionState?.context,
+    );
     final authorizationState = ref.watch(operationalAuthorizationProvider);
     final authorization = authorizationState.asData?.value;
     final controller = ref.read(orchestratorControllerProvider.notifier);
@@ -60,6 +99,22 @@ class _OrchestratorWorkspacePageState
       child: Column(
         children: <Widget>[
           _CapabilityStrip(capabilities: state.capabilities),
+          if (engineeringTaskId != null &&
+              engineeringTaskId.isNotEmpty &&
+              executionState != null)
+            _EngineeringExecutionContextBand(
+              state: executionState,
+              onRefresh: () => ref
+                  .read(
+                    executionRunContextControllerProvider(
+                      engineeringTaskId,
+                    ).notifier,
+                  )
+                  .load(),
+              onCreate: authorization?.canDispatch ?? false
+                  ? () => _showNewExecutionRun(context, executionState)
+                  : null,
+            ),
           if (authorization?.readOnly ?? false)
             const _ReadOnlyAuthorizationBand(),
           if (state.error != null)
@@ -73,17 +128,19 @@ class _OrchestratorWorkspacePageState
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final queue = _TaskQueue(
-                  state: state,
+                  state: workspaceState,
                   onSelect: controller.selectTask,
-                  onCreate: authorization?.canDispatch ?? false
+                  onCreate: engineeringTaskId == null &&
+                          (authorization?.canDispatch ?? false)
                       ? () => _showNewTask(context)
                       : null,
-                  onCreateProof: authorization?.canDispatch ?? false
+                  onCreateProof: engineeringTaskId == null &&
+                          (authorization?.canDispatch ?? false)
                       ? controller.createProofTask
                       : null,
                 );
                 final detail = _TaskDetail(
-                  state: state,
+                  state: workspaceState,
                   controller: controller,
                   authorization: authorization,
                 );
@@ -112,6 +169,60 @@ class _OrchestratorWorkspacePageState
     );
   }
 
+  OrchestratorWorkspaceState _focusedWorkspaceState(
+    OrchestratorWorkspaceState state,
+    EngineeringTaskExecutionContext? executionContext,
+  ) {
+    final engineeringTaskId = widget.engineeringTaskId;
+    if (engineeringTaskId == null || engineeringTaskId.isEmpty) return state;
+    if (executionContext == null) {
+      return state.copyWith(
+        tasks: const <OperatorTask>[],
+        clearSelection: true,
+      );
+    }
+    final runIds =
+        executionContext.runs.map((run) => run.executionRunId).toSet();
+    final focusedTasks = state.tasks
+        .where((task) => runIds.contains(task.taskId))
+        .toList(growable: false);
+    final selectionIsFocused =
+        state.selectedTaskId != null && runIds.contains(state.selectedTaskId);
+    return state.copyWith(
+      tasks: focusedTasks,
+      clearSelection: !selectionIsFocused,
+    );
+  }
+
+  Future<void> _showNewExecutionRun(
+    BuildContext context,
+    ExecutionRunContextState executionState,
+  ) async {
+    final parent = executionState.context?.parentTask;
+    final engineeringTaskId = widget.engineeringTaskId;
+    if (parent == null || engineeringTaskId == null) return;
+    final draft = await showDialog<NewExecutionRunDraft>(
+      context: context,
+      builder: (context) => _NewExecutionRunDialog(parent: parent),
+    );
+    if (draft == null || !mounted) return;
+    try {
+      final run = await ref
+          .read(
+            executionRunContextControllerProvider(engineeringTaskId).notifier,
+          )
+          .create(draft);
+      final orchestrator = ref.read(orchestratorControllerProvider.notifier);
+      await orchestrator.load();
+      await orchestrator.selectTask(run.executionRunId);
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
+    }
+  }
+
   Future<void> _showNewTask(BuildContext context) async {
     final draft = await showDialog<TaskDraft>(
       context: context,
@@ -126,6 +237,240 @@ class _OrchestratorWorkspacePageState
         SnackBar(content: Text(error.message)),
       );
     }
+  }
+}
+
+class _EngineeringExecutionContextBand extends StatelessWidget {
+  const _EngineeringExecutionContextBand({
+    required this.state,
+    required this.onRefresh,
+    required this.onCreate,
+  });
+
+  final ExecutionRunContextState state;
+  final VoidCallback onRefresh;
+  final VoidCallback? onCreate;
+
+  @override
+  Widget build(BuildContext context) {
+    final executionContext = state.context;
+    if (executionContext == null) {
+      return Material(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        child: ListTile(
+          leading: state.loading
+              ? const SizedBox.square(
+                  dimension: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.account_tree_outlined),
+          title: const Text('تحميل سياق تشغيل المهمة'),
+          subtitle: state.error == null ? null : Text(state.error!),
+          trailing: IconButton(
+            tooltip: 'تحديث سياق التشغيل',
+            onPressed: onRefresh,
+            icon: const Icon(Icons.refresh),
+          ),
+        ),
+      );
+    }
+
+    final parent = executionContext.parentTask;
+    final latest =
+        executionContext.runs.isEmpty ? null : executionContext.runs.first;
+    final authorityHead = parent.latestRemoteTaskSha ?? parent.baseSha;
+    return Material(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                const Icon(Icons.account_tree_outlined, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'تشغيل المهمة المحكوم · ${parent.title}',
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+                Chip(label: Text('Runs: ${executionContext.runs.length}')),
+                const SizedBox(width: 8),
+                FilledButton.icon(
+                  key: const ValueKey<String>(
+                    'phase6-create-governed-execution-run',
+                  ),
+                  onPressed: onCreate,
+                  icon: const Icon(Icons.playlist_add_outlined),
+                  label: const Text('إنشاء تشغيل محكوم'),
+                ),
+                IconButton(
+                  tooltip: 'تحديث',
+                  onPressed: onRefresh,
+                  icon: const Icon(Icons.refresh),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 12,
+              runSpacing: 6,
+              children: <Widget>[
+                Text('Task: ${parent.taskId}'),
+                Text('Branch: ${parent.taskBranch}'),
+                Text('HEAD: ${_shortSha(authorityHead)}'),
+                Text('Mutation: ${parent.mutationClass}'),
+                if (latest != null)
+                  Text(
+                    'Run state: ${latest.rollup.arabicSignal}',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: parent.scopePatterns
+                  .map((scope) => Chip(label: Text(scope)))
+                  .toList(growable: false),
+            ),
+            if (state.error != null) ...<Widget>[
+              const SizedBox(height: 6),
+              Text(
+                state.error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  static String _shortSha(String value) =>
+      value.length <= 10 ? value : value.substring(0, 10);
+}
+
+class _NewExecutionRunDialog extends StatefulWidget {
+  const _NewExecutionRunDialog({required this.parent});
+
+  final EngineeringTask parent;
+
+  @override
+  State<_NewExecutionRunDialog> createState() => _NewExecutionRunDialogState();
+}
+
+class _NewExecutionRunDialogState extends State<_NewExecutionRunDialog> {
+  final prompt = TextEditingController();
+  final provider = TextEditingController(text: 'chatgpt');
+  final constraints = TextEditingController(
+    text: 'NO_SCOPE_EXPANSION\nNO_PRODUCTION\nNO_DATABASE_MUTATION',
+  );
+
+  @override
+  void dispose() {
+    prompt.dispose();
+    provider.dispose();
+    constraints.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('إنشاء تشغيل محكوم'),
+      content: SizedBox(
+        width: 680,
+        child: SingleChildScrollView(
+          child: Column(
+            children: <Widget>[
+              TextField(
+                key: const ValueKey<String>('phase6-run-prompt'),
+                controller: prompt,
+                minLines: 4,
+                maxLines: 8,
+                decoration: const InputDecoration(
+                  labelText: 'مهمة التنفيذ',
+                  helperText:
+                      'المشروع والمستودع والفرع وHEAD والنطاق تورث من المهمة ولا يمكن توسيعها هنا.',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                key: const ValueKey<String>('phase6-run-provider'),
+                controller: provider,
+                decoration: const InputDecoration(
+                  labelText: 'مزود الترحيل',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: constraints,
+                minLines: 3,
+                maxLines: 8,
+                decoration: const InputDecoration(
+                  labelText: 'قيود إضافية — سطر لكل قيد',
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('إلغاء'),
+        ),
+        FilledButton(
+          key: const ValueKey<String>('phase6-create-run-confirm'),
+          onPressed: _submit,
+          child: const Text('إنشاء'),
+        ),
+      ],
+    );
+  }
+
+  void _submit() {
+    final promptValue = prompt.text.trim();
+    final providerValue = provider.text.trim();
+    final constraintValues = constraints.text
+        .split('\n')
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toList(growable: false);
+    if (promptValue.length < 10 ||
+        providerValue.length < 2 ||
+        constraintValues.isEmpty) {
+      return;
+    }
+    final stamp = DateTime.now().toUtc().millisecondsSinceEpoch;
+    final parentId = widget.parent.taskId
+        .toUpperCase()
+        .replaceAll(RegExp(r'[^A-Z0-9_-]'), '_');
+    final boundedParent =
+        parentId.length > 80 ? parentId.substring(0, 80) : parentId;
+    final sandbox = widget.parent.mutationClass == 'read-only'
+        ? 'read-only'
+        : 'workspace-write';
+    Navigator.pop(
+      context,
+      NewExecutionRunDraft(
+        executionRunId: '${boundedParent}_RUN_$stamp',
+        authorityReference:
+            'AUTHORITY://ENGINEERING_TASK/${widget.parent.taskId}',
+        prompt: promptValue,
+        constraints: constraintValues,
+        sandbox: sandbox,
+        maxTurns: 6,
+        timeoutSeconds: 1800,
+        idempotencyKey: 'run:$boundedParent:$stamp',
+        relayProviderId: providerValue,
+        requiresExplicitAuthorization: true,
+      ),
+    );
   }
 }
 
@@ -638,14 +983,19 @@ class _TaskHeader extends StatelessWidget {
             runSpacing: 8,
             children: <Widget>[
               FilledButton.icon(
-                onPressed: !(authorization?.canDispatch ?? false) ||
+                onPressed: task.automaticFailureCode != null ||
+                        !(authorization?.canDispatch ?? false) ||
                         task.status == OrchestratorTaskStatus.cancelled ||
                         (task.requiresExplicitAuthorization &&
                             task.authorizedAt == null)
                     ? null
                     : controller.dispatch,
                 icon: const Icon(Icons.send_outlined),
-                label: const Text('إرسال'),
+                label: Text(
+                  task.automaticFailureCode != null
+                      ? 'المسار الآلي محجوب'
+                      : 'إرسال',
+                ),
               ),
               if (task.requiresExplicitAuthorization)
                 FilledButton.tonalIcon(
@@ -775,6 +1125,10 @@ class _OverviewTab extends StatelessWidget {
                 ? (task.authorizedAt == null ? 'بانتظار التفويض' : 'مفوّضة')
                 : 'تفويض المغلف كافٍ',
             'Sandbox': task.sandbox,
+            'مزود الترحيل': task.relayProviderId,
+            'النطاق': task.scopePatterns.isEmpty
+                ? 'Legacy / غير مقيد في المغلف'
+                : task.scopePatterns.join(', '),
             'Idempotency': task.idempotencyKey,
           },
         ),
@@ -1048,7 +1402,11 @@ class _RelayTab extends StatelessWidget {
           Align(
             alignment: AlignmentDirectional.centerStart,
             child: FilledButton.icon(
-              onPressed: canMutate ? controller.generateManualPackage : null,
+              onPressed: canMutate &&
+                      (!task.requiresExplicitAuthorization ||
+                          task.authorizedAt != null)
+                  ? controller.generateManualPackage
+                  : null,
               icon: const Icon(Icons.inventory_2_outlined),
               label: const Text('إنشاء الحزمة'),
             ),
@@ -1059,6 +1417,10 @@ class _RelayTab extends StatelessWidget {
               'Receipt': package!.receipt,
               'Envelope SHA-256': package!.canonicalHash,
               'وقت الإنشاء': package!.generatedAt.toLocal().toIso8601String(),
+              'مزود الترحيل': package!.relayProviderId,
+              'النطاق': task.scopePatterns.isEmpty
+                  ? 'Legacy / غير محدد'
+                  : task.scopePatterns.join(', '),
             },
           ),
           const SizedBox(height: 12),

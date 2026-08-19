@@ -286,6 +286,8 @@ class OperatorTask {
     this.verificationReceipt,
     this.authorizedAt,
     this.authorizedBy,
+    this.scopePatterns = const <String>[],
+    this.relayProviderId = 'codex',
   });
 
   factory OperatorTask.fromJson(Map<String, dynamic> json) {
@@ -328,6 +330,8 @@ class OperatorTask {
           ? null
           : DateTime.parse(json['authorized_at'] as String),
       authorizedBy: json['authorized_by'] as String?,
+      scopePatterns: strings('scope_patterns'),
+      relayProviderId: json['relay_provider_id'] as String? ?? 'codex',
       events: (json['events'] as List<dynamic>? ?? const <dynamic>[])
           .map(
             (value) => TaskEvent.fromJson(value as Map<String, dynamic>),
@@ -366,6 +370,8 @@ class OperatorTask {
   final bool requiresExplicitAuthorization;
   final DateTime? authorizedAt;
   final String? authorizedBy;
+  final List<String> scopePatterns;
+  final String relayProviderId;
   final List<TaskEvent> events;
 
   bool get manualFallbackAvailable =>
@@ -467,6 +473,9 @@ class ManualDispatchPackage {
   final String canonicalHash;
   final DateTime generatedAt;
   final Map<String, dynamic> envelope;
+
+  String get relayProviderId =>
+      envelope['relay_provider_id']?.toString() ?? 'غير محدد';
 }
 
 class AdapterExclusion {

@@ -43,6 +43,12 @@ from palwakf_orchestrator.engineering_os_contracts import (
 )
 from palwakf_orchestrator.engineering_os_service import EngineeringOsService
 from palwakf_orchestrator.errors import GovernanceError
+from palwakf_orchestrator.execution_run_adapter import ExecutionRunAdapter
+from palwakf_orchestrator.execution_run_contracts import (
+    CreateExecutionRunRequest,
+    EngineeringTaskExecutionContext,
+    ExecutionRunOperationalView,
+)
 from palwakf_orchestrator.local_product import LocalProductService, ManagedWorkspaceStatus
 from palwakf_orchestrator.local_session import LOCAL_SESSION_COOKIE, LocalSessionManager
 from palwakf_orchestrator.mcp_server import create_mcp_server
@@ -121,6 +127,7 @@ def create_app(
         automatic_agents_available=bool(os.environ.get("OPENAI_API_KEY")),
         state_store=resolved_store,
     )
+    execution_runs = ExecutionRunAdapter(engineering_os, resolved_operator, resolved_store)
     connected = connected_service or ConnectedApplicationService(
         resolved_settings,
         resolved_operator,
@@ -187,6 +194,7 @@ def create_app(
     app.state.dashboard_service = dashboard
     app.state.local_product_service = local_product
     app.state.engineering_os_service = engineering_os
+    app.state.execution_run_adapter = execution_runs
     app.add_middleware(
         CORSMiddleware,
         allow_origin_regex=r"^https?://(127\.0\.0\.1|localhost)(:\d+)?$",
@@ -423,6 +431,7 @@ def create_app(
             raise HTTPException(status_code=404, detail=str(exc)) from exc
 
     _add_engineering_os_routes(app, engineering_os)
+    _add_execution_run_routes(app, execution_runs)
     _add_legacy_routes(app, resolved_operator, connected)
     _add_project_routes(app, resolved_projects)
     app.mount("/mcp", mcp_http_app, name="mcp")
@@ -514,6 +523,52 @@ def _add_engineering_os_routes(
             return engineering_os.register_extension(command)
         except GovernanceError as exc:
             raise engineering_error(exc) from exc
+
+
+def _add_execution_run_routes(
+    app: FastAPI,
+    execution_runs: ExecutionRunAdapter,
+) -> None:
+    def execution_error(exc: GovernanceError) -> HTTPException:
+        missing = str(exc) in {"ENGINEERING_TASK_NOT_FOUND", "EXECUTION_RUN_NOT_FOUND"}
+        return HTTPException(status_code=404 if missing else 409, detail=str(exc))
+
+    @app.get(
+        "/v1/engineering-os/tasks/{task_id}/execution-context",
+        response_model=EngineeringTaskExecutionContext,
+    )
+    async def engineering_task_execution_context(
+        task_id: str,
+    ) -> EngineeringTaskExecutionContext:
+        try:
+            return execution_runs.execution_context(task_id)
+        except GovernanceError as exc:
+            raise execution_error(exc) from exc
+
+    @app.post(
+        "/v1/engineering-os/tasks/{task_id}/runs",
+        response_model=ExecutionRunOperationalView,
+    )
+    async def create_engineering_execution_run(
+        task_id: str,
+        command: CreateExecutionRunRequest,
+    ) -> ExecutionRunOperationalView:
+        try:
+            return execution_runs.create_governed_run(task_id, command)
+        except GovernanceError as exc:
+            raise execution_error(exc) from exc
+
+    @app.get(
+        "/v1/execution-runs/{execution_run_id}",
+        response_model=ExecutionRunOperationalView,
+    )
+    async def execution_run_status(
+        execution_run_id: str,
+    ) -> ExecutionRunOperationalView:
+        try:
+            return execution_runs.get_operational_view(execution_run_id)
+        except GovernanceError as exc:
+            raise execution_error(exc) from exc
 
 
 def _add_legacy_routes(
@@ -671,21 +726,30 @@ def _add_legacy_routes(
 
     @app.get("/v1/tasks/{task_id}/tool-decisions", response_model=ToolPlanResponse)
     async def tool_decisions(task_id: str) -> ToolPlanResponse:
-        return operator.tool_decisions(task_id)
+        try:
+            return operator.tool_decisions(task_id)
+        except GovernanceError as exc:
+            raise conflict(exc) from exc
 
     @app.get(
         "/v1/tasks/{task_id}/tool-invocations",
         response_model=list[ToolInvocationReceipt],
     )
     async def tool_invocations(task_id: str) -> list[ToolInvocationReceipt]:
-        return operator.tool_invocations(task_id)
+        try:
+            return operator.tool_invocations(task_id)
+        except GovernanceError as exc:
+            raise conflict(exc) from exc
 
     @app.get(
         "/v1/tasks/{task_id}/tool-reconciliation",
         response_model=ToolReconciliation,
     )
     async def tool_reconciliation(task_id: str) -> ToolReconciliation:
-        return operator.reconcile_tools(task_id)
+        try:
+            return operator.reconcile_tools(task_id)
+        except GovernanceError as exc:
+            raise conflict(exc) from exc
 
 
 def _add_project_routes(

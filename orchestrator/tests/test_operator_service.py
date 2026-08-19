@@ -104,8 +104,14 @@ def test_head_drift_blocks_manual_package(tmp_path: Path) -> None:
 
 def test_manual_result_remains_pending_until_independent_verification(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     service = OperatorService(tmp_path, verifier=FakeVerifier())
+    monkeypatch.setattr(
+        service,
+        "_changed_files",
+        lambda before_head, after_head: ["orchestrator/api.py"],
+    )
     task = service.create_task(create_request())
     package = service.generate_manual_package(task.task_id)
     service.mark_manual_dispatched(

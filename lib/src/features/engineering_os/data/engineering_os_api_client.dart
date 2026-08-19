@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../../../core/config/orchestrator_runtime_config.dart';
 import '../domain/engineering_os_models.dart';
+import '../domain/execution_run_models.dart';
 
 class EngineeringOsApiException implements Exception {
   const EngineeringOsApiException(this.message);
@@ -44,6 +45,30 @@ class EngineeringOsApiClient {
   Future<EngineeringTask> createTask(NewEngineeringTaskDraft draft) async {
     return EngineeringTask.fromJson(
       await _postObject('/v1/engineering-os/tasks', draft.toJson()),
+    );
+  }
+
+  Future<EngineeringTaskExecutionContext> executionContext(
+    String engineeringTaskId,
+  ) async {
+    final encoded = Uri.encodeComponent(engineeringTaskId);
+    return EngineeringTaskExecutionContext.fromJson(
+      await _getObject(
+        '/v1/engineering-os/tasks/$encoded/execution-context',
+      ),
+    );
+  }
+
+  Future<EngineeringExecutionRunView> createExecutionRun(
+    String engineeringTaskId,
+    NewExecutionRunDraft draft,
+  ) async {
+    final encoded = Uri.encodeComponent(engineeringTaskId);
+    return EngineeringExecutionRunView.fromJson(
+      await _postObject(
+        '/v1/engineering-os/tasks/$encoded/runs',
+        draft.toJson(),
+      ),
     );
   }
 

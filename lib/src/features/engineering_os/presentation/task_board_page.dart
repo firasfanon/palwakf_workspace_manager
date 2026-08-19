@@ -445,7 +445,14 @@ class _TaskCard extends StatelessWidget {
                 key: ValueKey<String>(
                   'engineering-task-operations-${task.taskId}',
                 ),
-                onPressed: () => context.go('/operations'),
+                onPressed: () => context.go(
+                  Uri(
+                    path: '/operations',
+                    queryParameters: <String, String>{
+                      'engineeringTaskId': task.taskId,
+                    },
+                  ).toString(),
+                ),
                 icon: const Icon(Icons.settings_suggest_outlined, size: 18),
                 label: const Text('مركز التشغيل'),
               ),

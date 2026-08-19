@@ -37,7 +37,9 @@ final workspaceRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/operations',
-            builder: (context, state) => const OrchestratorWorkspacePage(),
+            builder: (context, state) => OrchestratorWorkspacePage(
+              engineeringTaskId: state.uri.queryParameters['engineeringTaskId'],
+            ),
           ),
           GoRoute(
             path: '/tools',

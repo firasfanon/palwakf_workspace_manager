@@ -4,12 +4,21 @@ from datetime import UTC, datetime
 
 from pydantic import BaseModel
 
-from palwakf_orchestrator.engineering_os_contracts import EngineeringTaskRecord
+from palwakf_orchestrator.engineering_os_contracts import (
+    EngineeringTaskRecord,
+    EngineeringTaskStatus,
+)
 from palwakf_orchestrator.engineering_os_service import EngineeringOsService
 from palwakf_orchestrator.errors import GovernanceError
+from palwakf_orchestrator.execution_run_contracts import (
+    CreateExecutionRunRequest,
+    EngineeringTaskExecutionContext,
+    ExecutionRunOperationalView,
+)
 from palwakf_orchestrator.operator_contracts import CreateOperatorTaskRequest, OperatorTaskRecord
 from palwakf_orchestrator.operator_service import OperatorService
 from palwakf_orchestrator.persistence import StateStore
+from palwakf_orchestrator.state_rollup_policy import evaluate_state_rollup
 
 EXECUTION_RUN_LINKS_KEY = "execution_run_links_v1"
 
@@ -44,10 +53,82 @@ class ExecutionRunAdapter:
         self._operator_tasks = operator_tasks
         self._state_store = state_store
 
+    def create_governed_run(
+        self,
+        parent_engineering_task_id: str,
+        request: CreateExecutionRunRequest,
+    ) -> ExecutionRunOperationalView:
+        parent = self._engineering_tasks.get_task(parent_engineering_task_id)
+        if parent.status in {
+            EngineeringTaskStatus.integrated,
+            EngineeringTaskStatus.cancelled,
+            EngineeringTaskStatus.superseded,
+        }:
+            raise GovernanceError("EXECUTION_RUN_PARENT_TERMINAL")
+        if parent.mutation_class == "external-write" and request.sandbox != "read-only":
+            raise GovernanceError("EXECUTION_RUN_EXTERNAL_WRITE_NOT_SUPPORTED")
+
+        sandbox = request.sandbox
+        if sandbox is None:
+            sandbox = "read-only" if parent.mutation_class == "read-only" else "workspace-write"
+
+        operator_request = CreateOperatorTaskRequest(
+            task_id=request.execution_run_id,
+            project_id=parent.project_id,
+            repository=parent.repository,
+            branch=parent.task_branch,
+            expected_head=(parent.latest_remote_task_sha or parent.base_sha),
+            authority_reference=request.authority_reference,
+            prompt=request.prompt,
+            constraints=[
+                *request.constraints,
+                "AUTHORIZED_SOURCE_SCOPE=" + "|".join(parent.scope_patterns),
+            ],
+            approval_policy=("on-request" if request.requires_explicit_authorization else "never"),
+            sandbox=sandbox,
+            max_turns=request.max_turns,
+            timeout_seconds=request.timeout_seconds,
+            idempotency_key=request.idempotency_key,
+            automatic_failure_code="AUTOMATIC_EXECUTION_PROVIDER_NOT_AUTHORIZED",
+            manual_fallback_selected=True,
+            requires_explicit_authorization=request.requires_explicit_authorization,
+            scope_patterns=parent.scope_patterns,
+            relay_provider_id=request.relay_provider_id,
+        )
+        created = self.create_run(
+            parent_engineering_task_id,
+            operator_request,
+            allow_engineering_task_branch=True,
+        )
+        return self._operational_view(created, parent)
+
+    def execution_context(
+        self,
+        parent_engineering_task_id: str,
+    ) -> EngineeringTaskExecutionContext:
+        parent = self._engineering_tasks.get_task(parent_engineering_task_id)
+        return EngineeringTaskExecutionContext(
+            parent_task=parent,
+            runs=[
+                self._operational_view(record, parent)
+                for record in self.list_runs(parent_engineering_task_id)
+            ],
+        )
+
+    def get_operational_view(
+        self,
+        execution_run_id: str,
+    ) -> ExecutionRunOperationalView:
+        record = self.get_run(execution_run_id)
+        parent = self._engineering_tasks.get_task(record.parent_engineering_task_id)
+        return self._operational_view(record, parent)
+
     def create_run(
         self,
         parent_engineering_task_id: str,
         request: CreateOperatorTaskRequest,
+        *,
+        allow_engineering_task_branch: bool = False,
     ) -> ExecutionRunRecord:
         parent = self._engineering_tasks.get_task(parent_engineering_task_id)
         self._assert_authority(parent, request)
@@ -61,13 +142,19 @@ class ExecutionRunAdapter:
                 raise GovernanceError("EXECUTION_RUN_PARENT_IDEMPOTENCY_CONFLICT")
             if existing_operator is None:
                 raise GovernanceError("EXECUTION_RUN_LINK_ORPHANED")
-            operator_task = self._operator_tasks.create_task(request)
+            operator_task = self._operator_tasks.create_task(
+                request,
+                allow_task_branch=allow_engineering_task_branch,
+            )
             return self._compose(existing_link, operator_task)
 
         if existing_operator is not None:
             raise GovernanceError("EXISTING_OPERATOR_TASK_REQUIRES_SEPARATE_MIGRATION")
 
-        operator_task = self._operator_tasks.create_task(request)
+        operator_task = self._operator_tasks.create_task(
+            request,
+            allow_task_branch=allow_engineering_task_branch,
+        )
         link = ExecutionRunLinkRecord(
             execution_run_id=operator_task.task_id,
             legacy_operator_task_id=operator_task.task_id,
@@ -140,6 +227,20 @@ class ExecutionRunAdapter:
         links[link.execution_run_id] = link.model_dump(mode="json")
         state[EXECUTION_RUN_LINKS_KEY] = links
         self._state_store.save(state)
+
+    @staticmethod
+    def _operational_view(
+        record: ExecutionRunRecord,
+        parent: EngineeringTaskRecord,
+    ) -> ExecutionRunOperationalView:
+        return ExecutionRunOperationalView(
+            execution_run_id=record.execution_run_id,
+            legacy_operator_task_id=record.legacy_operator_task_id,
+            parent_engineering_task_id=record.parent_engineering_task_id,
+            parent_task=parent,
+            operator_task=record.operator_task,
+            rollup=evaluate_state_rollup(parent, record.operator_task),
+        )
 
     @staticmethod
     def _compose(

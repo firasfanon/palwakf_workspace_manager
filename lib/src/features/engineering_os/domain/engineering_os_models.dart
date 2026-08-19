@@ -37,6 +37,7 @@ class EngineeringTask {
   const EngineeringTask({
     required this.taskId,
     required this.title,
+    this.description = '',
     required this.projectId,
     required this.repository,
     required this.baseSha,
@@ -49,6 +50,9 @@ class EngineeringTask {
     required this.dependsOn,
     required this.dependencyMode,
     required this.riskClass,
+    this.mutationClass = 'source-write',
+    this.requiredCapabilities = const <String>[],
+    this.requiredTests = const <String>[],
     required this.wipCheckpointStatus,
     required this.integrationStatus,
     this.providerId,
@@ -57,6 +61,7 @@ class EngineeringTask {
 
   final String taskId;
   final String title;
+  final String description;
   final String projectId;
   final String repository;
   final String baseSha;
@@ -70,6 +75,9 @@ class EngineeringTask {
   final List<String> dependsOn;
   final String dependencyMode;
   final String riskClass;
+  final String mutationClass;
+  final List<String> requiredCapabilities;
+  final List<String> requiredTests;
   final String wipCheckpointStatus;
   final String integrationStatus;
   final String? latestRemoteTaskSha;
@@ -83,6 +91,7 @@ class EngineeringTask {
     return EngineeringTask(
       taskId: json['task_id'] as String,
       title: json['title'] as String,
+      description: json['description'] as String? ?? '',
       projectId: json['project_id'] as String,
       repository: json['repository'] as String,
       baseSha: json['base_sha'] as String,
@@ -96,6 +105,9 @@ class EngineeringTask {
       dependsOn: strings('depends_on'),
       dependencyMode: json['dependency_mode'] as String,
       riskClass: json['risk_class'] as String,
+      mutationClass: json['mutation_class'] as String? ?? 'source-write',
+      requiredCapabilities: strings('required_capabilities'),
+      requiredTests: strings('required_tests'),
       wipCheckpointStatus: json['wip_checkpoint_status'] as String,
       integrationStatus: json['integration_status'] as String,
       latestRemoteTaskSha: json['latest_remote_task_sha'] as String?,
