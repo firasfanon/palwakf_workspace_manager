@@ -281,4 +281,16 @@ void main() {
     expect(runView().rollup.arabicSignal, 'بانتظار التنفيذ');
     expect(runView().operatorTask.manualFallbackAvailable, isTrue);
   });
+  test('governed run dialog exposes visible Arabic validation', () {
+    final source = File(
+      'lib/src/features/orchestrator/presentation/orchestrator_workspace_page.dart',
+    ).readAsStringSync();
+
+    expect(source, contains('اكتب وصفًا لمهمة التنفيذ من 10 أحرف على الأقل.'));
+    expect(source, contains('مزود الترحيل مطلوب.'));
+    expect(source, contains('يجب وجود قيد واحد على الأقل.'));
+    expect(source, contains('errorText: promptError'));
+    expect(source, contains('errorText: providerError'));
+    expect(source, contains('errorText: constraintsError'));
+  });
 }

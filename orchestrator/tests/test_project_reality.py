@@ -44,7 +44,7 @@ FILES = {
     "lib/main.dart": "void main() {}\n",
     "pubspec.lock": "packages: {}\n",
     "pubspec.yaml": (
-        'name: pal_eyes\nversion: 8.0.1+27\nenvironment:\n'
+        "name: pal_eyes\nversion: 8.0.1+27\nenvironment:\n"
         '  sdk: ">=3.10.0 <4.0.0"\n  flutter: ">=3.38.0"\n'
         "dependencies:\n  flutter:\n    sdk: flutter\n  supabase_flutter: ^2.16.0\n"
     ),
@@ -59,11 +59,15 @@ class FakeGitHubReadClient:
         *,
         head: str = HEAD,
         full_name: str = "firasfanon/Pal_Eyes",
+        repository_id: int = 1313727249,
+        redirected: bool = False,
         missing: bool = False,
         extra_files: int = 0,
     ) -> None:
         self.head = head
         self.full_name = full_name
+        self.repository_id = repository_id
+        self.redirected = redirected
         self.missing = missing
         self.calls: list[str] = []
         self.files = dict(FILES)
@@ -77,7 +81,9 @@ class FakeGitHubReadClient:
             raise GovernanceError("PROJECT_REPOSITORY_NOT_FOUND")
         if path == "/repos/firasfanon/Pal_Eyes":
             return {
+                "id": self.repository_id,
                 "full_name": self.full_name,
+                "_palwakf_canonical_redirect": self.redirected,
                 "default_branch": "main",
                 "visibility": "public",
                 "private": False,
@@ -88,8 +94,7 @@ class FakeGitHubReadClient:
             return {
                 "truncated": False,
                 "tree": [
-                    {"path": name, "type": "blob", "sha": sha}
-                    for name, sha in self.blobs.items()
+                    {"path": name, "type": "blob", "sha": sha} for name, sha in self.blobs.items()
                 ],
             }
         if "/git/blobs/" in path:
@@ -111,11 +116,13 @@ def project(
     observed_head: str | None = None,
     adapter: ProjectAdapterKind = ProjectAdapterKind.github_repository,
     local_path: str | None = None,
+    github_repository_id: int | None = None,
 ) -> ExternalProjectRecord:
     return ExternalProjectRecord(
         project_id="FIRASFANON_PAL_EYES",
         display_name="Pal Eyes",
         repository_full_name="firasfanon/Pal_Eyes",
+        github_repository_id=github_repository_id,
         adapter=adapter,
         local_repository_path=local_path,
         observed_head=observed_head,
@@ -184,6 +191,34 @@ async def test_identity_mismatch_and_missing_repository_are_typed() -> None:
 
 
 @pytest.mark.asyncio
+async def test_github_probe_accepts_safe_repository_rename_redirect() -> None:
+    client = FakeGitHubReadClient(
+        full_name="firasfanon/palwakf_Eyes",
+        repository_id=1313727249,
+        redirected=True,
+    )
+    report = await GitHubRepositoryRealityAdapter(
+        client,
+        now=lambda: NOW,
+    ).probe(project())
+
+    assert report.project_id == "FIRASFANON_PAL_EYES"
+    assert report.repository_full_name == "firasfanon/palwakf_Eyes"
+    assert report.github_repository_id == 1313727249
+    assert any(call.startswith("/repos/firasfanon/palwakf_Eyes/commits/") for call in client.calls)
+
+
+@pytest.mark.asyncio
+async def test_github_probe_rejects_stable_repository_id_mismatch() -> None:
+    adapter = GitHubRepositoryRealityAdapter(
+        FakeGitHubReadClient(repository_id=222),
+        now=lambda: NOW,
+    )
+    with pytest.raises(GovernanceError, match="PROJECT_STABLE_IDENTITY_MISMATCH"):
+        await adapter.probe(project(github_repository_id=111))
+
+
+@pytest.mark.asyncio
 async def test_fingerprint_is_deterministic_and_head_sensitive() -> None:
     first = await GitHubRepositoryRealityAdapter(
         FakeGitHubReadClient(),
@@ -211,13 +246,9 @@ async def test_product_candidate_ranking_uses_repository_evidence() -> None:
         now=lambda: NOW,
     ).probe(project())
 
-    assert report.candidate_work_items[0].candidate_id == (
-        "PAL_EYES_GIS_CANDIDATE_VALIDATION"
-    )
+    assert report.candidate_work_items[0].candidate_id == ("PAL_EYES_GIS_CANDIDATE_VALIDATION")
     assert "gis_review_screen.dart" in report.candidate_work_items[0].evidence[0]
-    assert report.candidate_work_items[1].candidate_id == (
-        "PAL_EYES_R8_0_1_RUNTIME_CLOSURE"
-    )
+    assert report.candidate_work_items[1].candidate_id == ("PAL_EYES_R8_0_1_RUNTIME_CLOSURE")
 
 
 class FakeGitRunner:
@@ -248,9 +279,7 @@ async def test_local_git_adapter_requires_exact_allowlisted_path(tmp_path: Path)
     adapter = LocalGitRealityAdapter([allowed], runner, now=lambda: NOW)
 
     with pytest.raises(GovernanceError, match="NOT_ALLOWLISTED"):
-        await adapter.probe(
-            project(adapter=ProjectAdapterKind.local_git, local_path=str(denied))
-        )
+        await adapter.probe(project(adapter=ProjectAdapterKind.local_git, local_path=str(denied)))
 
     report = await adapter.probe(
         project(adapter=ProjectAdapterKind.local_git, local_path=str(allowed))

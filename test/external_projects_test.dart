@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:palwakf_workspace_manager/src/features/projects/application/external_projects_controller.dart';
 import 'package:palwakf_workspace_manager/src/features/projects/data/external_project_api_client.dart';
 import 'package:palwakf_workspace_manager/src/features/orchestrator/application/operational_authorization.dart';
@@ -238,5 +239,54 @@ void main() {
     expect(find.text('PROJECT_REALITY_NOT_PROBED'), findsOneWidget);
     expect(find.text('لم يُنشأ خط أساس للواقع بعد'), findsOneWidget);
     expect(find.text('ابدأ فحص القراءة'), findsOneWidget);
+  });
+  testWidgets('project registry card opens the real project route',
+      (tester) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final api = FakeExternalProjectApi();
+    final router = GoRouter(
+      initialLocation: '/projects',
+      routes: <RouteBase>[
+        GoRoute(
+          path: '/projects',
+          builder: (context, state) => const ExternalProjectsPage(),
+          routes: <RouteBase>[
+            GoRoute(
+              path: ':projectId',
+              builder: (context, state) => Center(
+                child: Text('PROJECT=${state.pathParameters['projectId']}'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: <Override>[
+          externalProjectApiProvider.overrideWithValue(api),
+          operationalAuthorizationProvider.overrideWith(
+            (ref) async => fullWidgetAuthorization,
+          ),
+        ],
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final card = find.byKey(
+      const ValueKey<String>('project-card-open-FIRASFANON_PAL_EYES'),
+    );
+    expect(card, findsOneWidget);
+    await tester.tap(card);
+    await tester.pumpAndSettle();
+
+    expect(find.text('PROJECT=FIRASFANON_PAL_EYES'), findsOneWidget);
   });
 }

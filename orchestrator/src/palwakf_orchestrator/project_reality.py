@@ -11,6 +11,7 @@ from collections.abc import Callable, Mapping, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Protocol, cast
+from urllib.parse import urljoin, urlparse
 
 import httpx
 
@@ -94,11 +95,26 @@ class HttpxGitHubReadClient:
 
     async def get_json(self, path: str) -> Any:
         response = await self._client.get(path)
+        redirected = False
+        if response.status_code in {301, 302, 307, 308}:
+            location = response.headers.get("location", "").strip()
+            target = urlparse(urljoin("https://api.github.com", location))
+            if target.scheme != "https" or target.netloc != "api.github.com":
+                raise GovernanceError("GITHUB_READ_UNSAFE_REDIRECT")
+            target_path = target.path
+            if target.query:
+                target_path = f"{target_path}?{target.query}"
+            response = await self._client.get(target_path)
+            redirected = True
         if response.status_code == 404:
             raise GovernanceError("PROJECT_REPOSITORY_NOT_FOUND")
         if response.status_code >= 400:
             raise GovernanceError(f"GITHUB_READ_FAILED:{response.status_code}")
-        return response.json()
+        payload = response.json()
+        if redirected and isinstance(payload, dict):
+            payload = dict(payload)
+            payload["_palwakf_canonical_redirect"] = True
+        return payload
 
 
 class GitHubRepositoryRealityAdapter:
@@ -120,17 +136,33 @@ class GitHubRepositoryRealityAdapter:
     async def probe(self, project: ExternalProjectRecord) -> ExternalProjectRealityReport:
         repository = project.repository_full_name
         metadata = _object(await self._client.get_json(f"/repos/{repository}"))
-        observed_identity = str(metadata.get("full_name", ""))
-        if observed_identity.casefold() != repository.casefold():
+        observed_identity = str(metadata.get("full_name", "")).strip()
+        repository_id = metadata.get("id")
+        redirected = bool(metadata.get("_palwakf_canonical_redirect"))
+        if not observed_identity:
+            raise GovernanceError(f"PROJECT_IDENTITY_MISMATCH:{repository}:missing")
+        if not isinstance(repository_id, int) or repository_id <= 0:
+            raise GovernanceError("GITHUB_REPOSITORY_ID_MISSING")
+        if (
+            project.github_repository_id is not None
+            and project.github_repository_id != repository_id
+        ):
             raise GovernanceError(
-                f"PROJECT_IDENTITY_MISMATCH:{repository}:{observed_identity or 'missing'}"
+                f"PROJECT_STABLE_IDENTITY_MISMATCH:{project.github_repository_id}:{repository_id}"
             )
+        if (
+            observed_identity.casefold() != repository.casefold()
+            and project.github_repository_id is None
+            and not redirected
+        ):
+            raise GovernanceError(f"PROJECT_IDENTITY_MISMATCH:{repository}:{observed_identity}")
+        canonical_repository = observed_identity
 
         default_branch = str(metadata.get("default_branch", ""))
         if not default_branch:
             raise GovernanceError("PROJECT_DEFAULT_BRANCH_MISSING")
         commit = _object(
-            await self._client.get_json(f"/repos/{repository}/commits/{default_branch}")
+            await self._client.get_json(f"/repos/{canonical_repository}/commits/{default_branch}")
         )
         observed_head = str(commit.get("sha", ""))
         if not re.fullmatch(r"[0-9a-fA-F]{40}", observed_head):
@@ -138,7 +170,7 @@ class GitHubRepositoryRealityAdapter:
         tree_sha = str(_object(_object(commit.get("commit")).get("tree")).get("sha", ""))
         tree_payload = _object(
             await self._client.get_json(
-                f"/repos/{repository}/git/trees/{tree_sha}?recursive=1"
+                f"/repos/{canonical_repository}/git/trees/{tree_sha}?recursive=1"
             )
         )
         raw_tree = [
@@ -148,9 +180,7 @@ class GitHubRepositoryRealityAdapter:
         ]
         raw_tree.sort(key=lambda item: str(item.get("path", "")))
         priority_tree = [
-            item
-            for item in raw_tree
-            if str(item.get("path", "")) in SAFE_METADATA_FILES
+            item for item in raw_tree if str(item.get("path", "")) in SAFE_METADATA_FILES
         ]
         ordinary_tree = [item for item in raw_tree if item not in priority_tree]
         safe_tree = (priority_tree + ordinary_tree)[:MAX_SCANNED_FILES]
@@ -160,23 +190,25 @@ class GitHubRepositoryRealityAdapter:
 
         contents: dict[str, str] = {}
         for path in sorted(SAFE_METADATA_FILES.intersection(paths)):
-            contents[path] = await self._read_blob(repository, blobs[path])
+            contents[path] = await self._read_blob(canonical_repository, blobs[path])
 
         workflows_payload = _object(
-            await self._client.get_json(f"/repos/{repository}/actions/workflows?per_page=100")
+            await self._client.get_json(
+                f"/repos/{canonical_repository}/actions/workflows?per_page=100"
+            )
         )
         runs_payload = _object(
             await self._client.get_json(
-                f"/repos/{repository}/actions/runs?branch={default_branch}&per_page=20"
+                f"/repos/{canonical_repository}/actions/runs?branch={default_branch}&per_page=20"
             )
         )
         ci = _ci_reality(workflows_payload, runs_payload)
         stack, package_managers, versions, indicators = _detect_stack(paths, contents)
         commands = _detect_commands(paths, contents)
         tree = _tree_summary(raw_tree, safe_tree, paths, contents)
-        references = _source_references(repository, observed_head, paths)
+        references = _source_references(canonical_repository, observed_head, paths)
         candidates = _candidate_work_items(contents, ci, paths)
-        deployments = self._deployment_reality(repository, paths)
+        deployments = self._deployment_reality(canonical_repository, paths)
         profile = _capability_profile(
             project.project_id,
             observed_head,
@@ -194,11 +226,11 @@ class GitHubRepositoryRealityAdapter:
         )
         report_data: dict[str, Any] = {
             "project_id": project.project_id,
-            "repository_full_name": repository,
+            "repository_full_name": canonical_repository,
+            "github_repository_id": repository_id,
             "adapter": self.kind,
             "visibility": str(
-                metadata.get("visibility")
-                or ("private" if metadata.get("private") else "public")
+                metadata.get("visibility") or ("private" if metadata.get("private") else "public")
             ),
             "default_branch": default_branch,
             "observed_branch": default_branch,
@@ -226,9 +258,7 @@ class GitHubRepositoryRealityAdapter:
         return ExternalProjectRealityReport.model_validate(report_data)
 
     async def _read_blob(self, repository: str, sha: str) -> str:
-        payload = _object(
-            await self._client.get_json(f"/repos/{repository}/git/blobs/{sha}")
-        )
+        payload = _object(await self._client.get_json(f"/repos/{repository}/git/blobs/{sha}"))
         if str(payload.get("encoding")) != "base64":
             return ""
         raw = base64.b64decode(str(payload.get("content", "")), validate=False)
@@ -310,9 +340,7 @@ class LocalGitRealityAdapter:
     async def probe(self, project: ExternalProjectRecord) -> ExternalProjectRealityReport:
         if not project.local_repository_path:
             raise GovernanceError("LOCAL_PROJECT_PATH_REQUIRED")
-        root = await asyncio.to_thread(
-            lambda: Path(project.local_repository_path or "").resolve()
-        )
+        root = await asyncio.to_thread(lambda: Path(project.local_repository_path or "").resolve())
         if root not in self._allowlist:
             raise GovernanceError("LOCAL_PROJECT_PATH_NOT_ALLOWLISTED")
         if not await asyncio.to_thread(root.is_dir):
@@ -325,9 +353,7 @@ class LocalGitRealityAdapter:
         branch = await self._runner.run(root, ("branch", "--show-current"))
         dirty = bool(await self._runner.run(root, ("status", "--porcelain=v1")))
         origin = await self._runner.run(root, ("remote", "get-url", "origin"))
-        if _repository_from_remote(origin).casefold() != (
-            project.repository_full_name.casefold()
-        ):
+        if _repository_from_remote(origin).casefold() != (project.repository_full_name.casefold()):
             raise GovernanceError("PROJECT_IDENTITY_MISMATCH:LOCAL_ORIGIN")
 
         paths = await asyncio.to_thread(_local_file_paths, root)
@@ -346,6 +372,7 @@ class LocalGitRealityAdapter:
         data: dict[str, Any] = {
             "project_id": project.project_id,
             "repository_full_name": project.repository_full_name,
+            "github_repository_id": None,
             "adapter": self.kind,
             "visibility": "LOCAL_NOT_INFERRED",
             "default_branch": branch,
@@ -392,6 +419,7 @@ def reality_fingerprint(report: Mapping[str, Any]) -> str:
         key: _jsonable(report[key])
         for key in (
             "repository_full_name",
+            "github_repository_id",
             "default_branch",
             "observed_branch",
             "observed_head",
@@ -438,11 +466,7 @@ def _detect_stack(
             "flutter_map:": "Flutter Map",
             "supabase_flutter:": "Supabase Flutter SDK",
         }
-        stack.extend(
-            label
-            for marker, label in dependency_markers.items()
-            if marker in pubspec
-        )
+        stack.extend(label for marker, label in dependency_markers.items() if marker in pubspec)
         app_version = re.search(r"(?m)^version:\s*([^\s]+)", pubspec)
         dart_match = re.search(r'(?m)^\s*sdk:\s*["\']?([^"\']+)', pubspec)
         flutter_match = re.search(r'(?m)^\s*flutter:\s*["\']?([^"\']+)', pubspec)
@@ -458,11 +482,7 @@ def _detect_stack(
     if "package.json" in path_set:
         stack.append("Node")
         managers.append(
-            "pnpm"
-            if "pnpm-lock.yaml" in path_set
-            else "yarn"
-            if "yarn.lock" in path_set
-            else "npm"
+            "pnpm" if "pnpm-lock.yaml" in path_set else "yarn" if "yarn.lock" in path_set else "npm"
         )
     indicators = {
         "flutter": "pubspec.yaml" in path_set,
@@ -498,9 +518,7 @@ def _detect_commands(
             ("flutter test", "test"),
             ("flutter build web --release", "build"),
         ):
-            commands.append(
-                ProjectCommand(command=command, purpose=purpose, evidence=evidence)
-            )
+            commands.append(ProjectCommand(command=command, purpose=purpose, evidence=evidence))
     if "pyproject.toml" in path_set:
         commands.append(
             ProjectCommand(
@@ -543,12 +561,9 @@ def _tree_summary_from_paths(
         manifest_files=sorted(
             path
             for path in paths
-            if Path(path).name
-            in {"pubspec.yaml", "pubspec.lock", "pyproject.toml", "package.json"}
+            if Path(path).name in {"pubspec.yaml", "pubspec.lock", "pyproject.toml", "package.json"}
         ),
-        workflow_files=sorted(
-            path for path in paths if path.startswith(".github/workflows/")
-        ),
+        workflow_files=sorted(path for path in paths if path.startswith(".github/workflows/")),
         state_files=sorted(
             path
             for path in paths
@@ -556,12 +571,9 @@ def _tree_summary_from_paths(
             or "handoff" in Path(path).name.casefold()
             or "baseline" in Path(path).name.casefold()
         )[:50],
-        secret_risk_file_names=sorted(
-            path for path in paths if SECRET_RISK_PATTERN.search(path)
-        ),
+        secret_risk_file_names=sorted(path for path in paths if SECRET_RISK_PATTERN.search(path)),
         ignored_secret_policy_present=(
-            ".env" in contents.get(".gitignore", "")
-            and ".env.*" in contents.get(".gitignore", "")
+            ".env" in contents.get(".gitignore", "") and ".env.*" in contents.get(".gitignore", "")
         ),
     )
 
@@ -586,11 +598,7 @@ def _ci_reality(
                 provider="github_actions",
                 name=str(value.get("name") or Path(str(value.get("path", ""))).name),
                 path=str(value.get("path", "")) or None,
-                status=(
-                    str(latest_run.get("status"))
-                    if latest_run
-                    else "NO_RUN_OBSERVED"
-                ),
+                status=(str(latest_run.get("status")) if latest_run else "NO_RUN_OBSERVED"),
                 conclusion=(
                     str(latest_run.get("conclusion"))
                     if latest_run and latest_run.get("conclusion")
@@ -813,9 +821,7 @@ def _local_file_paths(root: Path) -> list[str]:
     paths: list[str] = []
     for current, directories, files in os.walk(root, followlinks=False):
         directories[:] = sorted(
-            directory
-            for directory in directories
-            if directory not in IGNORED_LOCAL_DIRECTORIES
+            directory for directory in directories if directory not in IGNORED_LOCAL_DIRECTORIES
         )
         current_path = Path(current)
         for file_name in sorted(files):

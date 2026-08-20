@@ -107,6 +107,7 @@ class ExternalProjectRealityReport(BaseModel):
     )
     project_id: str
     repository_full_name: str
+    github_repository_id: int | None = Field(default=None, ge=1)
     adapter: ProjectAdapterKind
     visibility: str
     default_branch: str
@@ -140,6 +141,7 @@ class ExternalProjectRecord(BaseModel):
     project_id: str
     display_name: str
     repository_full_name: str
+    github_repository_id: int | None = Field(default=None, ge=1)
     adapter: ProjectAdapterKind
     local_repository_path: str | None = None
     default_branch: str | None = None

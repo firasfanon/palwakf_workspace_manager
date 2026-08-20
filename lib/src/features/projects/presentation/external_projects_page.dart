@@ -278,6 +278,10 @@ class _ProjectRegistryState extends State<_ProjectRegistry> {
   String _status = 'all';
   String _sort = 'name';
 
+  void _openProject(BuildContext context, ExternalProject project) {
+    context.go('/projects/${Uri.encodeComponent(project.projectId)}');
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.availability == OperationalDataAvailability.unavailable) {
@@ -415,9 +419,15 @@ class _ProjectRegistryState extends State<_ProjectRegistry> {
                   itemBuilder: (context, index) {
                     final project = visible[index];
                     return Card(
+                      key:
+                          ValueKey<String>('project-card-${project.projectId}'),
+                      clipBehavior: Clip.antiAlias,
                       child: InkWell(
-                        onTap: () =>
-                            context.go('/projects/${project.projectId}'),
+                        key: ValueKey<String>(
+                          'project-card-open-${project.projectId}',
+                        ),
+                        mouseCursor: SystemMouseCursors.click,
+                        onTap: () => _openProject(context, project),
                         child: Padding(
                           padding: const EdgeInsets.all(16),
                           child: Row(
@@ -475,7 +485,14 @@ class _ProjectRegistryState extends State<_ProjectRegistry> {
                                   ],
                                 ),
                               ),
-                              const Icon(Icons.chevron_left),
+                              IconButton(
+                                key: ValueKey<String>(
+                                  'project-open-arrow-${project.projectId}',
+                                ),
+                                tooltip: 'فتح المشروع',
+                                onPressed: () => _openProject(context, project),
+                                icon: const Icon(Icons.chevron_left),
+                              ),
                             ],
                           ),
                         ),

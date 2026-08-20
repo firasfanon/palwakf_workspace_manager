@@ -92,6 +92,24 @@ class ExternalProjectService:
             raise GovernanceError(f"PROJECT_ADAPTER_UNAVAILABLE:{project.adapter}")
         try:
             report = await adapter.probe(project)
+            if project.adapter == ProjectAdapterKind.github_repository:
+                if report.github_repository_id is None:
+                    raise GovernanceError("GITHUB_REPOSITORY_ID_MISSING")
+                for other_id, other in projects.items():
+                    if other_id == project_id:
+                        continue
+                    if (
+                        other.github_repository_id is not None
+                        and other.github_repository_id == report.github_repository_id
+                    ):
+                        raise GovernanceError("PROJECT_REPOSITORY_RENAME_CONFLICT:STABLE_ID")
+                    if (
+                        other.repository_full_name.casefold()
+                        == report.repository_full_name.casefold()
+                    ):
+                        raise GovernanceError("PROJECT_REPOSITORY_RENAME_CONFLICT:CANONICAL_NAME")
+                project.repository_full_name = report.repository_full_name
+                project.github_repository_id = report.github_repository_id
         except GovernanceError as exc:
             project.status = ProjectStatus.blocked
             project.blockers = [str(exc)]

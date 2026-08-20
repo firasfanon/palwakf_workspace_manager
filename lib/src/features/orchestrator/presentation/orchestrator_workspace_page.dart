@@ -369,6 +369,9 @@ class _NewExecutionRunDialogState extends State<_NewExecutionRunDialog> {
   final constraints = TextEditingController(
     text: 'NO_SCOPE_EXPANSION\nNO_PRODUCTION\nNO_DATABASE_MUTATION',
   );
+  String? promptError;
+  String? providerError;
+  String? constraintsError;
 
   @override
   void dispose() {
@@ -392,27 +395,31 @@ class _NewExecutionRunDialogState extends State<_NewExecutionRunDialog> {
                 controller: prompt,
                 minLines: 4,
                 maxLines: 8,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'مهمة التنفيذ',
                   helperText:
                       'المشروع والمستودع والفرع وHEAD والنطاق تورث من المهمة ولا يمكن توسيعها هنا.',
+                  errorText: promptError,
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 key: const ValueKey<String>('phase6-run-provider'),
                 controller: provider,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'مزود الترحيل',
+                  errorText: providerError,
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
+                key: const ValueKey<String>('phase6-run-constraints'),
                 controller: constraints,
                 minLines: 3,
                 maxLines: 8,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'قيود إضافية — سطر لكل قيد',
+                  errorText: constraintsError,
                 ),
               ),
             ],
@@ -441,9 +448,21 @@ class _NewExecutionRunDialogState extends State<_NewExecutionRunDialog> {
         .map((value) => value.trim())
         .where((value) => value.isNotEmpty)
         .toList(growable: false);
-    if (promptValue.length < 10 ||
-        providerValue.length < 2 ||
-        constraintValues.isEmpty) {
+    final nextPromptError = promptValue.length < 10
+        ? 'اكتب وصفًا لمهمة التنفيذ من 10 أحرف على الأقل.'
+        : null;
+    final nextProviderError =
+        providerValue.length < 2 ? 'مزود الترحيل مطلوب.' : null;
+    final nextConstraintsError =
+        constraintValues.isEmpty ? 'يجب وجود قيد واحد على الأقل.' : null;
+    if (nextPromptError != null ||
+        nextProviderError != null ||
+        nextConstraintsError != null) {
+      setState(() {
+        promptError = nextPromptError;
+        providerError = nextProviderError;
+        constraintsError = nextConstraintsError;
+      });
       return;
     }
     final stamp = DateTime.now().toUtc().millisecondsSinceEpoch;

@@ -18,11 +18,14 @@ from tests.test_project_reality import HEAD, FakeGitHubReadClient
 NOW = datetime(2026, 7, 31, tzinfo=UTC)
 
 
-def service(store: MemoryStateStore | None = None) -> ExternalProjectService:
+def service(
+    store: MemoryStateStore | None = None,
+    client: FakeGitHubReadClient | None = None,
+) -> ExternalProjectService:
     return ExternalProjectService(
         {
             ProjectAdapterKind.github_repository: GitHubRepositoryRealityAdapter(
-                FakeGitHubReadClient(),
+                client or FakeGitHubReadClient(),
                 now=lambda: NOW,
             )
         },
@@ -46,12 +49,11 @@ async def test_registry_persists_probe_report_profile_and_candidates() -> None:
     restored = service(store)
 
     assert restored.get_project(record.project_id).status == ProjectStatus.probed
-    assert restored.reality(record.project_id).baseline_fingerprint == (
-        report.baseline_fingerprint
+    assert restored.reality(record.project_id).baseline_fingerprint == (report.baseline_fingerprint)
+    assert (
+        restored.reality(record.project_id).capability_profile.blocked_tools[0].adapter_id
+        == "supabase"
     )
-    assert restored.reality(record.project_id).capability_profile.blocked_tools[
-        0
-    ].adapter_id == "supabase"
     assert restored.candidate_work_items(record.project_id)
     envelope = restored.prepare_task_envelope(
         record.project_id,
@@ -87,3 +89,61 @@ def test_intake_is_idempotent_and_rejects_invalid_adapter_paths() -> None:
             repository_full_name="not-a-repository",
             display_name="Broken",
         )
+
+
+@pytest.mark.asyncio
+async def test_repository_rename_preserves_project_id_and_updates_canonical_name() -> None:
+    store = MemoryStateStore()
+    registry = service(
+        store,
+        FakeGitHubReadClient(
+            full_name="firasfanon/palwakf_Eyes",
+            repository_id=1313727249,
+            redirected=True,
+        ),
+    )
+    record = registry.intake(
+        ProjectIntakeRequest(
+            repository_full_name="firasfanon/Pal_Eyes",
+            display_name="Pal Eyes",
+        )
+    )
+
+    report = await registry.probe(record.project_id)
+    updated = registry.get_project(record.project_id)
+
+    assert updated.project_id == record.project_id
+    assert updated.repository_full_name == "firasfanon/palwakf_Eyes"
+    assert updated.github_repository_id == 1313727249
+    assert report.repository_full_name == "firasfanon/palwakf_Eyes"
+    assert len(registry.list_projects()) == 1
+
+
+@pytest.mark.asyncio
+async def test_repository_rename_conflict_fails_closed() -> None:
+    store = MemoryStateStore()
+    registry = service(
+        store,
+        FakeGitHubReadClient(
+            full_name="firasfanon/palwakf_Eyes",
+            repository_id=1313727249,
+            redirected=True,
+        ),
+    )
+    old = registry.intake(
+        ProjectIntakeRequest(
+            repository_full_name="firasfanon/Pal_Eyes",
+            display_name="Pal Eyes old",
+        )
+    )
+    registry.intake(
+        ProjectIntakeRequest(
+            repository_full_name="firasfanon/palwakf_Eyes",
+            display_name="Pal Eyes canonical",
+        )
+    )
+
+    with pytest.raises(GovernanceError, match="PROJECT_REPOSITORY_RENAME_CONFLICT"):
+        await registry.probe(old.project_id)
+
+    assert registry.get_project(old.project_id).status == ProjectStatus.blocked
