@@ -46,7 +46,7 @@ class CreateOperatorTaskRequest(BaseModel):
 
     task_id: str = Field(pattern=r"^[A-Z0-9][A-Z0-9_-]{2,127}$")
     project_id: str = Field(min_length=2, max_length=128)
-    repository: Literal["firasfanon/palwakf_workspace_manager"]
+    repository: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9_.-]*/[A-Za-z0-9][A-Za-z0-9_.-]*$")
     branch: str = Field(
         pattern=r"^(?:agent/workspace-manager-foundation-v1|task/[A-Za-z0-9._/-]{3,180})$"
     )

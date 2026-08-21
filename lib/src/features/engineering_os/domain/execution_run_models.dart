@@ -148,3 +148,132 @@ class NewExecutionRunDraft {
         'requires_explicit_authorization': requiresExplicitAuthorization,
       };
 }
+
+class ExternalValidationCommandResult {
+  const ExternalValidationCommandResult({
+    required this.check,
+    required this.commandSummary,
+    required this.status,
+    required this.durationMs,
+    required this.outputExcerpt,
+    this.exitCode,
+  });
+
+  final String check;
+  final String commandSummary;
+  final String status;
+  final int? exitCode;
+  final int durationMs;
+  final String outputExcerpt;
+
+  factory ExternalValidationCommandResult.fromJson(Map<String, dynamic> json) {
+    return ExternalValidationCommandResult(
+      check: json['check'] as String? ?? '',
+      commandSummary: json['command_summary'] as String? ?? '',
+      status: json['status'] as String? ?? 'FAIL',
+      exitCode: json['exit_code'] as int?,
+      durationMs: json['duration_ms'] as int? ?? 0,
+      outputExcerpt: json['output_excerpt'] as String? ?? '',
+    );
+  }
+}
+
+class ExternalValidationResult {
+  const ExternalValidationResult({
+    required this.checks,
+    required this.allPassed,
+    required this.validatedPaths,
+  });
+
+  final List<ExternalValidationCommandResult> checks;
+  final bool allPassed;
+  final List<String> validatedPaths;
+
+  factory ExternalValidationResult.fromJson(Map<String, dynamic> json) {
+    return ExternalValidationResult(
+      checks: (json['checks'] as List<dynamic>? ?? const <dynamic>[])
+          .map(
+            (value) => ExternalValidationCommandResult.fromJson(
+              value as Map<String, dynamic>,
+            ),
+          )
+          .toList(growable: false),
+      allPassed: json['all_passed'] as bool? ?? false,
+      validatedPaths:
+          (json['validated_paths'] as List<dynamic>? ?? const <dynamic>[])
+              .map((value) => value.toString())
+              .toList(growable: false),
+    );
+  }
+}
+
+class ExternalExecutionWorkspaceStatus {
+  const ExternalExecutionWorkspaceStatus({
+    required this.executionRunId,
+    required this.parentEngineeringTaskId,
+    required this.projectId,
+    required this.repository,
+    required this.taskBranch,
+    required this.expectedHead,
+    required this.lifecycle,
+    required this.prepared,
+    required this.authorized,
+    required this.changedFiles,
+    this.workspacePath,
+    this.currentHead,
+    this.remoteHead,
+    this.validation,
+    this.checkpointSha,
+    this.lastError,
+  });
+
+  final String executionRunId;
+  final String parentEngineeringTaskId;
+  final String projectId;
+  final String repository;
+  final String taskBranch;
+  final String expectedHead;
+  final String? workspacePath;
+  final String lifecycle;
+  final bool prepared;
+  final bool authorized;
+  final String? currentHead;
+  final String? remoteHead;
+  final List<String> changedFiles;
+  final ExternalValidationResult? validation;
+  final String? checkpointSha;
+  final String? lastError;
+
+  bool get validationPassed => validation?.allPassed ?? false;
+  bool get checkpointed => lifecycle == 'CHECKPOINTED';
+
+  factory ExternalExecutionWorkspaceStatus.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    final validationJson = json['validation'];
+    return ExternalExecutionWorkspaceStatus(
+      executionRunId: json['execution_run_id'] as String,
+      parentEngineeringTaskId:
+          json['parent_engineering_task_id'] as String? ?? '',
+      projectId: json['project_id'] as String? ?? '',
+      repository: json['repository'] as String,
+      taskBranch: json['task_branch'] as String,
+      expectedHead: json['expected_head'] as String,
+      workspacePath: json['workspace_path'] as String?,
+      lifecycle: json['lifecycle'] as String? ?? 'UNPREPARED',
+      prepared: json['prepared'] as bool? ?? false,
+      authorized: json['authorized'] as bool? ?? false,
+      currentHead: json['current_head'] as String?,
+      remoteHead: json['remote_head'] as String?,
+      changedFiles:
+          (json['changed_files'] as List<dynamic>? ?? const <dynamic>[])
+              .map((value) => value.toString())
+              .toList(growable: false),
+      validation: validationJson is Map<String, dynamic>
+          ? ExternalValidationResult.fromJson(validationJson)
+          : null,
+      checkpointSha: json['checkpoint_sha'] as String?,
+      lastError: json['last_error'] as String?,
+    );
+  }
+}

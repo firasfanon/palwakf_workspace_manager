@@ -72,6 +72,71 @@ class EngineeringOsApiClient {
     );
   }
 
+  Future<ExternalExecutionWorkspaceStatus> externalWorkspaceStatus(
+    String executionRunId,
+  ) async {
+    final encoded = Uri.encodeComponent(executionRunId);
+    return ExternalExecutionWorkspaceStatus.fromJson(
+      await _getObject('/v1/execution-runs/$encoded/workspace'),
+    );
+  }
+
+  Future<ExternalExecutionWorkspaceStatus> prepareExternalWorkspace(
+    String executionRunId, {
+    bool recreate = false,
+  }) async {
+    final encoded = Uri.encodeComponent(executionRunId);
+    return ExternalExecutionWorkspaceStatus.fromJson(
+      await _postObject(
+        '/v1/execution-runs/$encoded/workspace/prepare',
+        <String, dynamic>{'recreate': recreate},
+      ),
+    );
+  }
+
+  Future<ExternalExecutionWorkspaceStatus> applyExternalWorkspace(
+    String executionRunId,
+    List<Map<String, dynamic>> files,
+  ) async {
+    final encoded = Uri.encodeComponent(executionRunId);
+    return ExternalExecutionWorkspaceStatus.fromJson(
+      await _postObject(
+        '/v1/execution-runs/$encoded/workspace/apply',
+        <String, dynamic>{'files': files},
+      ),
+    );
+  }
+
+  Future<ExternalExecutionWorkspaceStatus> validateExternalWorkspace(
+    String executionRunId, {
+    List<String> checks = const <String>[],
+  }) async {
+    final encoded = Uri.encodeComponent(executionRunId);
+    return ExternalExecutionWorkspaceStatus.fromJson(
+      await _postObject(
+        '/v1/execution-runs/$encoded/workspace/validate',
+        <String, dynamic>{'checks': checks},
+      ),
+    );
+  }
+
+  Future<ExternalExecutionWorkspaceStatus> checkpointExternalWorkspace(
+    String executionRunId, {
+    required String commitMessage,
+    List<String> evidence = const <String>[],
+  }) async {
+    final encoded = Uri.encodeComponent(executionRunId);
+    return ExternalExecutionWorkspaceStatus.fromJson(
+      await _postObject(
+        '/v1/execution-runs/$encoded/workspace/checkpoint',
+        <String, dynamic>{
+          'commit_message': commitMessage,
+          'evidence': evidence,
+        },
+      ),
+    );
+  }
+
   Future<List<ExtensionRecord>> extensions() async {
     final response = await _request('GET', '/v1/extensions');
     return (jsonDecode(response.body) as List<dynamic>)

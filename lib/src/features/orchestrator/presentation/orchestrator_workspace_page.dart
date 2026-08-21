@@ -52,9 +52,12 @@ class _OrchestratorWorkspacePageState
         )
         .context;
     if (executionContext != null && executionContext.runs.isNotEmpty) {
-      await orchestrator.selectTask(
-        executionContext.runs.first.executionRunId,
-      );
+      final firstRun = executionContext.runs.first;
+      await orchestrator.selectTask(firstRun.executionRunId);
+      if (firstRun.operatorTask.repository !=
+          'firasfanon/palwakf_workspace_manager') {
+        await runs.loadWorkspace(firstRun.executionRunId);
+      }
     }
   }
 
@@ -129,7 +132,19 @@ class _OrchestratorWorkspacePageState
               builder: (context, constraints) {
                 final queue = _TaskQueue(
                   state: workspaceState,
-                  onSelect: controller.selectTask,
+                  onSelect: (taskId) async {
+                    await controller.selectTask(taskId);
+                    if (engineeringTaskId != null &&
+                        engineeringTaskId.isNotEmpty) {
+                      await ref
+                          .read(
+                            executionRunContextControllerProvider(
+                              engineeringTaskId,
+                            ).notifier,
+                          )
+                          .loadWorkspace(taskId);
+                    }
+                  },
                   onCreate: engineeringTaskId == null &&
                           (authorization?.canDispatch ?? false)
                       ? () => _showNewTask(context)
@@ -143,6 +158,15 @@ class _OrchestratorWorkspacePageState
                   state: workspaceState,
                   controller: controller,
                   authorization: authorization,
+                  executionState: executionState,
+                  executionController:
+                      engineeringTaskId == null || engineeringTaskId.isEmpty
+                          ? null
+                          : ref.read(
+                              executionRunContextControllerProvider(
+                                engineeringTaskId,
+                              ).notifier,
+                            ),
                 );
                 if (constraints.maxWidth < 760) {
                   return Column(
@@ -215,6 +239,14 @@ class _OrchestratorWorkspacePageState
       final orchestrator = ref.read(orchestratorControllerProvider.notifier);
       await orchestrator.load();
       await orchestrator.selectTask(run.executionRunId);
+      if (run.operatorTask.repository !=
+          'firasfanon/palwakf_workspace_manager') {
+        await ref
+            .read(
+              executionRunContextControllerProvider(engineeringTaskId).notifier,
+            )
+            .loadWorkspace(run.executionRunId);
+      }
     } catch (error) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -825,11 +857,15 @@ class _TaskDetail extends StatelessWidget {
     required this.state,
     required this.controller,
     required this.authorization,
+    required this.executionState,
+    required this.executionController,
   });
 
   final OrchestratorWorkspaceState state;
   final OrchestratorController controller;
   final OperationalAuthorizationContext? authorization;
+  final ExecutionRunContextState? executionState;
+  final ExecutionRunContextController? executionController;
 
   @override
   Widget build(BuildContext context) {
@@ -853,8 +889,12 @@ class _TaskDetail extends StatelessWidget {
         },
       );
     }
+    final externalRuntime =
+        task.repository != 'firasfanon/palwakf_workspace_manager' &&
+            executionState != null &&
+            executionController != null;
     return DefaultTabController(
-      length: 4,
+      length: externalRuntime ? 5 : 4,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
@@ -863,13 +903,18 @@ class _TaskDetail extends StatelessWidget {
             controller: controller,
             authorization: authorization,
           ),
-          const TabBar(
+          TabBar(
             isScrollable: true,
             tabs: <Widget>[
               Tab(icon: Icon(Icons.dashboard_outlined), text: 'التفاصيل'),
               Tab(icon: Icon(Icons.route_outlined), text: 'خطة الأدوات'),
               Tab(icon: Icon(Icons.forward_to_inbox_outlined), text: 'الترحيل'),
-              Tab(icon: Icon(Icons.timeline_outlined), text: 'الأحداث'),
+              const Tab(icon: Icon(Icons.timeline_outlined), text: 'الأحداث'),
+              if (externalRuntime)
+                const Tab(
+                  icon: Icon(Icons.inventory_2_outlined),
+                  text: 'مساحة التنفيذ',
+                ),
             ],
           ),
           Expanded(
@@ -881,7 +926,8 @@ class _TaskDetail extends StatelessWidget {
                   invocations: state.invocations,
                   reconciliation: state.reconciliation,
                   onPlan: controller.planTools,
-                  canMutate: authorization?.canDispatch ?? false,
+                  canMutate:
+                      !externalRuntime && (authorization?.canDispatch ?? false),
                 ),
                 _RelayTab(
                   task: task,
@@ -890,6 +936,14 @@ class _TaskDetail extends StatelessWidget {
                   canMutate: authorization?.canDispatch ?? false,
                 ),
                 _EventsTab(task: task),
+                if (externalRuntime)
+                  _ExternalExecutionWorkspaceTab(
+                    task: task,
+                    state: executionState!,
+                    controller: executionController!,
+                    orchestratorController: controller,
+                    canMutate: authorization?.canDispatch ?? false,
+                  ),
               ],
             ),
           ),
@@ -1194,6 +1248,342 @@ class _OverviewTab extends StatelessWidget {
       ],
     );
   }
+}
+
+class _ExternalExecutionWorkspaceTab extends StatelessWidget {
+  const _ExternalExecutionWorkspaceTab({
+    required this.task,
+    required this.state,
+    required this.controller,
+    required this.orchestratorController,
+    required this.canMutate,
+  });
+
+  final OperatorTask task;
+  final ExecutionRunContextState state;
+  final ExecutionRunContextController controller;
+  final OrchestratorController orchestratorController;
+  final bool canMutate;
+
+  @override
+  Widget build(BuildContext context) {
+    final workspace =
+        state.workspace?.executionRunId == task.taskId ? state.workspace : null;
+    final authorized = task.authorizedAt != null;
+    final canOperate = canMutate && authorized;
+    final sourceWrite = task.sandbox == 'workspace-write';
+
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: <Widget>[
+        const _SectionTitle(
+          icon: Icons.inventory_2_outlined,
+          title: 'مساحة التنفيذ الخارجية',
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'نسخة Git معزولة للمستودع الخارجي. لا يتم الدمج مع main أو ترقية Baseline أو Production من هذه الشاشة.',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+        const SizedBox(height: 14),
+        if (state.workspaceLoading) const LinearProgressIndicator(minHeight: 2),
+        if (state.workspaceError != null) ...<Widget>[
+          const SizedBox(height: 8),
+          _WarningBand(message: state.workspaceError!),
+        ],
+        const SizedBox(height: 12),
+        _KeyValueGrid(
+          values: <String, String>{
+            'المستودع': task.repository,
+            'الفرع': task.branch,
+            'HEAD المتوقع': task.expectedHead,
+            'الحالة': workspace?.lifecycle ?? 'UNPREPARED',
+            'HEAD المحلي': workspace?.currentHead ?? 'غير مهيأ',
+            'HEAD البعيد': workspace?.remoteHead ?? 'غير متاح',
+            'التفويض': authorized ? 'مفوّضة' : 'بانتظار التفويض',
+            'المساحة المحلية': workspace?.workspacePath ?? 'غير منشأة',
+          },
+        ),
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: <Widget>[
+            FilledButton.tonalIcon(
+              key: const ValueKey<String>('external-runtime-prepare'),
+              onPressed: canOperate && !(workspace?.checkpointed ?? false)
+                  ? () => _run(
+                        context,
+                        () => controller.prepareWorkspace(task.taskId),
+                      )
+                  : null,
+              icon: const Icon(Icons.inventory_2_outlined),
+              label: Text(
+                workspace?.prepared ?? false
+                    ? 'تحقق من مساحة التنفيذ'
+                    : 'تهيئة مساحة التنفيذ',
+              ),
+            ),
+            OutlinedButton.icon(
+              key: const ValueKey<String>('external-runtime-apply'),
+              onPressed: canOperate &&
+                      sourceWrite &&
+                      (workspace?.prepared ?? false) &&
+                      !(workspace?.checkpointed ?? false)
+                  ? () => _applyManifest(context)
+                  : null,
+              icon: const Icon(Icons.edit_note_outlined),
+              label: const Text('تطبيق ملفات محكومة'),
+            ),
+            OutlinedButton.icon(
+              key: const ValueKey<String>('external-runtime-validate'),
+              onPressed: canOperate &&
+                      (workspace?.prepared ?? false) &&
+                      !(workspace?.checkpointed ?? false)
+                  ? () => _run(
+                        context,
+                        () => controller.validateWorkspace(task.taskId),
+                      )
+                  : null,
+              icon: const Icon(Icons.fact_check_outlined),
+              label: const Text('تشغيل التحقق'),
+            ),
+            FilledButton.icon(
+              key: const ValueKey<String>('external-runtime-checkpoint'),
+              onPressed: canOperate &&
+                      sourceWrite &&
+                      (workspace?.validationPassed ?? false) &&
+                      !(workspace?.checkpointed ?? false)
+                  ? () => _checkpoint(context)
+                  : null,
+              icon: const Icon(Icons.cloud_upload_outlined),
+              label: const Text('Remote WIP Checkpoint'),
+            ),
+            IconButton(
+              tooltip: 'تحديث مساحة التنفيذ',
+              onPressed: () => controller.loadWorkspace(task.taskId),
+              icon: const Icon(Icons.refresh),
+            ),
+          ],
+        ),
+        if (!authorized) ...<Widget>[
+          const SizedBox(height: 12),
+          const _WarningBand(
+            message:
+                'يجب تفويض تشغيل المهمة من الشريط العلوي قبل تهيئة أو تعديل مساحة التنفيذ.',
+          ),
+        ],
+        if (workspace != null && workspace.changedFiles.isNotEmpty) ...<Widget>[
+          const SizedBox(height: 22),
+          const _SectionTitle(
+            icon: Icons.folder_open_outlined,
+            title: 'الملفات المتغيرة في المساحة المعزولة',
+          ),
+          ...workspace.changedFiles.map(
+            (path) => ListTile(
+              dense: true,
+              leading: const Icon(Icons.insert_drive_file_outlined, size: 18),
+              title: Text(path),
+            ),
+          ),
+        ],
+        if (workspace?.validation != null) ...<Widget>[
+          const SizedBox(height: 22),
+          _SectionTitle(
+            icon: workspace!.validation!.allPassed
+                ? Icons.check_circle_outline
+                : Icons.error_outline,
+            title:
+                workspace.validation!.allPassed ? 'التحقق ناجح' : 'التحقق فشل',
+          ),
+          const SizedBox(height: 8),
+          ...workspace.validation!.checks.map(
+            (result) => ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              title: Text('${result.check} · ${result.status}'),
+              subtitle: Text(
+                '${result.durationMs} ms · ${result.commandSummary}',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              children: <Widget>[
+                if (result.outputExcerpt.isNotEmpty)
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: SelectableText(result.outputExcerpt),
+                  ),
+              ],
+            ),
+          ),
+        ],
+        if (workspace?.checkpointSha != null) ...<Widget>[
+          const SizedBox(height: 22),
+          _KeyValueGrid(
+            values: <String, String>{
+              'Remote checkpoint SHA': workspace!.checkpointSha!,
+              'Push': 'NON_FORCE',
+              'Remote readback': 'PASS',
+              'Integration': 'NO',
+              'main': 'NO',
+              'Baseline': 'NO',
+              'Production': 'NO',
+            },
+          ),
+        ],
+      ],
+    );
+  }
+
+  Future<void> _applyManifest(BuildContext context) async {
+    final files = await _showExternalManifestDialog(context);
+    if (files == null || !context.mounted) return;
+    await _run(
+      context,
+      () => controller.applyWorkspace(task.taskId, files),
+    );
+  }
+
+  Future<void> _checkpoint(BuildContext context) async {
+    final message = await _showExternalCheckpointDialog(context);
+    if (message == null || !context.mounted) return;
+    await _run(
+      context,
+      () async {
+        await controller.checkpointWorkspace(
+          task.taskId,
+          commitMessage: message,
+          evidence: const <String>[
+            'workspace-manager:external-runtime-v1',
+          ],
+        );
+        await orchestratorController.refreshSelected();
+      },
+    );
+  }
+
+  Future<void> _run(
+    BuildContext context,
+    Future<void> Function() action,
+  ) async {
+    try {
+      await action();
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
+    }
+  }
+}
+
+Future<List<Map<String, dynamic>>?> _showExternalManifestDialog(
+  BuildContext context,
+) async {
+  final input = TextEditingController(
+    text: '[\n'
+        '  {\n'
+        '    "path": "lib/path/to/file.dart",\n'
+        '    "preimage_mode": "EXACT_CANONICAL_SHA256",\n'
+        '    "expected_preimage_canonical_sha256": "<64-hex-sha256>",\n'
+        '    "postimage_text": "complete file contents"\n'
+        '  }\n'
+        ']',
+  );
+  String? validationError;
+  final result = await showDialog<List<Map<String, dynamic>>>(
+    context: context,
+    builder: (dialogContext) => StatefulBuilder(
+      builder: (context, setDialogState) => AlertDialog(
+        title: const Text('تطبيق ملفات محكومة'),
+        content: SizedBox(
+          width: 760,
+          child: TextField(
+            key: const ValueKey<String>('external-runtime-manifest-json'),
+            controller: input,
+            minLines: 14,
+            maxLines: 24,
+            decoration: InputDecoration(
+              labelText: 'File mutation manifest JSON',
+              helperText:
+                  'أرسل القائمة الكاملة للملفات المتغيرة الحالية. المسارات والنطاق وHEAD تتحقق منها الخدمة.',
+              errorText: validationError,
+              alignLabelWithHint: true,
+            ),
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () {
+              try {
+                final decoded = jsonDecode(input.text);
+                if (decoded is! List<dynamic> || decoded.isEmpty) {
+                  throw const FormatException('القائمة فارغة أو غير صالحة.');
+                }
+                final files = decoded
+                    .map(
+                      (value) => Map<String, dynamic>.from(
+                        value as Map<dynamic, dynamic>,
+                      ),
+                    )
+                    .toList(growable: false);
+                Navigator.pop(dialogContext, files);
+              } catch (error) {
+                setDialogState(() {
+                  validationError = 'Manifest غير صالح: $error';
+                });
+              }
+            },
+            child: const Text('تطبيق'),
+          ),
+        ],
+      ),
+    ),
+  );
+  input.dispose();
+  return result;
+}
+
+Future<String?> _showExternalCheckpointDialog(BuildContext context) async {
+  final input = TextEditingController(
+    text: 'fix(project): governed external workspace checkpoint',
+  );
+  final result = await showDialog<String>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('إنشاء Remote WIP Checkpoint'),
+      content: SizedBox(
+        width: 620,
+        child: TextField(
+          key: const ValueKey<String>('external-runtime-commit-message'),
+          controller: input,
+          decoration: const InputDecoration(
+            labelText: 'Commit message',
+            helperText:
+                'Push عادي بدون force إلى task branch فقط. لا يوجد merge أو main.',
+          ),
+        ),
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext),
+          child: const Text('إلغاء'),
+        ),
+        FilledButton(
+          onPressed: () {
+            final value = input.text.trim();
+            if (value.length >= 4) Navigator.pop(dialogContext, value);
+          },
+          child: const Text('إنشاء ورفع'),
+        ),
+      ],
+    ),
+  );
+  input.dispose();
+  return result;
 }
 
 class _ToolPlanTab extends StatelessWidget {

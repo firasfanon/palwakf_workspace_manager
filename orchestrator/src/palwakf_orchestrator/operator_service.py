@@ -634,6 +634,74 @@ class OperatorService:
             blocker=None,
         )
 
+    def record_external_execution_result(
+        self,
+        task_id: str,
+        *,
+        before_head: str,
+        after_head: str,
+        changed_files: list[str],
+        tests: list[str],
+        evidence: list[str],
+        execution_receipt: str,
+    ) -> OperatorTaskRecord:
+        task = self.get_task(task_id)
+        if task.requires_explicit_authorization and task.authorized_at is None:
+            raise GovernanceError(
+                "explicit task authorization is required before external checkpoint"
+            )
+        if task.status in {OperatorTaskStatus.cancelled, OperatorTaskStatus.verified}:
+            raise GovernanceError("external checkpoint rejected for terminal operator task")
+        if before_head.lower() != task.expected_head.lower():
+            raise GovernanceError("external checkpoint before_head does not match task authority")
+        normalized = [value.replace("\\", "/") for value in changed_files]
+        violations = self._scope_violations(task, normalized)
+        if violations:
+            raise GovernanceError(
+                "EXECUTION_RESULT_OUTSIDE_AUTHORIZED_SCOPE:" + ",".join(violations)
+            )
+        self._assert_secret_free(
+            {
+                "tests": tests,
+                "evidence": evidence,
+                "execution_receipt": execution_receipt,
+            }
+        )
+        if task.execution_receipt is not None:
+            if (
+                task.execution_receipt == execution_receipt
+                and task.before_head == before_head.lower()
+                and task.after_head == after_head.lower()
+                and sorted(task.changed_files) == sorted(normalized)
+            ):
+                return task
+            raise GovernanceError("EXTERNAL_EXECUTION_RESULT_IDEMPOTENCY_CONFLICT")
+
+        task.before_head = before_head.lower()
+        task.after_head = after_head.lower()
+        task.changed_files = normalized
+        task.tests = list(tests)
+        task.evidence = list(evidence)
+        task.execution_receipt = execution_receipt
+        return self._transition(
+            task,
+            OperatorTaskStatus.pending_verification,
+            "EXTERNAL_WORKSPACE_CHECKPOINTED",
+            (
+                "External repository WIP checkpoint persisted; "
+                "independent verification remains required"
+            ),
+            blocker=None,
+        )
+
+    def external_scope_violations(
+        self,
+        task_id: str,
+        changed_files: list[str],
+    ) -> list[str]:
+        task = self.get_task(task_id)
+        return self._scope_violations(task, changed_files)
+
     def plan_tools(
         self,
         task_id: str,

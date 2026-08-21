@@ -49,6 +49,16 @@ from palwakf_orchestrator.execution_run_contracts import (
     EngineeringTaskExecutionContext,
     ExecutionRunOperationalView,
 )
+from palwakf_orchestrator.external_execution_contracts import (
+    ApplyExternalWorkspaceRequest,
+    CheckpointExternalWorkspaceRequest,
+    ExternalExecutionWorkspaceStatus,
+    PrepareExternalWorkspaceRequest,
+    ValidateExternalWorkspaceRequest,
+)
+from palwakf_orchestrator.external_execution_workspace import (
+    ExternalExecutionWorkspaceService,
+)
 from palwakf_orchestrator.local_product import LocalProductService, ManagedWorkspaceStatus
 from palwakf_orchestrator.local_session import LOCAL_SESSION_COOKIE, LocalSessionManager
 from palwakf_orchestrator.mcp_server import create_mcp_server
@@ -101,6 +111,7 @@ def create_app(
     local_session_manager: LocalSessionManager | None = None,
     local_product_service: LocalProductService | None = None,
     engineering_os_service: EngineeringOsService | None = None,
+    external_execution_service: ExternalExecutionWorkspaceService | None = None,
 ) -> FastAPI:
     resolved_settings = settings or get_settings()
     resolved_settings.assert_safe_binding()
@@ -129,6 +140,14 @@ def create_app(
         state_store=resolved_store,
     )
     execution_runs = ExecutionRunAdapter(engineering_os, resolved_operator, resolved_store)
+    external_execution = external_execution_service or ExternalExecutionWorkspaceService(
+        engineering_os,
+        execution_runs,
+        resolved_operator,
+        resolved_store,
+        workspace_root=resolved_settings.workspace_root,
+        execution_host_id=resolved_settings.execution_host_id,
+    )
     connected = connected_service or ConnectedApplicationService(
         resolved_settings,
         resolved_operator,
@@ -196,6 +215,7 @@ def create_app(
     app.state.local_product_service = local_product
     app.state.engineering_os_service = engineering_os
     app.state.execution_run_adapter = execution_runs
+    app.state.external_execution_workspace_service = external_execution
     app.add_middleware(
         CORSMiddleware,
         allow_origin_regex=r"^https?://(127\.0\.0\.1|localhost)(:\d+)?$",
@@ -432,7 +452,7 @@ def create_app(
             raise HTTPException(status_code=404, detail=str(exc)) from exc
 
     _add_engineering_os_routes(app, engineering_os)
-    _add_execution_run_routes(app, execution_runs)
+    _add_execution_run_routes(app, execution_runs, external_execution)
     _add_legacy_routes(app, resolved_operator, connected)
     _add_project_routes(app, resolved_projects, engineering_os)
     app.mount("/mcp", mcp_http_app, name="mcp")
@@ -529,6 +549,7 @@ def _add_engineering_os_routes(
 def _add_execution_run_routes(
     app: FastAPI,
     execution_runs: ExecutionRunAdapter,
+    external_execution: ExternalExecutionWorkspaceService | None = None,
 ) -> None:
     def execution_error(exc: GovernanceError) -> HTTPException:
         missing = str(exc) in {"ENGINEERING_TASK_NOT_FOUND", "EXECUTION_RUN_NOT_FOUND"}
@@ -570,6 +591,72 @@ def _add_execution_run_routes(
             return execution_runs.get_operational_view(execution_run_id)
         except GovernanceError as exc:
             raise execution_error(exc) from exc
+
+    if external_execution is not None:
+
+        @app.get(
+            "/v1/execution-runs/{execution_run_id}/workspace",
+            response_model=ExternalExecutionWorkspaceStatus,
+        )
+        async def external_workspace_status(
+            execution_run_id: str,
+        ) -> ExternalExecutionWorkspaceStatus:
+            try:
+                return external_execution.status(execution_run_id)
+            except GovernanceError as exc:
+                raise execution_error(exc) from exc
+
+        @app.post(
+            "/v1/execution-runs/{execution_run_id}/workspace/prepare",
+            response_model=ExternalExecutionWorkspaceStatus,
+        )
+        async def prepare_external_workspace(
+            execution_run_id: str,
+            command: PrepareExternalWorkspaceRequest,
+        ) -> ExternalExecutionWorkspaceStatus:
+            try:
+                return external_execution.prepare(execution_run_id, command)
+            except GovernanceError as exc:
+                raise execution_error(exc) from exc
+
+        @app.post(
+            "/v1/execution-runs/{execution_run_id}/workspace/apply",
+            response_model=ExternalExecutionWorkspaceStatus,
+        )
+        async def apply_external_workspace(
+            execution_run_id: str,
+            command: ApplyExternalWorkspaceRequest,
+        ) -> ExternalExecutionWorkspaceStatus:
+            try:
+                return external_execution.apply(execution_run_id, command)
+            except GovernanceError as exc:
+                raise execution_error(exc) from exc
+
+        @app.post(
+            "/v1/execution-runs/{execution_run_id}/workspace/validate",
+            response_model=ExternalExecutionWorkspaceStatus,
+        )
+        async def validate_external_workspace(
+            execution_run_id: str,
+            command: ValidateExternalWorkspaceRequest,
+        ) -> ExternalExecutionWorkspaceStatus:
+            try:
+                return external_execution.validate(execution_run_id, command)
+            except GovernanceError as exc:
+                raise execution_error(exc) from exc
+
+        @app.post(
+            "/v1/execution-runs/{execution_run_id}/workspace/checkpoint",
+            response_model=ExternalExecutionWorkspaceStatus,
+        )
+        async def checkpoint_external_workspace(
+            execution_run_id: str,
+            command: CheckpointExternalWorkspaceRequest,
+        ) -> ExternalExecutionWorkspaceStatus:
+            try:
+                return external_execution.checkpoint(execution_run_id, command)
+            except GovernanceError as exc:
+                raise execution_error(exc) from exc
 
 
 def _add_legacy_routes(
