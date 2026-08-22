@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://palwakf.example/schemas/self_hosting_checkpoint_v1.schema.json",
+  "title": "PalWakf Self-Hosting Checkpoint V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "task_id",
+    "thread_id",
+    "before_head",
+    "after_head",
+    "branch",
+    "commit_sha",
+    "ci_result",
+    "verification_status",
+    "changed_files",
+    "tests",
+    "blocker",
+    "next_action"
+  ],
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "minLength": 3
+    },
+    "thread_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "before_head": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "after_head": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "branch": {
+      "const": "agent/workspace-manager-foundation-v1"
+    },
+    "commit_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "ci_result": {
+      "enum": [
+        "pending",
+        "success",
+        "failed"
+      ]
+    },
+    "verification_status": {
+      "enum": [
+        "pending",
+        "verified",
+        "blocked"
+      ]
+    },
+    "changed_files": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "tests": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "blocker": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "next_action": {
+      "type": "string"
+    }
+  }
+}

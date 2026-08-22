@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools==80.9.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "palwakf-orchestrator"
+version = "0.1.0"
+description = "Governed Agents SDK to Codex SDK/MCP orchestration backend."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "fastapi==0.141.1",
+  "httpx==0.28.1",
+  "mcp==1.29.0",
+  "PyJWT[crypto]==2.13.0",
+  "openai-agents==0.19.1",
+  "openai-codex==0.144.4",
+  "pydantic-settings==2.14.2",
+  "uvicorn==0.52.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "mypy==1.18.2",
+  "pytest==9.1.1",
+  "pytest-asyncio==1.4.0",
+  "ruff==0.16.0",
+]
+
+[project.scripts]
+palwakf-orchestrator = "palwakf_orchestrator.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+packages = ["palwakf_orchestrator"]
+mypy_path = "src"
+
+[[tool.mypy.overrides]]
+module = ["codex_cli_bin", "codex_cli_bin.*"]
+ignore_missing_imports = true

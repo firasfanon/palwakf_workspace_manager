@@ -1,0 +1,48 @@
+{
+  "task_id": "PALWAKF_WORKSPACE_MANAGER_LOCAL_FIRST_SELF_HOSTING_PRODUCT_COMPLETION_V1",
+  "evidence_type": "BOOTSTRAP_IMPLEMENTATION_AND_LOCAL_UAT",
+  "status": "BOOTSTRAP_VALIDATED_SELF_HOSTED_PROOF_PENDING",
+  "before_head": "53e1d2beb54229563445232dec9c5ff32277fccc",
+  "branch": "agent/workspace-manager-foundation-v1",
+  "pull_request_number": 1,
+  "one_command_start": "PASS",
+  "one_command_stop": "PASS",
+  "local_session": {
+    "status": "PASS",
+    "manual_credential_entry": false,
+    "plaintext_credential_persisted": false,
+    "one_time_launch_replay_rejected": true
+  },
+  "self_registration": {
+    "status": "PASS",
+    "local_remote_pr_head_match": true,
+    "pull_request_state": "OPEN",
+    "ci_status": "SUCCESS",
+    "github": "CONNECTED",
+    "agents_sdk": "AVAILABLE",
+    "codex": "AVAILABLE",
+    "authentication": "VERIFIED",
+    "orchestrator": "CONNECTED"
+  },
+  "validation": {
+    "ruff": "PASS",
+    "mypy": "PASS",
+    "backend_tests": "63_PASS",
+    "dart_format": "PASS",
+    "flutter_analyze": "PASS",
+    "flutter_tests": "24_PASS",
+    "flutter_web_release": "PASS",
+    "powershell_launcher_syntax": "PASS",
+    "browser_uat_desktop": "PASS",
+    "browser_uat_narrow": "PASS",
+    "browser_console_errors": 0,
+    "browser_request_failures": 0
+  },
+  "live_self_hosted_execution_count": 0,
+  "self_hosted_proof_status": "PENDING_AFTER_BOOTSTRAP_COMMIT",
+  "external_project_mutation": "NONE",
+  "supabase_connected": false,
+  "production_promotion": false,
+  "merge_performed": false,
+  "sensitive_values_exposed": false
+}

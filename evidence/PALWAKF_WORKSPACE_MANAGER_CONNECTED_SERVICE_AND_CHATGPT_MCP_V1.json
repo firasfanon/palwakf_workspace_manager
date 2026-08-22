@@ -1,0 +1,127 @@
+{
+  "task_id": "PALWAKF_WORKSPACE_MANAGER_CONNECTED_SERVICE_AND_CHATGPT_MCP_V1",
+  "status": "IMPLEMENTED_SOURCE_VERIFIED_LOCAL_SECURE_MODE",
+  "repository": "firasfanon/palwakf_workspace_manager",
+  "branch": "agent/workspace-manager-foundation-v1",
+  "before_head": "94c50e0400ee4f843270f7f505119f2a72c78841",
+  "implementation_commit": "ea6d6dac96357d5b0f72e19a603c3805845364a2",
+  "service": {
+    "deployment_status": "SOURCE_READY_LOCAL_SECURE_SMOKE_PASS",
+    "local_mode": "LOCAL_SECURE_MODE",
+    "remote_mode": "FAIL_CLOSED_REQUIRES_HTTPS_OAUTH_JWKS",
+    "state_store": "LOCAL_SQLITE_WAL",
+    "bounded_queue": true,
+    "graceful_lifecycle": true,
+    "one_active_writer_per_repository": true,
+    "public_unauthenticated_endpoint": false
+  },
+  "authentication": {
+    "status": "PASS",
+    "local": "OPAQUE_BEARER_SHA256_ONLY",
+    "remote": "OAUTH_JWT_ISSUER_AUDIENCE_EXPIRY_JWKS",
+    "identity_separate_from_authority": true,
+    "scoped_authorization": true,
+    "secret_persisted": false,
+    "secret_logged": false,
+    "flutter_token_storage": "RUNTIME_MEMORY_ONLY"
+  },
+  "mcp_http_parity": {
+    "status": "PASS",
+    "shared_application_service": true,
+    "tools": [
+      "dispatch_codex_task",
+      "continue_codex_task",
+      "get_codex_task_status",
+      "cancel_codex_task",
+      "verify_codex_result",
+      "list_recent_tasks"
+    ]
+  },
+  "transport_smoke": {
+    "status": "PASS",
+    "executor": "DETERMINISTIC_FAKE_EXECUTOR",
+    "http_ready": 200,
+    "unauthenticated_health": 401,
+    "dispatch": "queued",
+    "status": "pending_verification",
+    "continue": "queued_then_pending_verification",
+    "cancel": "cancelled",
+    "verify": "verified",
+    "recent_task_count": 3,
+    "execution_host_id_persisted": true,
+    "tool_executor_id_persisted": true,
+    "secret_printed": false
+  },
+  "persistence_and_recovery": {
+    "status": "PASS",
+    "restart_restore": true,
+    "idempotent_replay": true,
+    "interrupted_execution_recovery": true,
+    "cross_host_resume_rejected": true,
+    "silent_thread_replacement": false
+  },
+  "tool_operational_health": {
+    "status": "PASS",
+    "api_and_flutter_dashboard": true,
+    "detail_route": true,
+    "provenance_required": true,
+    "unknown_values_remain_null": true,
+    "openai_authentication": {
+      "value": "SET",
+      "provenance": "VERIFIED_RUNTIME_PROBE"
+    },
+    "openai_quota": {
+      "value": "AVAILABLE",
+      "provenance": "VERIFIED_RUNTIME_PROBE"
+    },
+    "openai_balance": {
+      "value": null,
+      "provenance": "NOT_EXPOSED_BY_PROVIDER"
+    },
+    "openai_credit_expiry": {
+      "value": null,
+      "provenance": "NOT_EXPOSED_BY_PROVIDER"
+    }
+  },
+  "validation": {
+    "ruff": "PASS",
+    "mypy": "PASS_21_SOURCE_FILES",
+    "pytest": "PASS_44_TESTS",
+    "dart_format": "PASS",
+    "flutter_analyze": "PASS",
+    "flutter_test": "PASS_15_TESTS",
+    "flutter_build_web_release": "PASS_BUILD_WEB",
+    "connected_transport_smoke": "PASS",
+    "secret_scan": "PASS",
+    "manifest": "GENERATED_DETERMINISTICALLY",
+    "github_actions": {
+      "status": "PASS",
+      "run_id": 30586946323,
+      "run_number": 18,
+      "orchestrator_job": "PASS",
+      "flutter_verify_job": "PASS"
+    },
+    "vercel_preview": {
+      "status": "READY",
+      "deployment_id": "dpl_8vR21nWvyXk7RrvP1CNp71VRJ2ip",
+      "url": "https://palwakf-workspace-manager-n4h09u4ky-firasfanons-projects.vercel.app",
+      "target": null,
+      "browser_uat": "NOT_RUN_LATER_INDEPENDENT_GATE"
+    }
+  },
+  "chatgpt_connection": {
+    "source_readiness": "PASS",
+    "live_connection": "NOT_EXECUTED",
+    "reason": "NO_AUTHORIZED_STABLE_HTTPS_OAUTH_DEPLOYMENT_IN_SCOPE",
+    "automatic_connectivity_claimed": false
+  },
+  "boundaries": {
+    "merge_performed": false,
+    "production_promoted": false,
+    "supabase_connected": false,
+    "production_data_accessed": false,
+    "secret_exposed": false,
+    "new_branch_created": false,
+    "new_pull_request_created": false
+  }
+}

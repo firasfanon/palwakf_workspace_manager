@@ -1,0 +1,185 @@
+{
+  "registry_version": "PALWAKF_TOOL_ROLE_AND_INVOCATION_REGISTRY_R2_20260815",
+  "capabilities": {
+    "code.execution": [],
+    "governed.patch_relay": [
+      "codex"
+    ],
+    "source.control": [
+      "github"
+    ],
+    "continuous.integration": [
+      "github-actions"
+    ],
+    "runtime.verification": [
+      "local-runtime"
+    ],
+    "evidence.capture": [
+      "evidence-recorder"
+    ],
+    "product.design": [
+      "figma"
+    ],
+    "communication.asset": [
+      "canva"
+    ],
+    "legal.authority": [
+      "midpage",
+      "official-source"
+    ],
+    "academic.discovery": [
+      "consensus"
+    ],
+    "academic.fulltext": [
+      "scispace"
+    ],
+    "ml.hub": [
+      "hugging-face"
+    ],
+    "relational.runtime": [
+      "supabase"
+    ]
+  },
+  "adapters": {
+    "codex": {
+      "lifecycle": "available",
+      "permission_status": "authorized",
+      "write_capable": true,
+      "read_only_fallback": false,
+      "role_authorities": {
+        "autonomous_development": "SUSPENDED",
+        "autonomous_decision_making": "FORBIDDEN",
+        "independent_debugging": "FORBIDDEN",
+        "governed_patch_relay": "AUTHORIZED_GOVERNED_SCOPE",
+        "git_transport": "AUTHORIZED_GOVERNED_SCOPE",
+        "commit_push_pr": "AUTHORIZED_GOVERNED_SCOPE"
+      },
+      "evidence_contract": [
+        "thread_id",
+        "final_response",
+        "changed_files"
+      ]
+    },
+    "github": {
+      "lifecycle": "available",
+      "permission_status": "authorized",
+      "write_capable": true,
+      "read_only_fallback": true,
+      "evidence_contract": [
+        "repository",
+        "branch",
+        "commit_sha"
+      ]
+    },
+    "github-actions": {
+      "lifecycle": "available",
+      "permission_status": "authorized",
+      "write_capable": false,
+      "read_only_fallback": false,
+      "evidence_contract": [
+        "workflow_run_id",
+        "conclusion"
+      ]
+    },
+    "local-runtime": {
+      "lifecycle": "available",
+      "permission_status": "authorized",
+      "write_capable": false,
+      "read_only_fallback": false,
+      "evidence_contract": [
+        "command",
+        "exit_code"
+      ]
+    },
+    "evidence-recorder": {
+      "lifecycle": "available",
+      "permission_status": "authorized",
+      "write_capable": true,
+      "read_only_fallback": false,
+      "evidence_contract": [
+        "evidence_path",
+        "sha256"
+      ]
+    },
+    "figma": {
+      "lifecycle": "available",
+      "permission_status": "authorized",
+      "write_capable": true,
+      "read_only_fallback": false,
+      "evidence_contract": [
+        "file_key",
+        "node_id"
+      ]
+    },
+    "canva": {
+      "lifecycle": "available",
+      "permission_status": "authorized",
+      "write_capable": true,
+      "read_only_fallback": false,
+      "evidence_contract": [
+        "design_id",
+        "export_reference"
+      ]
+    },
+    "midpage": {
+      "lifecycle": "available",
+      "permission_status": "authorized",
+      "write_capable": false,
+      "read_only_fallback": true,
+      "evidence_contract": [
+        "authority_url",
+        "citation"
+      ]
+    },
+    "official-source": {
+      "lifecycle": "available",
+      "permission_status": "authorized",
+      "write_capable": false,
+      "read_only_fallback": true,
+      "evidence_contract": [
+        "official_url",
+        "retrieved_at"
+      ]
+    },
+    "consensus": {
+      "lifecycle": "available",
+      "permission_status": "authorized",
+      "write_capable": false,
+      "read_only_fallback": false,
+      "evidence_contract": [
+        "paper_id",
+        "citation"
+      ]
+    },
+    "scispace": {
+      "lifecycle": "available",
+      "permission_status": "authorized",
+      "write_capable": false,
+      "read_only_fallback": false,
+      "evidence_contract": [
+        "paper_id",
+        "passage_reference"
+      ]
+    },
+    "hugging-face": {
+      "lifecycle": "available",
+      "permission_status": "approval_required",
+      "write_capable": true,
+      "read_only_fallback": true,
+      "evidence_contract": [
+        "repository_id",
+        "revision"
+      ]
+    },
+    "supabase": {
+      "lifecycle": "blocked",
+      "permission_status": "blocked",
+      "write_capable": true,
+      "read_only_fallback": false,
+      "evidence_contract": [
+        "project_id",
+        "migration_reference"
+      ]
+    }
+  }
+}

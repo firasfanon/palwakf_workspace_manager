@@ -1,0 +1,56 @@
+{
+  "evidence_type": "PALWAKF_MAIN_DASHBOARD_BROWSER_UAT_PREPARATION_V1",
+  "task_id": "PALWAKF_WORKSPACE_MANAGER_MAIN_DASHBOARD_AND_PROJECT_OPERATIONS_SHELL_V1",
+  "status": "PREPARED_NOT_HUMAN_EXECUTED",
+  "preview_url": "https://palwakf-workspace-manager-2d5pfnftv-firasfanons-projects.vercel.app",
+  "preview_deployment_id": "dpl_4PCxygzyfN7pvFQtCJKojorqFr7R",
+  "preview_source_commit": "d4fbb51196656c249a871a8ae686ca46b55165db",
+  "routes": [
+    "/dashboard",
+    "/projects",
+    "/projects/FIRASFANON_PAL_EYES",
+    "/tasks",
+    "/tools",
+    "/alerts",
+    "/evidence",
+    "/settings/connections"
+  ],
+  "viewports": [
+    {
+      "width": 360,
+      "height": 800
+    },
+    {
+      "width": 768,
+      "height": 900
+    },
+    {
+      "width": 1024,
+      "height": 900
+    },
+    {
+      "width": 1440,
+      "height": 900
+    }
+  ],
+  "checks": [
+    "Arabic RTL direction and semantic page title",
+    "Responsive drawer, bottom navigation, or navigation rail",
+    "No overflow or overlapping controls",
+    "Dashboard connected, empty, and disconnected states are explicit",
+    "Projects search, filter, sort, and detail tabs remain reachable",
+    "Tasks, tools, alerts, evidence, and connections routes remain reachable",
+    "No stale Foundation placeholder labels",
+    "No Production, merge, Supabase, or database action is exposed"
+  ],
+  "automated_widget_viewport_test": "PASS_360_768_1024_1440",
+  "automated_preview_browser_smoke": "BLOCKED_BY_VERCEL_DEPLOYMENT_PROTECTION",
+  "preview_protection_observation": {
+    "status": "AUTHENTICATION_REQUIRED",
+    "public_unauthenticated_access": false,
+    "protection_disabled": false,
+    "source_change_required": false
+  },
+  "human_browser_uat_completed": false,
+  "human_browser_uat_claimed": false
+}
