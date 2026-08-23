@@ -1,36 +1,45 @@
 # Current Task
 
+> **Authority note:** this repository file is a non-authoritative resume hint.
+> The sovereign current project state, active-task contract, acceptance state,
+> baseline state, and governance records live in Google Drive under
+> `PALWAKF_WORKSPACE`. If this file conflicts with the sovereign Drive state,
+> **Drive wins**.
+
 ```text
-TASK_ID=PALWAKF_WORKSPACE_PRODUCT_ENGINEERING_EXTENSIBILITY_MEGA_BATCH_V1
-STATUS=IMPLEMENTATION_IN_PROGRESS
-MODE=REMOTE_FIRST_PARALLEL_VERTICAL_SLICE
+PROJECT_ID=PALWAKF_WORKSPACE_MANAGER
 REPOSITORY=firasfanon/palwakf_workspace_manager
-BASE_INTEGRATED_SHA=909373f72e93bf445a149f5072a5e19ceb2f4679
-TASK_BRANCH=task/WM-REMOTE-FIRST-EXTENSIBILITY-UI-V1
+REPOSITORY_DOCUMENT_ROLE=NON_AUTHORITATIVE_RESUME_HINT
 
-TRACK_A_PRODUCT=TASK_BOARD_V1+EXTENSIONS_CENTER_V1
-TRACK_B_ENGINEERING=REMOTE_FIRST_TASK_WORKFLOW_FOUNDATION
-TRACK_C_EXTENSIBILITY=SKILL_AGENT_TOOL_PROVIDER_REGISTRY_FOUNDATION
+LAST_ACCEPTED_TASK_ID=WM_EXTERNAL_PROJECT_GOVERNED_EXECUTION_RUNTIME_V1
+LAST_ACCEPTED_TASK_HEAD=d42b86bc477dd1505ca19f320a06d8f814841e4d
+LAST_INTEGRATION_PR=2
+LAST_RUNTIME_INTEGRATION_MAIN_HEAD=b29647ecf035ddd0db75731ae2dd6018233b035b
+LAST_ACCEPTED_TASK_STATUS=INTEGRATED_ACCEPTED
+TASK_ACCEPTANCE_DEBT=CLOSED
 
-PRODUCT_UI_TRACK=MANDATORY
-ENGINEERING_GOVERNANCE_TRACK=MANDATORY
-EXTENSIBILITY_TRACK=MANDATORY
-OPEN_SOURCE_FIRST=TRUE
-OPEN_SOURCE_ONLY=FALSE
+ACTIVE_DEVELOPMENT_TASK=NONE
+CURRENT_GATE=BASELINE_DECISION_AFTER_REPOSITORY_DOC_NORMALIZATION
+SOVEREIGN_BASELINE_STATUS=NOT_YET_PROMOTED
+PRODUCTION_APPROVAL=FALSE
 
-GITHUB_REMOTE_TASK_BRANCH=AUTHORITATIVE_WIP_STATE
-LOCAL_WORKTREE=DISPOSABLE_EXECUTION_CACHE_ONLY
-MAIN_MERGE=NOT_AUTHORIZED
-BASELINE_PROMOTION=NOT_AUTHORIZED
-PRODUCTION_MUTATION=NOT_AUTHORIZED
-
-NEXT_GATE=APPLY_VERIFY_COMMIT_AND_PUSH_WIP_TASK_CHECKPOINT
+NEXT_DEVELOPMENT_PROGRAM=WORKSPACE_CONTROL_PLANE_MEGA_BATCH_V1
+NEXT_DEVELOPMENT_PROGRAM_TYPE=ONE_GOVERNED_MEGA_BATCH
+FIXED_BATCH_COUNT=NONE
+MEGA_BATCH_STATUS=PLANNED_ACCEPTED_NOT_STARTED
 ```
 
-## Visible acceptance
+## Resume rule
 
-- `/tasks` renders a Remote-first task board.
-- A task can be created with explicit Base SHA and `task/*` branch identity.
-- `/extensions` renders Skills, Agents, Tools, and Providers.
-- External extensions can be registered but enter quarantine by default.
-- No extension becomes an authority merely by being registered.
+Do not infer current authority from this file alone.
+
+Resume order:
+
+1. Read the sovereign Workspace current-state records in Google Drive.
+2. Reconcile live GitHub reality.
+3. Reconcile material local execution reality when required.
+4. Fail closed on material unknown or drift.
+
+The completed runtime task is integrated. No new development task has started yet.
+The next development program is `WORKSPACE_CONTROL_PLANE_MEGA_BATCH_V1`, after
+the clean baseline decision.
