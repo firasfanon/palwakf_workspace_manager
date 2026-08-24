@@ -21,7 +21,7 @@ def default_registry_path() -> Path:
     return (
         Path(__file__).resolve().parents[2]
         / "data"
-        / "PALWAKF_TOOL_ROLE_AND_INVOCATION_REGISTRY_R2_20260815.json"
+        / "PALWAKF_TOOL_ROLE_AND_INVOCATION_REGISTRY_R3_20260824.json"
     )
 
 
@@ -65,10 +65,25 @@ def workspace_manager_profile() -> ProjectCapabilityProfile:
             "ml.hub",
             "communication.asset",
             "relational.runtime",
+            "governed.code_review",
+            "governed.diagnostic_debug",
+            "governed.bounded_bug_fix",
+            "governed.engineering_proposal",
+            "governed.test_regression_analysis",
         ],
         prohibited_capabilities=["relational.runtime"],
         preferred_adapters={
-            "governed.patch_relay": ["codex"],
+            "governed.patch_relay": ["codex", "claude-code", "kimi", "local-agent"],
+            "governed.code_review": ["codex", "claude-code", "kimi", "local-agent"],
+            "governed.diagnostic_debug": ["codex", "claude-code", "kimi", "local-agent"],
+            "governed.bounded_bug_fix": ["codex", "claude-code", "kimi", "local-agent"],
+            "governed.engineering_proposal": ["codex", "claude-code", "kimi", "local-agent"],
+            "governed.test_regression_analysis": [
+                "codex",
+                "claude-code",
+                "kimi",
+                "local-agent",
+            ],
             "source.control": ["github"],
             "continuous.integration": ["github-actions"],
             "runtime.verification": ["local-runtime"],
@@ -95,7 +110,7 @@ def workspace_manager_profile() -> ProjectCapabilityProfile:
             "manifest_sha256",
         ],
         profile_source="docs/governance/PLATFORM_GUIDE_PIN.md",
-        profile_version="1.1.0",
+        profile_version="1.2.0",
     )
 
 
@@ -217,6 +232,18 @@ class CapabilityRouter:
                     AdapterExclusion(
                         adapter_id=adapter_id,
                         reason=f"adapter permission is {permission}",
+                    )
+                )
+                continue
+            certification = metadata.get("provider_certification_status")
+            if certification is not None and certification not in {
+                "TRIAL_AUTHORIZED",
+                "APPROVED_PROVIDER",
+            }:
+                exclusions.append(
+                    AdapterExclusion(
+                        adapter_id=adapter_id,
+                        reason=f"provider certification is {certification}",
                     )
                 )
                 continue

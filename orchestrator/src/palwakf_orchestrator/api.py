@@ -191,6 +191,8 @@ def create_app(
         connected,
         resolved_auth,
         dashboard,
+        engineering_os=engineering_os,
+        execution_runs=execution_runs,
     ).streamable_http_app()
 
     @asynccontextmanager

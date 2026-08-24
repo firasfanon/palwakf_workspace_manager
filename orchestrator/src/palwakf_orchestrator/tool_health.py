@@ -34,11 +34,21 @@ class ToolHealthService:
     ) -> None:
         self._store = store
         self._registry = registry or CapabilityRegistry()
-        self._required = {
-            adapter
-            for capability in workspace_manager_profile().required_capabilities
-            for adapter in self._registry.adapters_for(capability)
-        }
+        profile = workspace_manager_profile()
+        self._required: set[str] = set()
+        for capability in profile.required_capabilities:
+            candidates = self._registry.adapters_for(capability)
+            preferred = profile.preferred_adapters.get(capability, candidates)
+            for adapter in preferred:
+                if adapter not in candidates:
+                    continue
+                metadata = self._registry.adapter(adapter)
+                if (
+                    metadata["lifecycle"] == "available"
+                    and metadata["permission_status"] not in {"blocked", "untested"}
+                ):
+                    self._required.add(adapter)
+                    break
         self._items = self._restore() or self._seed()
         self._reconcile_role_authorities()
         self._persist()
@@ -134,7 +144,7 @@ class ToolHealthService:
                     provenance=ValueProvenance.stale,
                 ),
                 operator_actions=["Run an authenticated adapter probe"],
-                evidence=["tool-registry:R2_20260815"],
+                evidence=[f"tool-registry:{self._registry.version}"],
                 role_authorities=self._role_authorities(metadata),
             )
 

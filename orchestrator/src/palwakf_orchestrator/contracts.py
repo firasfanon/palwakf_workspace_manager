@@ -5,6 +5,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from palwakf_orchestrator.provider_contracts import MUTATING_PROVIDER_MODES, ProviderMode
+
 
 class Transport(StrEnum):
     sdk = "sdk"
@@ -26,19 +28,35 @@ class DispatchRequest(BaseModel):
     task_id: str = Field(pattern=r"^[A-Z0-9][A-Z0-9_-]{2,127}$")
     prompt: str = Field(min_length=10, max_length=20_000)
     repository: Literal["firasfanon/palwakf_workspace_manager"]
-    branch: Literal["agent/workspace-manager-foundation-v1"]
+    branch: str = Field(
+        pattern=r"^(?:main|agent/workspace-manager-foundation-v1|task/[A-Za-z0-9._/-]{3,180})$"
+    )
     expected_head: str = Field(pattern=r"^[0-9a-fA-F]{7,40}$")
     idempotency_key: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$")
+    executor_provider_id: str = Field(
+        default="codex",
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{1,127}$",
+    )
+    provider_mode: ProviderMode = ProviderMode.execution_relay
     transport: Transport = Transport.sdk
     boundaries: SovereigntyBoundaries = Field(default_factory=SovereigntyBoundaries)
 
     @model_validator(mode="after")
     def restrict_workspace_write(self) -> DispatchRequest:
-        if (
-            self.boundaries.workspace_write
-            and self.task_id != "PALWAKF_WORKSPACE_MANAGER_SELF_HOSTED_LAST_EXECUTION_CARD_V1"
-        ):
-            raise ValueError("workspace_write is restricted to the governed proof task")
+        if not self.boundaries.workspace_write:
+            return self
+        legacy_proof = (
+            self.task_id == "PALWAKF_WORKSPACE_MANAGER_SELF_HOSTED_LAST_EXECUTION_CARD_V1"
+            and self.branch == "agent/workspace-manager-foundation-v1"
+        )
+        governed_task_branch = (
+            self.branch.startswith("task/") and self.provider_mode in MUTATING_PROVIDER_MODES
+        )
+        if not (legacy_proof or governed_task_branch):
+            raise ValueError(
+                "workspace_write requires the legacy proof task or a mutating provider "
+                "mode on an authorized task branch"
+            )
         return self
 
 

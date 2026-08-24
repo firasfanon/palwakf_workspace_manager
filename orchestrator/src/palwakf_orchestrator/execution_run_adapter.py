@@ -71,6 +71,8 @@ class ExecutionRunAdapter:
         if sandbox is None:
             sandbox = "read-only" if parent.mutation_class == "read-only" else "workspace-write"
 
+        automatic_provider_runtime = request.relay_provider_id != "chatgpt"
+
         operator_request = CreateOperatorTaskRequest(
             task_id=request.execution_run_id,
             project_id=parent.project_id,
@@ -88,11 +90,16 @@ class ExecutionRunAdapter:
             max_turns=request.max_turns,
             timeout_seconds=request.timeout_seconds,
             idempotency_key=request.idempotency_key,
-            automatic_failure_code="AUTOMATIC_EXECUTION_PROVIDER_NOT_AUTHORIZED",
-            manual_fallback_selected=True,
+            automatic_failure_code=(
+                None
+                if automatic_provider_runtime
+                else "AUTOMATIC_EXECUTION_PROVIDER_NOT_AUTHORIZED"
+            ),
+            manual_fallback_selected=not automatic_provider_runtime,
             requires_explicit_authorization=request.requires_explicit_authorization,
             scope_patterns=parent.scope_patterns,
             relay_provider_id=request.relay_provider_id,
+            provider_mode=request.provider_mode,
         )
         created = self.create_run(
             parent_engineering_task_id,

@@ -37,6 +37,14 @@ from palwakf_orchestrator.operator_contracts import (
     VerificationRequest,
 )
 from palwakf_orchestrator.persistence import MemoryStateStore, StateStore
+from palwakf_orchestrator.provider_contracts import (
+    GOVERNED_ENGINEERING_CAPABILITIES,
+    MUTATING_PROVIDER_MODES,
+    READ_ONLY_PROVIDER_MODES,
+    ProviderCertificationState,
+    ProviderMode,
+    capability_for_provider_mode,
+)
 from palwakf_orchestrator.service import OrchestratorService
 
 SECRET_PATTERN = re.compile(
@@ -310,25 +318,98 @@ class OperatorService:
                 code,
                 blocker=code,
             )
-        if workspace_write and (
-            task.task_id != SELF_HOSTED_PROOF_TASK_ID or not task.requires_explicit_authorization
-        ):
-            raise GovernanceError("workspace-write is restricted to the governed proof task")
-        governed_relay = any(
-            decision.capability_id == "governed.patch_relay"
-            and decision.selected_adapter_id is not None
-            for decision in plan.decisions
-        )
-        if workspace_write and governed_relay:
-            code = "AUTONOMOUS_DEVELOPMENT_SUSPENDED_BY_POLICY"
-            task.automatic_failure_code = code
-            return self._transition(
-                task,
-                OperatorTaskStatus.failed,
-                "AUTOMATIC_DISPATCH_BLOCKED_BY_PROVIDER_ROLE_POLICY",
-                code,
-                blocker=code,
+        provider_runtime = self._is_provider_runtime_task(task)
+        selected_provider: str | None = None
+        if provider_runtime:
+            mode = ProviderMode(task.provider_mode)
+            mode_capability = capability_for_provider_mode(mode)
+            mode_decision = next(
+                (
+                    decision
+                    for decision in plan.decisions
+                    if decision.capability_id == mode_capability
+                ),
+                None,
             )
+            selected_provider = (
+                mode_decision.selected_adapter_id if mode_decision is not None else None
+            )
+            if selected_provider is None:
+                return self._transition(
+                    task,
+                    OperatorTaskStatus.failed,
+                    "PROVIDER_SELECTION_FAILED",
+                    "NO_ELIGIBLE_ENGINEERING_PROVIDER",
+                    blocker="NO_ELIGIBLE_ENGINEERING_PROVIDER",
+                )
+            if task.relay_provider_id != "auto" and selected_provider != task.relay_provider_id:
+                return self._transition(
+                    task,
+                    OperatorTaskStatus.failed,
+                    "PROVIDER_SELECTION_FAILED",
+                    "REQUESTED_PROVIDER_NOT_ELIGIBLE",
+                    blocker=f"REQUESTED_PROVIDER_NOT_ELIGIBLE:{task.relay_provider_id}",
+                )
+            provider_decisions = [
+                decision
+                for decision in plan.decisions
+                if decision.capability_id in GOVERNED_ENGINEERING_CAPABILITIES
+                and decision.selected_adapter_id is not None
+            ]
+            if any(
+                decision.selected_adapter_id != selected_provider
+                for decision in provider_decisions
+            ):
+                return self._transition(
+                    task,
+                    OperatorTaskStatus.failed,
+                    "PROVIDER_SELECTION_FAILED",
+                    "PROVIDER_PLAN_SPLIT_NOT_ALLOWED",
+                    blocker="PROVIDER_PLAN_SPLIT_NOT_ALLOWED",
+                )
+            if not self._provider_certification_allowed(task, selected_provider):
+                return self._transition(
+                    task,
+                    OperatorTaskStatus.failed,
+                    "PROVIDER_CERTIFICATION_BLOCKED",
+                    "PROVIDER_CERTIFICATION_REQUIRED",
+                    blocker=f"PROVIDER_CERTIFICATION_REQUIRED:{selected_provider}",
+                )
+            task.selected_provider_id = selected_provider
+            self._persist()
+            if workspace_write:
+                if mode in READ_ONLY_PROVIDER_MODES:
+                    raise GovernanceError("READ_ONLY_PROVIDER_MODE_REQUIRES_READ_ONLY_SANDBOX")
+                if not task.requires_explicit_authorization or task.authorized_at is None:
+                    raise GovernanceError(
+                        "explicit task authorization is required for provider source mutation"
+                    )
+                if not task.scope_patterns:
+                    raise GovernanceError("MUTATING_PROVIDER_TASK_REQUIRES_NONEMPTY_SCOPE")
+                self._verifier.verify(task.branch, task.expected_head)
+            elif mode in MUTATING_PROVIDER_MODES:
+                raise GovernanceError("MUTATING_PROVIDER_MODE_REQUIRES_WORKSPACE_WRITE")
+        elif workspace_write:
+            if (
+                task.task_id != SELF_HOSTED_PROOF_TASK_ID
+                or not task.requires_explicit_authorization
+            ):
+                raise GovernanceError("workspace-write is restricted to the governed proof task")
+            governed_relay = any(
+                decision.capability_id == "governed.patch_relay"
+                and decision.selected_adapter_id is not None
+                for decision in plan.decisions
+            )
+            if governed_relay:
+                code = "AUTONOMOUS_DEVELOPMENT_SUSPENDED_BY_POLICY"
+                task.automatic_failure_code = code
+                return self._transition(
+                    task,
+                    OperatorTaskStatus.failed,
+                    "AUTOMATIC_DISPATCH_BLOCKED_BY_PROVIDER_ROLE_POLICY",
+                    code,
+                    blocker=code,
+                )
         if self._orchestrator is None:
             raise GovernanceError("automatic orchestrator is unavailable")
 
@@ -341,6 +422,15 @@ class OperatorService:
                     "branch": task.branch,
                     "expected_head": task.expected_head,
                     "idempotency_key": task.idempotency_key,
+                    "executor_provider_id": (
+                        selected_provider
+                        or (
+                            task.relay_provider_id
+                            if task.relay_provider_id != "auto"
+                            else "codex"
+                        )
+                    ),
+                    "provider_mode": task.provider_mode,
                     "boundaries": {
                         "workspace_write": workspace_write,
                         "database_write": False,
@@ -350,11 +440,38 @@ class OperatorService:
                 }
             )
         )
+        if (
+            provider_runtime
+            and selected_provider is not None
+            and response.executor_id != selected_provider
+        ):
+            return self._transition(
+                task,
+                OperatorTaskStatus.failed,
+                "EXECUTOR_PROVIDER_MISMATCH",
+                "EXECUTOR_PROVIDER_MISMATCH",
+                blocker=(
+                    f"EXECUTOR_PROVIDER_MISMATCH:"
+                    f"{selected_provider}!={response.executor_id}"
+                ),
+            )
         task.thread_id = response.executor_thread_id
         task.execution_receipt = response.execution_receipt
         task.before_head = response.repository_state.local_head
         task.after_head = response.result_repository_state.local_head
         task.changed_files = self._changed_files(task.before_head, task.after_head)
+        if (
+            provider_runtime
+            and not workspace_write
+            and (task.before_head != task.after_head or task.changed_files)
+        ):
+            return self._transition(
+                task,
+                OperatorTaskStatus.failed,
+                "READ_ONLY_PROVIDER_MUTATION",
+                "READ_ONLY_PROVIDER_MUTATION",
+                blocker="READ_ONLY_PROVIDER_MUTATION",
+            )
         scope_violations = self._scope_violations(task, task.changed_files)
         if scope_violations:
             task.evidence = [f"scope-violation:{path}" for path in scope_violations]
@@ -530,6 +647,7 @@ class OperatorService:
                 task.automatic_failure_code or "OPERATOR_SELECTED_USER_RELAY"
             ),
             "relay_provider_id": task.relay_provider_id,
+            "provider_mode": task.provider_mode,
         }
         self._assert_secret_free(envelope)
         canonical = json.dumps(
@@ -710,7 +828,53 @@ class OperatorService:
         task = self.get_task(task_id)
         if request.task_id != task.task_id or request.project_id != task.project_id:
             raise GovernanceError("tool plan request does not match persisted task")
-        plan = self._router.plan(request, self.project_profile(task.project_id))
+        profile = self.project_profile(task.project_id)
+        effective_request = request
+        provider_runtime = self._is_provider_runtime_task(task)
+        if provider_runtime:
+            mode_capability = capability_for_provider_mode(ProviderMode(task.provider_mode))
+            effective_request = request.model_copy(
+                update={
+                    "required_capability_ids": list(
+                        dict.fromkeys([*request.required_capability_ids, mode_capability])
+                    )
+                }
+            )
+            if task.relay_provider_id != "auto":
+                preferred = {key: list(value) for key, value in profile.preferred_adapters.items()}
+                for capability_id in {"governed.patch_relay", mode_capability}:
+                    existing = preferred.get(capability_id, [])
+                    preferred[capability_id] = [
+                        task.relay_provider_id,
+                        *[adapter for adapter in existing if adapter != task.relay_provider_id],
+                    ]
+                profile = profile.model_copy(update={"preferred_adapters": preferred})
+        plan = self._router.plan(effective_request, profile)
+        if provider_runtime:
+            mode_capability = capability_for_provider_mode(ProviderMode(task.provider_mode))
+            mode_decision = next(
+                (
+                    decision
+                    for decision in plan.decisions
+                    if decision.capability_id == mode_capability
+                ),
+                None,
+            )
+            selected = mode_decision.selected_adapter_id if mode_decision is not None else None
+            provider_blocker: str | None = None
+            if task.relay_provider_id != "auto" and selected != task.relay_provider_id:
+                provider_blocker = f"REQUESTED_PROVIDER_NOT_ELIGIBLE:{task.relay_provider_id}"
+            elif selected is None:
+                provider_blocker = "NO_ELIGIBLE_ENGINEERING_PROVIDER"
+            elif not self._provider_certification_allowed(task, selected):
+                provider_blocker = f"PROVIDER_CERTIFICATION_REQUIRED:{selected}"
+            if provider_blocker is not None:
+                plan = plan.model_copy(
+                    update={
+                        "dispatch_blocked": True,
+                        "blockers": list(dict.fromkeys([*plan.blockers, provider_blocker])),
+                    }
+                )
         self._tool_plans[task_id] = plan
         self._transition(
             task,
@@ -724,6 +888,27 @@ class OperatorService:
             blocker=plan.blockers[0] if plan.blockers else task.blocker,
         )
         return plan
+
+    @staticmethod
+    def _is_provider_runtime_task(task: OperatorTaskRecord) -> bool:
+        return task.branch.startswith("task/") and task.relay_provider_id != "chatgpt"
+
+    def _provider_certification_allowed(
+        self,
+        task: OperatorTaskRecord,
+        provider_id: str,
+    ) -> bool:
+        try:
+            metadata = self._registry.adapter(provider_id)
+        except KeyError:
+            return False
+        status = str(metadata.get("provider_certification_status") or "")
+        if status == ProviderCertificationState.approved_provider.value:
+            return True
+        return (
+            status == ProviderCertificationState.trial_authorized.value
+            and "PROVIDER_CERTIFICATION_TRIAL" in task.constraints
+        )
 
     def tool_decisions(self, task_id: str) -> ToolPlanResponse:
         self.get_task(task_id)

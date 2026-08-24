@@ -11,6 +11,7 @@ from palwakf_orchestrator.contracts import (
     SovereigntyBoundaries,
     Transport,
 )
+from palwakf_orchestrator.errors import GatewayError
 from palwakf_orchestrator.gateways import CodexMcpGateway, CodexSdkGateway, ExecutorGateway
 from palwakf_orchestrator.governance import GovernanceGate
 from palwakf_orchestrator.planner import AgentsPlanner, Planner
@@ -24,6 +25,7 @@ class OrchestratorService:
         gate: GovernanceGate | None = None,
         planner: Planner | None = None,
         gateways: dict[Transport, ExecutorGateway] | None = None,
+        provider_gateways: dict[tuple[str, Transport], ExecutorGateway] | None = None,
     ) -> None:
         self._settings = settings
         self._gate = gate or GovernanceGate(settings.workspace_root)
@@ -32,6 +34,12 @@ class OrchestratorService:
             Transport.sdk: CodexSdkGateway(settings),
             Transport.mcp: CodexMcpGateway(settings),
         }
+        self._provider_gateways: dict[tuple[str, Transport], ExecutorGateway] = {
+            ("codex", transport): gateway
+            for transport, gateway in self._gateways.items()
+        }
+        if provider_gateways:
+            self._provider_gateways.update(provider_gateways)
         self._execution_lock = asyncio.Lock()
         self._executions: dict[str, asyncio.Task[DispatchResponse]] = {}
 
@@ -66,7 +74,14 @@ class OrchestratorService:
     async def _execute(self, request: DispatchRequest) -> DispatchResponse:
         repository_state = self._gate.verify_repository(request)
         planning = await self._planner.plan(request, repository_state)
-        gateway = self._gateways[request.transport]
+        gateway = self._provider_gateways.get(
+            (request.executor_provider_id, request.transport)
+        )
+        if gateway is None:
+            raise GatewayError(
+                "No registered gateway for provider "
+                f"{request.executor_provider_id!r} over {request.transport.value!r}"
+            )
         if request.boundaries.workspace_write:
             self._gate.verify_plan(planning.plan, request)
             gateway_result = await gateway.run(
@@ -103,7 +118,11 @@ class OrchestratorService:
             executor_id=gateway.executor_id,
             executor_thread_id=gateway_result.thread_id,
             agents_response_id=planning.agents_response_id,
-            codex_thread_id=gateway_result.thread_id,
+            codex_thread_id=(
+                gateway_result.thread_id
+                if request.executor_provider_id == "codex"
+                else None
+            ),
             final_response=gateway_result.final_response,
             tool_outputs=gateway_result.tool_outputs,
             boundaries=request.boundaries,
