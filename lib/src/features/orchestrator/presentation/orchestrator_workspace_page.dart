@@ -467,7 +467,7 @@ class _NewExecutionRunDialogState extends State<_NewExecutionRunDialog> {
                 key: const ValueKey<String>('phase6-run-provider-mode'),
                 initialValue: providerMode,
                 decoration: const InputDecoration(
-                  labelText: '??? ??????',
+                  labelText: 'وضع المزود',
                 ),
                 items: _providerModes
                     .map(

@@ -323,8 +323,7 @@ void main() {
         child: MaterialApp.router(routerConfig: router),
       ),
     );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pumpAndSettle();
 
     final bridge = find.byKey(
       const ValueKey<String>('engineering-task-operations-WM-PHASE6-ENG-001'),
@@ -332,8 +331,7 @@ void main() {
     expect(bridge, findsOneWidget);
     await tester.ensureVisible(bridge);
     await tester.tap(bridge);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pumpAndSettle();
 
     expect(find.text('PARENT=WM-PHASE6-ENG-001'), findsOneWidget);
   });
@@ -478,6 +476,12 @@ void main() {
     expect(source, contains('phase6-create-governed-execution-run'));
     expect(source, contains('phase6-run-provider-mode'));
     expect(source, contains('test_and_regression_analysis'));
+    expect(source, contains('_mutatingProviderModes'));
+    expect(
+      source,
+      contains(
+          "labelText: '\u0648\u0636\u0639 \u0627\u0644\u0645\u0632\u0648\u062f'"),
+    );
   });
 
   test('phase6 source keeps governed run product contracts', () {
