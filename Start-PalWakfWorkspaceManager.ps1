@@ -99,6 +99,23 @@ function Read-RuntimeRecord {
     }
 }
 
+function Get-RuntimeValue(
+    $Record,
+    [string]$Name,
+    $Default = $null
+) {
+    if (-not $Record) {
+        return $Default
+    }
+
+    $property = $Record.PSObject.Properties[$Name]
+    if (-not $property) {
+        return $Default
+    }
+
+    return $property.Value
+}
+
 function Get-Listener {
     $listeners = @(
         Get-NetTCPConnection `
@@ -141,7 +158,8 @@ function Test-ManagedOrchestratorProcess($Process, $RuntimeRecord) {
     }
 
     $legacyRelativeMain = $normalized.Contains("orchestrator\main.py")
-    $runtimeClaimsPort = $RuntimeRecord -and ([int]$RuntimeRecord.port -eq $port)
+    $runtimePort = Get-RuntimeValue -Record $RuntimeRecord -Name "port" -Default 0
+    $runtimeClaimsPort = ([int]$runtimePort -eq $port)
     return $legacyRelativeMain -and $runtimeClaimsPort
 }
 
@@ -163,12 +181,18 @@ function Resolve-PullRequestNumber([string]$Branch, $RuntimeRecord) {
         return [int]$env:PALWAKF_PULL_REQUEST_NUMBER
     }
 
+    $runtimeBranch = [string](
+        Get-RuntimeValue -Record $RuntimeRecord -Name "source_branch" -Default ""
+    )
+    $runtimePullRequest = [string](
+        Get-RuntimeValue -Record $RuntimeRecord -Name "pull_request_number" -Default ""
+    )
+
     if (
-        $RuntimeRecord -and
-        ([string]$RuntimeRecord.source_branch -eq $Branch) -and
-        ([string]$RuntimeRecord.pull_request_number -match "^[1-9][0-9]*$")
+        ($runtimeBranch -eq $Branch) -and
+        ($runtimePullRequest -match "^[1-9][0-9]*$")
     ) {
-        return [int]$RuntimeRecord.pull_request_number
+        return [int]$runtimePullRequest
     }
 
     $gh = Get-Command gh -ErrorAction SilentlyContinue
@@ -325,27 +349,56 @@ if ($listener) {
 
     if ($runtime) {
         try {
-            $storedToken = ConvertFrom-ProtectedValue ([string]$runtime.protected_local_token)
+            $storedProtectedToken = [string](
+                Get-RuntimeValue `
+                    -Record $runtime `
+                    -Name "protected_local_token" `
+                    -Default ""
+            )
+            $storedToken = ConvertFrom-ProtectedValue $storedProtectedToken
         }
         catch {
             $storedToken = $null
         }
 
+        $runtimePort = Get-RuntimeValue -Record $runtime -Name "port" -Default 0
+        $runtimeBranch = [string](
+            Get-RuntimeValue -Record $runtime -Name "source_branch" -Default ""
+        )
+        $runtimeHead = [string](
+            Get-RuntimeValue -Record $runtime -Name "source_head" -Default ""
+        )
+        $runtimePullRequest = Get-RuntimeValue `
+            -Record $runtime `
+            -Name "pull_request_number" `
+            -Default 0
+        $runtimeBuildHead = [string](
+            Get-RuntimeValue -Record $runtime -Name "build_head" -Default ""
+        )
+
         $provenanceMatches = (
-            ([int]$runtime.port -eq $port) -and
-            ([string]$runtime.source_branch -eq $currentBranch) -and
-            ([string]$runtime.source_head -eq $currentHead) -and
-            ([int]$runtime.pull_request_number -eq $pullRequestNumber) -and
-            ([string]$runtime.build_head -eq $buildHead)
+            ([int]$runtimePort -eq $port) -and
+            ($runtimeBranch -eq $currentBranch) -and
+            ($runtimeHead -eq $currentHead) -and
+            ([int]$runtimePullRequest -eq $pullRequestNumber) -and
+            ($runtimeBuildHead -eq $buildHead)
         )
 
         if ($provenanceMatches -and (Test-AuthenticatedReady $storedToken)) {
-            $protectedToken = [string]$runtime.protected_local_token
-            $startedAt = if ([string]::IsNullOrWhiteSpace([string]$runtime.started_at)) {
+            $protectedToken = [string](
+                Get-RuntimeValue `
+                    -Record $runtime `
+                    -Name "protected_local_token" `
+                    -Default ""
+            )
+            $runtimeStartedAt = [string](
+                Get-RuntimeValue -Record $runtime -Name "started_at" -Default ""
+            )
+            $startedAt = if ([string]::IsNullOrWhiteSpace($runtimeStartedAt)) {
                 [DateTimeOffset]::UtcNow.ToString("o")
             }
             else {
-                [string]$runtime.started_at
+                $runtimeStartedAt
             }
 
             Write-RuntimeRecord `

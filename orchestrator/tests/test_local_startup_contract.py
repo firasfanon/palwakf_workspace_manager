@@ -68,3 +68,23 @@ def test_launcher_never_logs_or_exports_plain_local_token() -> None:
     assert 'Write-Output "TOKEN=' not in source
     assert 'Write-Host "TOKEN=' not in source
     assert '$env:PALWAKF_LOCAL_TOKEN' not in source
+
+def test_launcher_tolerates_legacy_runtime_record_schema_under_strict_mode() -> None:
+    source = launcher_source()
+
+    assert "function Get-RuntimeValue" in source
+    assert 'Get-RuntimeValue -Record $RuntimeRecord -Name "source_branch"' in source
+    assert 'Get-RuntimeValue -Record $RuntimeRecord -Name "pull_request_number"' in source
+    assert 'Get-RuntimeValue -Record $runtime -Name "source_head"' in source
+    assert 'Get-RuntimeValue -Record $runtime -Name "build_head"' in source
+
+    forbidden_direct_accesses = (
+        "$RuntimeRecord.source_branch",
+        "$RuntimeRecord.pull_request_number",
+        "$runtime.source_branch",
+        "$runtime.source_head",
+        "$runtime.pull_request_number",
+        "$runtime.build_head",
+    )
+    for direct_access in forbidden_direct_accesses:
+        assert direct_access not in source
