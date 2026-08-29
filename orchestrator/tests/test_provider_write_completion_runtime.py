@@ -5,6 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+
 from palwakf_orchestrator.contracts import DispatchRequest
 from palwakf_orchestrator.errors import GovernanceError
 from palwakf_orchestrator.gateways import (
