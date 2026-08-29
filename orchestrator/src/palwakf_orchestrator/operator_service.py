@@ -357,8 +357,7 @@ class OperatorService:
                 and decision.selected_adapter_id is not None
             ]
             if any(
-                decision.selected_adapter_id != selected_provider
-                for decision in provider_decisions
+                decision.selected_adapter_id != selected_provider for decision in provider_decisions
             ):
                 return self._transition(
                     task,
@@ -424,13 +423,10 @@ class OperatorService:
                     "idempotency_key": task.idempotency_key,
                     "executor_provider_id": (
                         selected_provider
-                        or (
-                            task.relay_provider_id
-                            if task.relay_provider_id != "auto"
-                            else "codex"
-                        )
+                        or (task.relay_provider_id if task.relay_provider_id != "auto" else "codex")
                     ),
                     "provider_mode": task.provider_mode,
+                    "source_scope_patterns": task.scope_patterns,
                     "boundaries": {
                         "workspace_write": workspace_write,
                         "database_write": False,
@@ -450,10 +446,7 @@ class OperatorService:
                 OperatorTaskStatus.failed,
                 "EXECUTOR_PROVIDER_MISMATCH",
                 "EXECUTOR_PROVIDER_MISMATCH",
-                blocker=(
-                    f"EXECUTOR_PROVIDER_MISMATCH:"
-                    f"{selected_provider}!={response.executor_id}"
-                ),
+                blocker=(f"EXECUTOR_PROVIDER_MISMATCH:{selected_provider}!={response.executor_id}"),
             )
         task.thread_id = response.executor_thread_id
         task.execution_receipt = response.execution_receipt

@@ -34,9 +34,12 @@ dependencies outside policy, access secrets or environment values, connect to
 databases or Supabase, touch production, mutate another project, merge, or
 promote a baseline. If the correct fix requires any action outside the authority
 budget, stop and escalate instead of guessing. Run the requested deterministic
-checks, commit once, and push only the current governed task branch. Return the
-required structured result after every shell call has completed and its output
-has been received.
+checks, but do not stage files, commit, push, reset, checkout, rebase, merge, tag,
+or mutate Git refs. Leave only the exact authorized source changes in the
+worktree. The sovereign Workspace completion gate verifies scope and performs
+the single governed commit and non-force push after you return. Return the
+required structured handoff only after every shell call has completed and its
+output has been received.
 """.strip()
 
 CODEX_WRITE_RESULT_SCHEMA: dict[str, Any] = {
@@ -46,8 +49,6 @@ CODEX_WRITE_RESULT_SCHEMA: dict[str, Any] = {
         "task_id": {"type": "string"},
         "status": {"type": "string", "enum": ["completed"]},
         "before_head": {"type": "string"},
-        "after_head": {"type": "string"},
-        "commit_sha": {"type": "string"},
         "changed_files": {"type": "array", "items": {"type": "string"}},
         "tests": {"type": "array", "items": {"type": "string"}},
         "evidence": {"type": "array", "items": {"type": "string"}},
@@ -57,8 +58,6 @@ CODEX_WRITE_RESULT_SCHEMA: dict[str, Any] = {
         "task_id",
         "status",
         "before_head",
-        "after_head",
-        "commit_sha",
         "changed_files",
         "tests",
         "evidence",

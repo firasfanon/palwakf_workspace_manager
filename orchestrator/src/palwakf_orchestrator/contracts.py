@@ -40,6 +40,7 @@ class DispatchRequest(BaseModel):
     provider_mode: ProviderMode = ProviderMode.execution_relay
     transport: Transport = Transport.sdk
     boundaries: SovereigntyBoundaries = Field(default_factory=SovereigntyBoundaries)
+    source_scope_patterns: list[str] = Field(default_factory=list, max_length=64)
 
     @model_validator(mode="after")
     def restrict_workspace_write(self) -> DispatchRequest:
