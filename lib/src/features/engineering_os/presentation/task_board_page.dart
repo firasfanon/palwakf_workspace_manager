@@ -85,8 +85,7 @@ class _EngineeringTaskBoardPageState
                   : _Board(
                       tasks: state.tasks,
                       canSyncRemoteWip: canDispatch,
-                      onSyncRemoteWip: (task) =>
-                          _syncRemoteWip(context, task),
+                      onSyncRemoteWip: (task) => _syncRemoteWip(context, task),
                     ),
         ),
       ],
@@ -511,9 +510,8 @@ class _TaskCard extends StatelessWidget {
                   key: ValueKey<String>(
                     'engineering-task-sync-wip-${task.taskId}',
                   ),
-                  onPressed: canSyncRemoteWip
-                      ? () => onSyncRemoteWip(task)
-                      : null,
+                  onPressed:
+                      canSyncRemoteWip ? () => onSyncRemoteWip(task) : null,
                   icon: const Icon(Icons.cloud_sync_outlined, size: 18),
                   label: const Text('مزامنة WIP البعيد'),
                 ),

@@ -28,8 +28,9 @@ EngineeringTask task(String id, String title, {String? latestRemoteTaskSha}) {
     dependsOn: const <String>[],
     dependencyMode: 'INDEPENDENT',
     riskClass: 'MEDIUM',
-    wipCheckpointStatus:
-        latestRemoteTaskSha == null ? 'NOT_CHECKPOINTED' : 'REMOTE_CHECKPOINTED',
+    wipCheckpointStatus: latestRemoteTaskSha == null
+        ? 'NOT_CHECKPOINTED'
+        : 'REMOTE_CHECKPOINTED',
     integrationStatus: 'NOT_READY',
     latestRemoteTaskSha: latestRemoteTaskSha,
   );
@@ -42,7 +43,8 @@ class FakeRemoteWipApi extends EngineeringOsApiClient {
   late List<EngineeringTask> records = <EngineeringTask>[
     task('WM-READY-ONE', 'Ready task one'),
     task('WM-READY-TWO', 'Ready task two'),
-    task('WM_PROVIDER_BOUNDED_WRITE_PROOF_V1', 'Governed provider bounded write proof'),
+    task('WM_PROVIDER_BOUNDED_WRITE_PROOF_V1',
+        'Governed provider bounded write proof'),
   ];
 
   @override
@@ -60,7 +62,8 @@ class FakeRemoteWipApi extends EngineeringOsApiClient {
   }
 
   @override
-  Future<List<EngineeringTask>> tasks() async => List<EngineeringTask>.from(records);
+  Future<List<EngineeringTask>> tasks() async =>
+      List<EngineeringTask>.from(records);
 
   @override
   Future<List<ExtensionRecord>> extensions() async => const <ExtensionRecord>[];
@@ -68,7 +71,8 @@ class FakeRemoteWipApi extends EngineeringOsApiClient {
   @override
   Future<EngineeringTask> syncRemoteCheckpoint(String engineeringTaskId) async {
     syncCalls.add(engineeringTaskId);
-    final current = records.firstWhere((item) => item.taskId == engineeringTaskId);
+    final current =
+        records.firstWhere((item) => item.taskId == engineeringTaskId);
     final updated = task(
       current.taskId,
       current.title,
@@ -143,13 +147,15 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(api.syncCalls, <String>['WM_PROVIDER_BOUNDED_WRITE_PROOF_V1']);
-      expect(find.textContaining('تم التحقق من WIP البعيد ومزامنته'), findsOneWidget);
+      expect(find.textContaining('تم التحقق من WIP البعيد ومزامنته'),
+          findsOneWidget);
       expect(find.text('REMOTE_CHECKPOINTED'), findsWidgets);
       expect(tester.takeException(), isNull);
     },
   );
 
-  testWidgets('human parent task form rejects provider binding', (tester) async {
+  testWidgets('human parent task form rejects provider binding',
+      (tester) async {
     tester.view.physicalSize = const Size(1280, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -174,7 +180,8 @@ void main() {
     await tester.tap(find.text('مهمة جديدة'));
     await tester.pumpAndSettle();
 
-    final providerField = find.widgetWithText(TextFormField, 'Provider ID (اختياري)');
+    final providerField =
+        find.widgetWithText(TextFormField, 'Provider ID (اختياري)');
     expect(providerField, findsOneWidget);
     await tester.enterText(providerField, 'codex');
     await tester.tap(find.text('إنشاء'));
