@@ -121,7 +121,7 @@ class EngineeringTaskRecord(BaseModel):
 class RemoteCheckpointRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    remote_sha: str = Field(pattern=r"^[0-9a-fA-F]{40}$")
+    remote_sha: str | None = Field(default=None, pattern=r"^[0-9a-fA-F]{40}$")
     evidence: list[str] = Field(default_factory=list, max_length=64)
 
 

@@ -82,7 +82,12 @@ class _EngineeringTaskBoardPageState
               ? const _TaskBoardPreviewUnavailable()
               : state.tasks.isEmpty
                   ? const _EmptyBoard()
-                  : _Board(tasks: state.tasks),
+                  : _Board(
+                      tasks: state.tasks,
+                      canSyncRemoteWip: canDispatch,
+                      onSyncRemoteWip: (task) =>
+                          _syncRemoteWip(context, task),
+                    ),
         ),
       ],
     );
@@ -103,6 +108,30 @@ class _EngineeringTaskBoardPageState
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(error.toString())));
+    }
+  }
+
+  Future<void> _syncRemoteWip(
+    BuildContext context,
+    EngineeringTask task,
+  ) async {
+    try {
+      final updated = await ref
+          .read(engineeringOsControllerProvider.notifier)
+          .syncRemoteCheckpoint(task.taskId);
+      if (!context.mounted) return;
+      final sha = updated.latestRemoteTaskSha ?? '—';
+      final shortSha = sha.length > 10 ? sha.substring(0, 10) : sha;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('تم التحقق من WIP البعيد ومزامنته: $shortSha'),
+        ),
+      );
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
     }
   }
 }
@@ -277,9 +306,15 @@ class _Metric extends StatelessWidget {
 }
 
 class _Board extends StatefulWidget {
-  const _Board({required this.tasks});
+  const _Board({
+    required this.tasks,
+    required this.canSyncRemoteWip,
+    required this.onSyncRemoteWip,
+  });
 
   final List<EngineeringTask> tasks;
+  final bool canSyncRemoteWip;
+  final Future<void> Function(EngineeringTask task) onSyncRemoteWip;
 
   @override
   State<_Board> createState() => _BoardState();
@@ -287,6 +322,7 @@ class _Board extends StatefulWidget {
 
 class _BoardState extends State<_Board> {
   final ScrollController _horizontalController = ScrollController();
+  final ScrollController _verticalController = ScrollController();
 
   static const columns = <(String, String)>[
     ('READY', 'جاهزة'),
@@ -302,36 +338,47 @@ class _BoardState extends State<_Board> {
   @override
   void dispose() {
     _horizontalController.dispose();
+    _verticalController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final tasks = widget.tasks;
-    return Scrollbar(
-      controller: _horizontalController,
-      thumbVisibility: true,
-      child: SingleChildScrollView(
+    return SingleChildScrollView(
+      key: const ValueKey<String>('engineering-task-board-vertical-scroll'),
+      controller: _verticalController,
+      scrollDirection: Axis.vertical,
+      child: Scrollbar(
+        key: const ValueKey<String>(
+          'engineering-task-board-horizontal-scrollbar',
+        ),
         controller: _horizontalController,
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: columns.map((column) {
-            final values =
-                tasks.where((task) => task.status == column.$1).toList();
-            return Padding(
-              padding: const EdgeInsetsDirectional.only(end: 12),
-              child: SizedBox(
-                width: 300,
-                child: _TaskColumn(
-                  status: column.$1,
-                  title: column.$2,
-                  tasks: values,
+        thumbVisibility: true,
+        child: SingleChildScrollView(
+          controller: _horizontalController,
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: columns.map((column) {
+              final values =
+                  tasks.where((task) => task.status == column.$1).toList();
+              return Padding(
+                padding: const EdgeInsetsDirectional.only(end: 12),
+                child: SizedBox(
+                  width: 300,
+                  child: _TaskColumn(
+                    status: column.$1,
+                    title: column.$2,
+                    tasks: values,
+                    canSyncRemoteWip: widget.canSyncRemoteWip,
+                    onSyncRemoteWip: widget.onSyncRemoteWip,
+                  ),
                 ),
-              ),
-            );
-          }).toList(growable: false),
+              );
+            }).toList(growable: false),
+          ),
         ),
       ),
     );
@@ -343,11 +390,15 @@ class _TaskColumn extends StatelessWidget {
     required this.status,
     required this.title,
     required this.tasks,
+    required this.canSyncRemoteWip,
+    required this.onSyncRemoteWip,
   });
 
   final String status;
   final String title;
   final List<EngineeringTask> tasks;
+  final bool canSyncRemoteWip;
+  final Future<void> Function(EngineeringTask task) onSyncRemoteWip;
 
   @override
   Widget build(BuildContext context) {
@@ -377,7 +428,13 @@ class _TaskColumn extends StatelessWidget {
                 child: Center(child: Text('لا توجد مهام')),
               )
             else
-              ...tasks.map((task) => _TaskCard(task: task)),
+              ...tasks.map(
+                (task) => _TaskCard(
+                  task: task,
+                  canSyncRemoteWip: canSyncRemoteWip,
+                  onSyncRemoteWip: onSyncRemoteWip,
+                ),
+              ),
           ],
         ),
       ),
@@ -386,8 +443,15 @@ class _TaskColumn extends StatelessWidget {
 }
 
 class _TaskCard extends StatelessWidget {
-  const _TaskCard({required this.task});
+  const _TaskCard({
+    required this.task,
+    required this.canSyncRemoteWip,
+    required this.onSyncRemoteWip,
+  });
+
   final EngineeringTask task;
+  final bool canSyncRemoteWip;
+  final Future<void> Function(EngineeringTask task) onSyncRemoteWip;
 
   @override
   Widget build(BuildContext context) {
@@ -439,23 +503,36 @@ class _TaskCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: OutlinedButton.icon(
-                key: ValueKey<String>(
-                  'engineering-task-operations-${task.taskId}',
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: <Widget>[
+                OutlinedButton.icon(
+                  key: ValueKey<String>(
+                    'engineering-task-sync-wip-${task.taskId}',
+                  ),
+                  onPressed: canSyncRemoteWip
+                      ? () => onSyncRemoteWip(task)
+                      : null,
+                  icon: const Icon(Icons.cloud_sync_outlined, size: 18),
+                  label: const Text('مزامنة WIP البعيد'),
                 ),
-                onPressed: () => context.go(
-                  Uri(
-                    path: '/operations',
-                    queryParameters: <String, String>{
-                      'engineeringTaskId': task.taskId,
-                    },
-                  ).toString(),
+                OutlinedButton.icon(
+                  key: ValueKey<String>(
+                    'engineering-task-operations-${task.taskId}',
+                  ),
+                  onPressed: () => context.go(
+                    Uri(
+                      path: '/operations',
+                      queryParameters: <String, String>{
+                        'engineeringTaskId': task.taskId,
+                      },
+                    ).toString(),
+                  ),
+                  icon: const Icon(Icons.settings_suggest_outlined, size: 18),
+                  label: const Text('مركز التشغيل'),
                 ),
-                icon: const Icon(Icons.settings_suggest_outlined, size: 18),
-                label: const Text('مركز التشغيل'),
-              ),
+              ],
             ),
           ],
         ),
@@ -564,7 +641,13 @@ class _NewTaskDialogState extends State<_NewTaskDialog> {
                 _field(taskId, 'Task ID'),
                 _field(title, 'العنوان'),
                 _field(description, 'الوصف', lines: 3),
-                _field(baseSha, 'Integrated Base SHA', ltr: true),
+                _field(
+                  baseSha,
+                  'Integrated Base SHA',
+                  ltr: true,
+                  helperText:
+                      'آخر Integrated Accepted Head فقط؛ لا تستخدم Remote WIP HEAD.',
+                ),
                 _field(branch, 'Remote Task Branch', ltr: true),
                 _field(owner, 'Owner'),
                 _field(actor, 'Actor'),
@@ -579,7 +662,24 @@ class _NewTaskDialogState extends State<_NewTaskDialog> {
                   onChanged: (value) =>
                       setState(() => actorType = value ?? 'HUMAN'),
                 ),
-                _field(provider, 'Provider ID (اختياري)', ltr: true),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: provider,
+                  textDirection: TextDirection.ltr,
+                  decoration: const InputDecoration(
+                    labelText: 'Provider ID (اختياري)',
+                    helperText:
+                        'اتركه فارغًا للمهمة البشرية؛ مزود التنفيذ يُختار داخل Execution Run.',
+                  ),
+                  validator: (value) {
+                    if (actorType == 'HUMAN' &&
+                        (value ?? '').trim().isNotEmpty) {
+                      return 'المهمة البشرية لا ترتبط بمزود؛ اترك الحقل فارغًا.';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 10),
                 _field(scopes, 'Scopes مفصولة بفاصلة', ltr: true),
               ],
             ),
@@ -601,6 +701,7 @@ class _NewTaskDialogState extends State<_NewTaskDialog> {
     String label, {
     int lines = 1,
     bool ltr = false,
+    String? helperText,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -608,7 +709,10 @@ class _NewTaskDialogState extends State<_NewTaskDialog> {
         controller: controller,
         maxLines: lines,
         textDirection: ltr ? TextDirection.ltr : null,
-        decoration: InputDecoration(labelText: label),
+        decoration: InputDecoration(
+          labelText: label,
+          helperText: helperText,
+        ),
         validator: (value) =>
             (value ?? '').trim().isEmpty && !label.contains('اختياري')
                 ? 'مطلوب'
