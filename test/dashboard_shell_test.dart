@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:palwakf_workspace_manager/src/app/workspace_manager_app.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:palwakf_workspace_manager/src/app/workspace_application_shell.dart';
+import 'package:palwakf_workspace_manager/src/features/dashboard/presentation/workspace_dashboard_page.dart';
 import 'package:palwakf_workspace_manager/src/features/dashboard/application/dashboard_controller.dart';
 import 'package:palwakf_workspace_manager/src/features/dashboard/data/dashboard_api_client.dart';
 import 'package:palwakf_workspace_manager/src/features/dashboard/domain/dashboard_models.dart';
@@ -142,6 +144,10 @@ class FakeDashboardApi implements DashboardApi {
 }
 
 void main() {
+  setUpAll(() async {
+    await initializeDateFormatting('ar');
+  });
+
   for (final size in <Size>[
     const Size(360, 800),
     const Size(768, 900),
@@ -160,7 +166,15 @@ void main() {
           overrides: <Override>[
             dashboardApiProvider.overrideWithValue(FakeDashboardApi()),
           ],
-          child: const WorkspaceManagerApp(),
+          child: const MaterialApp(
+            home: Directionality(
+              textDirection: TextDirection.rtl,
+              child: WorkspaceApplicationShell(
+                location: '/dashboard',
+                child: WorkspaceDashboardPage(),
+              ),
+            ),
+          ),
         ),
       );
       await tester.pumpAndSettle();

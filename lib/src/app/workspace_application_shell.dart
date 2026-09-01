@@ -18,6 +18,33 @@ class WorkspaceApplicationShell extends ConsumerWidget {
   final String location;
   final Widget child;
 
+  /// Primary destinations shown to ordinary users.
+  static const dailyDestinations = <ShellDestination>[
+    ShellDestination('/home', 'الرئيسية', Icons.home_outlined, Icons.home),
+    ShellDestination(
+      '/projects',
+      'مشاريعي',
+      Icons.folder_outlined,
+      Icons.folder,
+    ),
+    ShellDestination(
+      '/work',
+      'أعمالي',
+      Icons.checklist_outlined,
+      Icons.checklist,
+    ),
+    ShellDestination(
+      '/advanced',
+      'الإدارة المتقدمة',
+      Icons.admin_panel_settings_outlined,
+      Icons.admin_panel_settings,
+    ),
+  ];
+
+  /// Compatibility registry for the advanced control-plane routes.
+  ///
+  /// These routes remain reachable and testable, but are no longer exposed as
+  /// the ordinary user's primary navigation.
   static const destinations = <ShellDestination>[
     ShellDestination(
       '/dashboard',
@@ -67,17 +94,20 @@ class WorkspaceApplicationShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selectedIndex = _selectedIndex(location);
+    final selectedIndex = _selectedDailyIndex(location);
     final connection =
         ref.watch(dashboardControllerProvider).summary?.connection;
     final hasToken =
         (ref.watch(orchestratorTokenProvider) ?? '').trim().isNotEmpty;
     final previewMode = PreviewModeUi.isVisualPreview;
+    final advanced = _isAdvancedPath(location);
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final desktop = constraints.maxWidth >= 1024;
         final extended = constraints.maxWidth >= 1280;
         final mobile = constraints.maxWidth < 720;
+
         return Scaffold(
           appBar: AppBar(
             automaticallyImplyLeading: mobile,
@@ -87,8 +117,10 @@ class WorkspaceApplicationShell extends ConsumerWidget {
               children: <Widget>[
                 Text(_pageTitle(location)),
                 Text(
-                  'PalWakf Workspace Manager',
-                  textDirection: TextDirection.ltr,
+                  advanced
+                      ? 'PalWakf Workspace · الإدارة المتقدمة'
+                      : 'PalWakf Workspace',
+                  textDirection: TextDirection.rtl,
                   style: Theme.of(context).textTheme.labelSmall,
                 ),
               ],
@@ -108,16 +140,14 @@ class WorkspaceApplicationShell extends ConsumerWidget {
                     ),
                     label: Text(
                       previewMode
-                          ? 'معاينة بصرية'
+                          ? 'معاينة'
                           : connection?.ready ?? false
-                              ? connection!.localSecure
-                                  ? 'محلي آمن'
-                                  : 'متصل'
+                              ? 'جاهز'
                               : 'غير متصل',
                     ),
                   ),
                 ),
-              if (!previewMode)
+              if (advanced && !previewMode)
                 IconButton(
                   tooltip: hasToken
                       ? 'مصادقة الخدمة مهيأة في هذه الجلسة'
@@ -126,7 +156,7 @@ class WorkspaceApplicationShell extends ConsumerWidget {
                   icon: Icon(hasToken ? Icons.lock : Icons.lock_open_outlined),
                 ),
               IconButton(
-                tooltip: 'تحديث الحالة الموثقة',
+                tooltip: 'تحديث',
                 onPressed: () => _refresh(ref),
                 icon: const Icon(Icons.refresh),
               ),
@@ -140,7 +170,7 @@ class WorkspaceApplicationShell extends ConsumerWidget {
                       selectedIndex: selectedIndex,
                       onSelected: (index) {
                         Navigator.of(context).pop();
-                        context.go(destinations[index].route);
+                        context.go(dailyDestinations[index].route);
                       },
                     ),
                   ),
@@ -153,18 +183,18 @@ class WorkspaceApplicationShell extends ConsumerWidget {
                 if (!mobile)
                   NavigationRail(
                     extended: desktop && extended,
-                    minExtendedWidth: 232,
+                    minExtendedWidth: 220,
                     selectedIndex: selectedIndex,
                     labelType: desktop && extended
                         ? NavigationRailLabelType.none
                         : NavigationRailLabelType.all,
                     onDestinationSelected: (index) =>
-                        context.go(destinations[index].route),
+                        context.go(dailyDestinations[index].route),
                     leading: const Padding(
                       padding: EdgeInsets.only(bottom: 14),
                       child: Icon(Icons.account_balance_outlined),
                     ),
-                    destinations: destinations
+                    destinations: dailyDestinations
                         .map(
                           (destination) => NavigationRailDestination(
                             icon: Icon(destination.icon),
@@ -181,11 +211,10 @@ class WorkspaceApplicationShell extends ConsumerWidget {
           ),
           bottomNavigationBar: mobile
               ? NavigationBar(
-                  selectedIndex: selectedIndex <= 3 ? selectedIndex : 0,
+                  selectedIndex: selectedIndex,
                   onDestinationSelected: (index) =>
-                      context.go(destinations[index].route),
-                  destinations: destinations
-                      .take(4)
+                      context.go(dailyDestinations[index].route),
+                  destinations: dailyDestinations
                       .map(
                         (destination) => NavigationDestination(
                           icon: Icon(destination.icon),
@@ -201,21 +230,34 @@ class WorkspaceApplicationShell extends ConsumerWidget {
     );
   }
 
-  int _selectedIndex(String path) {
-    final index = destinations.indexWhere(
-      (destination) =>
-          path == destination.route || path.startsWith('${destination.route}/'),
+  int _selectedDailyIndex(String path) {
+    if (path == '/home' || path == '/') return 0;
+    if (path == '/projects' || path.startsWith('/projects/')) return 1;
+    if (path == '/work' || path.startsWith('/work/')) return 2;
+    return 3;
+  }
+
+  static bool _isAdvancedPath(String path) {
+    if (path == '/advanced' || path.startsWith('/advanced/')) return true;
+    return destinations.any(
+      (item) =>
+          item.route != '/projects' &&
+          (path == item.route || path.startsWith('${item.route}/')),
     );
-    return index < 0 ? 0 : index;
   }
 
   static String _pageTitle(String path) {
+    if (path == '/home' || path == '/') return 'الرئيسية';
+    if (path == '/work' || path.startsWith('/work/')) return 'أعمالي';
+    if (path == '/projects') return 'مشاريعي';
     if (path.startsWith('/projects/')) return 'تفاصيل المشروع';
+    if (path == '/advanced') return 'الإدارة المتقدمة';
     if (path.startsWith('/tools/')) return 'تفاصيل الأداة';
+
     return destinations
         .firstWhere(
           (item) => path == item.route || path.startsWith('${item.route}/'),
-          orElse: () => destinations.first,
+          orElse: () => dailyDestinations.last,
         )
         .label;
   }
@@ -256,9 +298,10 @@ class _DrawerNavigation extends StatelessWidget {
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(vertical: 8),
-            itemCount: WorkspaceApplicationShell.destinations.length,
+            itemCount: WorkspaceApplicationShell.dailyDestinations.length,
             itemBuilder: (context, index) {
-              final destination = WorkspaceApplicationShell.destinations[index];
+              final destination =
+                  WorkspaceApplicationShell.dailyDestinations[index];
               return ListTile(
                 selected: index == selectedIndex,
                 leading: Icon(

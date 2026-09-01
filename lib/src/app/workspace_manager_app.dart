@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/theme/palwakf_theme.dart';
+import '../features/daily_workspace/presentation/advanced_operations_hub_page.dart';
+import '../features/daily_workspace/presentation/daily_workspace_home_page.dart';
 import '../features/dashboard/presentation/operational_list_pages.dart';
 import '../features/dashboard/presentation/workspace_dashboard_page.dart';
 import '../features/engineering_os/presentation/extensions_center_page.dart';
@@ -16,13 +18,27 @@ import 'workspace_application_shell.dart';
 
 final workspaceRouterProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
-    initialLocation: '/dashboard',
+    initialLocation: '/home',
     routes: <RouteBase>[
-      GoRoute(path: '/', redirect: (_, __) => '/dashboard'),
+      GoRoute(path: '/', redirect: (_, __) => '/home'),
       ShellRoute(
         builder: (context, state, child) =>
             WorkspaceApplicationShell(location: state.uri.path, child: child),
         routes: <RouteBase>[
+          GoRoute(
+            path: '/home',
+            builder: (context, state) => DailyWorkspaceHomePage(
+              initialTaskId: state.uri.queryParameters['taskId'],
+            ),
+          ),
+          GoRoute(
+            path: '/work',
+            builder: (context, state) => const DailyWorkspaceTasksPage(),
+          ),
+          GoRoute(
+            path: '/advanced',
+            builder: (context, state) => const AdvancedOperationsHubPage(),
+          ),
           GoRoute(
             path: '/dashboard',
             builder: (context, state) => const WorkspaceDashboardPage(),
