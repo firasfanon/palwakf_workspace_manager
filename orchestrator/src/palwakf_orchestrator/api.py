@@ -33,6 +33,15 @@ from palwakf_orchestrator.dashboard_contracts import (
     RecentActivityItem,
 )
 from palwakf_orchestrator.dashboard_service import DashboardAggregationService
+from palwakf_orchestrator.direct_execution_contracts import (
+    DirectExecutionReceipt,
+    DirectExecutionRequest,
+)
+from palwakf_orchestrator.direct_execution_service import (
+    DirectExecutionError,
+    DirectExecutionService,
+    OpenAIAgentsDirectTextExecutor,
+)
 from palwakf_orchestrator.engineering_os_contracts import (
     CreateEngineeringTaskRequest,
     EngineeringOsSummary,
@@ -112,6 +121,7 @@ def create_app(
     local_product_service: LocalProductService | None = None,
     engineering_os_service: EngineeringOsService | None = None,
     external_execution_service: ExternalExecutionWorkspaceService | None = None,
+    direct_execution_service: DirectExecutionService | None = None,
 ) -> FastAPI:
     resolved_settings = settings or get_settings()
     resolved_settings.assert_safe_binding()
@@ -140,6 +150,16 @@ def create_app(
         state_store=resolved_store,
     )
     execution_runs = ExecutionRunAdapter(engineering_os, resolved_operator, resolved_store)
+    direct_executor = (
+        OpenAIAgentsDirectTextExecutor(resolved_settings.openai_model)
+        if os.environ.get("OPENAI_API_KEY")
+        else None
+    )
+    direct_execution = direct_execution_service or DirectExecutionService(
+        resolved_store,
+        model=resolved_settings.openai_model,
+        executor=direct_executor,
+    )
     external_execution = external_execution_service or ExternalExecutionWorkspaceService(
         engineering_os,
         execution_runs,
@@ -218,6 +238,7 @@ def create_app(
     app.state.engineering_os_service = engineering_os
     app.state.execution_run_adapter = execution_runs
     app.state.external_execution_workspace_service = external_execution
+    app.state.direct_execution_service = direct_execution
     app.add_middleware(
         CORSMiddleware,
         allow_origin_regex=r"^https?://(127\.0\.0\.1|localhost)(:\d+)?$",
@@ -455,6 +476,7 @@ def create_app(
 
     _add_engineering_os_routes(app, engineering_os)
     _add_execution_run_routes(app, execution_runs, external_execution)
+    _add_direct_execution_routes(app, direct_execution)
     _add_legacy_routes(app, resolved_operator, connected)
     _add_project_routes(app, resolved_projects, engineering_os)
     app.mount("/mcp", mcp_http_app, name="mcp")
@@ -946,3 +968,30 @@ def _add_project_routes(
             return engineering_os.create_task(prepared)
         except GovernanceError as exc:
             raise project_error(exc) from exc
+
+def _add_direct_execution_routes(
+    app: FastAPI,
+    direct_execution: DirectExecutionService,
+) -> None:
+    @app.post(
+        "/v1/direct-execution/sessions",
+        response_model=DirectExecutionReceipt,
+    )
+    async def execute_direct_workspace_item(
+        command: DirectExecutionRequest,
+    ) -> DirectExecutionReceipt:
+        try:
+            return await direct_execution.execute(command)
+        except DirectExecutionError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    @app.get(
+        "/v1/direct-execution/sessions/{session_id}",
+        response_model=DirectExecutionReceipt,
+    )
+    async def direct_execution_status(session_id: str) -> DirectExecutionReceipt:
+        try:
+            return direct_execution.get(session_id)
+        except DirectExecutionError as exc:
+            status = 404 if str(exc) == "DIRECT_EXECUTION_SESSION_NOT_FOUND" else 409
+            raise HTTPException(status_code=status, detail=str(exc)) from exc

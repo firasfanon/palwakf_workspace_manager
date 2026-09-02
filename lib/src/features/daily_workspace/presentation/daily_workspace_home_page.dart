@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../direct_execution/application/direct_execution_controller.dart';
 import '../../engineering_os/domain/engineering_os_models.dart';
 import '../../workspace_catalog/application/workspace_catalog_controller.dart';
 import '../../workspace_catalog/domain/workspace_catalog_models.dart';
@@ -52,7 +53,12 @@ class _DailyWorkspaceHomePageState
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(dailyWorkspaceControllerProvider);
+    final directState = ref.watch(directExecutionControllerProvider);
     final catalog = ref.watch(workspaceCatalogProvider);
+    final selectedItem = catalog.selectedItem;
+    final directItemSelected = selectedItem != null && !selectedItem.governed;
+    final busy = state.executing || directState.running;
+    final canStart = !busy && (directItemSelected || state.tasks.isNotEmpty);
     final insights = UserWorkspaceInsights.fromTasks(state.tasks);
 
     return RefreshIndicator(
@@ -76,7 +82,7 @@ class _DailyWorkspaceHomePageState
                     intentFocus: _intentFocus,
                     selectedProjectId: state.selectedProjectId,
                     projectIds: state.projectIds,
-                    busy: state.executing,
+                    busy: busy,
                     onProjectChanged: (projectId) {
                       if (projectId != null) {
                         ref
@@ -85,9 +91,7 @@ class _DailyWorkspaceHomePageState
                       }
                     },
                     onQuickAction: _applyQuickAction,
-                    onStart: state.tasks.isEmpty || state.executing
-                        ? null
-                        : _confirmAndExecute,
+                    onStart: canStart ? _confirmAndExecute : null,
                   ),
                   if (state.loading) ...<Widget>[
                     const SizedBox(height: 14),
@@ -96,6 +100,11 @@ class _DailyWorkspaceHomePageState
                   if (state.phase != DailyExecutionPhase.idle) ...<Widget>[
                     const SizedBox(height: 18),
                     _ExecutionProgressCard(state: state),
+                  ],
+                  if (directState.phase !=
+                      DirectExecutionPhase.idle) ...<Widget>[
+                    const SizedBox(height: 18),
+                    _DirectExecutionProgressCard(state: directState),
                   ],
                   if (state.error != null) ...<Widget>[
                     const SizedBox(height: 14),
@@ -175,18 +184,39 @@ class _DailyWorkspaceHomePageState
       return;
     }
 
-    final controller = ref.read(dailyWorkspaceControllerProvider.notifier);
     final selectedItem = ref.read(workspaceCatalogProvider).selectedItem;
     if (selectedItem != null && !selectedItem.governed) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+      if (!mounted) return;
+      final accepted = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('بدء العمل المباشر؟'),
           content: Text(
-            'تم اختيار «${selectedItem.title}». تنفيذ الأبحاث والمشاريع الخاصة سيُختبر في بوابة Functional Execution UAT بعد نجاح اختبار تعدد العناصر؛ لن يمر هذا الطلب عبر حوكمة PalWakf.',
+            'سيُنفذ الطلب داخل «${selectedItem.title}» فقط. '
+            'المسار المباشر مستقل عن حوكمة PalWakf، ولن ينشئ مهمة هندسية محكومة أو يحوّل الطلب إلى مسار PalWakf.',
           ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton(
+              key: const ValueKey<String>('direct-confirm-execution'),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('ابدأ مباشرة'),
+            ),
+          ],
         ),
       );
+      if (accepted == true && mounted) {
+        await ref.read(directExecutionControllerProvider.notifier).execute(
+              item: selectedItem,
+              prompt: prompt,
+            );
+      }
       return;
     }
+    final controller = ref.read(dailyWorkspaceControllerProvider.notifier);
     if (selectedItem?.technicalId != null) {
       final hasRegisteredTask = ref
           .read(dailyWorkspaceControllerProvider)
@@ -1320,6 +1350,94 @@ class _DailyWorkspaceTasksPageState
           ),
         ),
       ],
+    );
+  }
+}
+
+class _DirectExecutionProgressCard extends StatelessWidget {
+  const _DirectExecutionProgressCard({required this.state});
+
+  final DirectExecutionState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final receipt = state.receipt;
+    final completed = state.phase == DirectExecutionPhase.completed;
+    final failed = state.phase == DirectExecutionPhase.failed;
+
+    return Card(
+      key: const ValueKey<String>('direct-execution-status'),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Icon(
+                  completed
+                      ? Icons.task_alt
+                      : failed
+                          ? Icons.error_outline
+                          : Icons.bolt_outlined,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    completed
+                        ? 'اكتمل العمل المباشر'
+                        : failed
+                            ? 'تعذر إكمال العمل المباشر'
+                            : 'التنفيذ المباشر جارٍ',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const Chip(label: Text('مسار مباشر')),
+              ],
+            ),
+            if (state.message != null) ...<Widget>[
+              const SizedBox(height: 10),
+              Text(state.message!),
+            ],
+            if (state.error != null) ...<Widget>[
+              const SizedBox(height: 10),
+              Text(
+                state.error!,
+                style: TextStyle(color: theme.colorScheme.error),
+              ),
+            ],
+            if (receipt != null &&
+                receipt.output.trim().isNotEmpty) ...<Widget>[
+              const SizedBox(height: 14),
+              const Divider(),
+              const SizedBox(height: 8),
+              SelectableText(receipt.output),
+            ],
+            if (receipt != null) ...<Widget>[
+              const SizedBox(height: 10),
+              ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                childrenPadding: EdgeInsets.zero,
+                title: const Text('تفاصيل التنفيذ'),
+                children: <Widget>[
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: Text(
+                      'رقم الجلسة: ${receipt.sessionId}\n'
+                      'العنصر: ${receipt.itemId}\n'
+                      'المسار: مباشر · لم يتم تحويله إلى مسار PalWakf.',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

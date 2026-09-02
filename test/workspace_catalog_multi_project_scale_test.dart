@@ -111,15 +111,17 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  test(
-      'daily surface integrates catalog and does not route research into governed execution',
+  test('daily surface routes direct classes without governed execution leakage',
       () {
     final source = File(
       'lib/src/features/daily_workspace/presentation/'
       'daily_workspace_home_page.dart',
     ).readAsStringSync();
     expect(source, contains('workspaceCatalogProvider'));
-    expect(source, contains('تنفيذ الأبحاث والمشاريع الخاصة'));
+    expect(source, contains('directExecutionControllerProvider'));
+    expect(source, contains('direct-confirm-execution'));
+    expect(source, contains('المسار المباشر مستقل عن حوكمة PalWakf'));
+    expect(source, contains('dailyWorkspaceControllerProvider'));
     expect(source, contains('DropdownMenu<String>'));
   });
 
