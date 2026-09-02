@@ -38,11 +38,11 @@ class _UserWorkspaceDashboardPageState
           ref.read(dailyWorkspaceControllerProvider.notifier).load(),
       child: ListView(
         key: const ValueKey<String>('user-workspace-dashboard'),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 28),
         children: <Widget>[
           Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1380),
+              constraints: const BoxConstraints(maxWidth: 1480),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
@@ -69,7 +69,7 @@ class _UserWorkspaceDashboardPageState
                           '/home?taskId=${Uri.encodeComponent(task.taskId)}',
                         ),
                       );
-                      if (constraints.maxWidth < 1000) {
+                      if (constraints.maxWidth < 960) {
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: <Widget>[
@@ -105,7 +105,7 @@ class _UserWorkspaceDashboardPageState
                           '/home?taskId=${Uri.encodeComponent(task.taskId)}',
                         ),
                       );
-                      if (constraints.maxWidth < 1000) {
+                      if (constraints.maxWidth < 960) {
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: <Widget>[
@@ -134,7 +134,7 @@ class _UserWorkspaceDashboardPageState
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'تعرض هذه اللوحة ملخصات مشتقة من الأعمال المسجلة حاليًا فقط؛ لا تستخدم أرقامًا افتراضية أو تواريخ غير موجودة في المصدر.',
+                    'تعرض هذه اللوحة الحالة المسجلة فعليًا فقط؛ لا تعرض نسب تقدم تقديرية أو تواريخ غير موجودة في المصدر.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: scheme.onSurfaceVariant,
                         ),
@@ -347,7 +347,7 @@ class _ProjectActivityPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return _Panel(
       title: 'نشاط المشاريع',
-      subtitle: 'تقدم مشتق من حالة الأعمال المسجلة لكل مشروع.',
+      subtitle: 'حالة مباشرة مشتقة من الأعمال المسجلة لكل مشروع.',
       trailing: TextButton(
         onPressed: onProjects,
         child: const Text('عرض المشاريع'),
@@ -375,6 +375,7 @@ class _ProjectRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final attention = summary.attentionCount > 0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
@@ -383,24 +384,21 @@ class _ProjectRow extends StatelessWidget {
             Expanded(
               child: Text(
                 summary.label,
-                style: theme.textTheme.titleSmall?.copyWith(
+                style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),
               ),
             ),
-            Text('${(summary.progress * 100).round()}%'),
+            const SizedBox(width: 10),
+            _StatusChip(label: summary.stageLabel, attention: attention),
           ],
         ),
-        const SizedBox(height: 7),
-        LinearProgressIndicator(value: summary.progress, minHeight: 8),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         Text(
-          '${summary.activeCount} قيد المتابعة'
-          '${summary.attentionCount > 0 ? ' · ${summary.attentionCount} تحتاج انتباهًا' : ''}',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: summary.attentionCount > 0
-                ? scheme.error
-                : scheme.onSurfaceVariant,
+          '${summary.activeCount} قيد المتابعة · ${summary.completedCount} مكتمل'
+          '${attention ? ' · ${summary.attentionCount} تحتاج انتباهًا' : ''}',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: attention ? scheme.error : scheme.onSurfaceVariant,
           ),
         ),
       ],
@@ -467,20 +465,20 @@ class _ActiveWorkPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return _Panel(
       title: 'أعمال قيد المتابعة',
-      subtitle: 'أعمالك النشطة الآن بواجهة بشرية مختصرة.',
+      subtitle: 'أعمالك النشطة الآن وحالتها المسجلة فعليًا.',
       trailing: TextButton(onPressed: onAll, child: const Text('عرض الكل')),
       child: tasks.isEmpty
           ? const _Empty(message: 'لا توجد أعمال نشطة حاليًا.')
           : Column(
               children: tasks.take(5).map((task) {
-                final progress = UserWorkspaceInsights.progressFor(task);
+                final attention = UserWorkspaceInsights.needsAttention(task);
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                     onTap: () => onOpen(task),
                     child: Padding(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(10),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: <Widget>[
@@ -489,18 +487,34 @@ class _ActiveWorkPanel extends StatelessWidget {
                               Expanded(
                                 child: Text(
                                   DailyWorkspaceController.friendlyTaskTitle(
-                                      task),
+                                    task,
+                                  ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleSmall
+                                      ?.copyWith(fontWeight: FontWeight.w800),
                                 ),
                               ),
                               const SizedBox(width: 10),
-                              Text('${(progress * 100).round()}%'),
+                              _StatusChip(
+                                label: UserWorkspaceInsights.stageLabel(task),
+                                attention: attention,
+                              ),
                             ],
                           ),
-                          const SizedBox(height: 7),
-                          LinearProgressIndicator(
-                              value: progress, minHeight: 7),
+                          const SizedBox(height: 6),
+                          Text(
+                            '${DailyWorkspaceController.friendlyProjectLabel(task.projectId)} · '
+                            '${UserWorkspaceInsights.activityLabel(task)}',
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                    ),
+                          ),
                         ],
                       ),
                     ),
@@ -508,6 +522,34 @@ class _ActiveWorkPanel extends StatelessWidget {
                 );
               }).toList(growable: false),
             ),
+    );
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.label, required this.attention});
+
+  final String label;
+  final bool attention;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final foreground = attention ? scheme.error : scheme.primary;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: foreground.withValues(alpha: 0.09),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: foreground.withValues(alpha: 0.32)),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: foreground,
+              fontWeight: FontWeight.w800,
+            ),
+      ),
     );
   }
 }

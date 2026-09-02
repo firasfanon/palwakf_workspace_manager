@@ -49,11 +49,11 @@ class _DailyWorkspaceHomePageState
           .load(preferTaskId: state.selectedTaskId),
       child: ListView(
         key: const ValueKey<String>('daily-workspace-home'),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 28),
         children: <Widget>[
           Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1380),
+              constraints: const BoxConstraints(maxWidth: 1480),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
@@ -97,7 +97,7 @@ class _DailyWorkspaceHomePageState
                   const SizedBox(height: 28),
                   LayoutBuilder(
                     builder: (context, constraints) {
-                      final wide = constraints.maxWidth >= 1040;
+                      final wide = constraints.maxWidth >= 980;
                       final work = _ContinuationSection(
                         tasks: insights.continuationTasks,
                         selectedTaskId: state.selectedTaskId,
@@ -223,7 +223,7 @@ class _WelcomeStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final greeting = DateTime.now().hour < 12 ? 'صباح الخير' : 'مساء الخير';
-    final ready = !state.loading && state.error == null;
+    final dataReady = !state.loading && state.error == null;
 
     return Wrap(
       alignment: WrapAlignment.spaceBetween,
@@ -242,7 +242,7 @@ class _WelcomeStrip extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               insights.activeWorkCount == 0
-                  ? 'مساحة العمل جاهزة لبدء مهمة جديدة.'
+                  ? 'ابدأ عملًا جديدًا أو تابع مشروعًا مسجلًا من هنا.'
                   : 'لديك ${insights.activeWorkCount} أعمال يمكنك متابعتها الآن.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
@@ -252,10 +252,10 @@ class _WelcomeStrip extends StatelessWidget {
         ),
         Chip(
           avatar: Icon(
-            ready ? Icons.check_circle_outline : Icons.sync,
+            dataReady ? Icons.check_circle_outline : Icons.sync,
             size: 17,
           ),
-          label: Text(ready ? 'مساحة العمل جاهزة' : 'جاري التحديث'),
+          label: Text(dataReady ? 'البيانات محدثة' : 'جاري تحديث البيانات'),
         ),
       ],
     );
@@ -304,7 +304,7 @@ class _CommandCenter extends StatelessWidget {
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(26),
+        padding: const EdgeInsets.all(30),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
@@ -752,7 +752,6 @@ class _ContinuationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final progress = UserWorkspaceInsights.progressFor(task);
     final attention = UserWorkspaceInsights.needsAttention(task);
 
     return Card(
@@ -800,7 +799,13 @@ class _ContinuationCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 14),
-            LinearProgressIndicator(value: progress, minHeight: 7),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: _WorkStateChip(
+                label: UserWorkspaceInsights.stageLabel(task),
+                attention: attention,
+              ),
+            ),
             const SizedBox(height: 8),
             Text(
               UserWorkspaceInsights.activityLabel(task),
@@ -818,6 +823,34 @@ class _ContinuationCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _WorkStateChip extends StatelessWidget {
+  const _WorkStateChip({required this.label, required this.attention});
+
+  final String label;
+  final bool attention;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final foreground = attention ? scheme.error : scheme.primary;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: foreground.withValues(alpha: 0.09),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: foreground.withValues(alpha: 0.32)),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: foreground,
+              fontWeight: FontWeight.w800,
+            ),
       ),
     );
   }

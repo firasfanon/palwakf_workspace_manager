@@ -101,8 +101,8 @@ class WorkspaceApplicationShell extends ConsumerWidget {
                       previewMode
                           ? 'معاينة'
                           : connection?.ready ?? false
-                              ? 'جاهز'
-                              : 'غير متصل',
+                              ? 'الخدمة متصلة'
+                              : 'الخدمة غير متصلة',
                     ),
                   ),
                 ),

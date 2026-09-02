@@ -42,6 +42,15 @@ void main() {
     expect(advancedRoutes, contains('/tools'));
   });
 
+  test('shell exposes truthful service connection state', () {
+    final source =
+        File('lib/src/app/workspace_application_shell.dart').readAsStringSync();
+
+    expect(source, contains('الخدمة متصلة'));
+    expect(source, contains('الخدمة غير متصلة'));
+    expect(source, isNot(contains("? 'جاهز'")));
+  });
+
   test('router starts on home and includes user dashboard plus advanced routes',
       () {
     final source =
@@ -95,6 +104,18 @@ void main() {
     expect(insights.completedCount, 1);
     expect(insights.primarySuggestion, isNotNull);
     expect(insights.primarySuggestion!.task.taskId, 'ATTENTION');
+    expect(insights.projectSummaries.first.stageLabel, 'يحتاج مراجعة');
+    expect(
+      UserWorkspaceInsights.stageLabel(
+        _task(
+          taskId: 'CHECKPOINT',
+          title: 'Checkpoint',
+          projectId: 'PALWAKF_WORKSPACE_MANAGER',
+          status: 'WIP_REMOTE_CHECKPOINTED',
+        ),
+      ),
+      'محفوظ للمتابعة',
+    );
   });
 
   test('home productization exposes command center and quick actions', () {
@@ -108,7 +129,9 @@ void main() {
     expect(source, contains('اقتراحات سريعة'));
     expect(source, contains('استكمل من حيث توقفت'));
     expect(source, contains('workspace-smart-suggestion'));
-    expect(source, contains('BoxConstraints(maxWidth: 1380)'));
+    expect(source, contains('BoxConstraints(maxWidth: 1480)'));
+    expect(source, contains('البيانات محدثة'));
+    expect(source, isNot(contains('UserWorkspaceInsights.progressFor')));
   });
 
   test('dashboard is user-facing and does not import governance runtime', () {
@@ -128,11 +151,15 @@ void main() {
     expect(source, isNot(contains('Provider:')));
     expect(source, isNot(contains('Codex')));
     expect(source, isNot(contains('Tool Plan')));
+    expect(source, contains('لا تعرض نسب تقدم تقديرية'));
+    expect(source, isNot(contains('summary.progress')));
+    expect(source, isNot(contains('progress * 100')));
+    expect(source, isNot(contains('UserWorkspaceInsights.progressFor')));
   });
 
   testWidgets('productized home and dashboard render cleanly at desktop width',
       (tester) async {
-    tester.view.physicalSize = const Size(1440, 1000);
+    tester.view.physicalSize = const Size(1680, 1000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);

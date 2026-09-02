@@ -55,25 +55,35 @@ class UserWorkspaceInsights {
     for (final projectId in projectIds) {
       final projectTasks =
           tasks.where((task) => task.projectId == projectId).toList();
-      final totalProgress = projectTasks.fold<double>(
-        0,
-        (sum, task) => sum + progressFor(task),
-      );
-      final progress =
-          projectTasks.isEmpty ? 0.0 : totalProgress / projectTasks.length;
-      final active =
-          projectTasks.where((task) => _activeStatuses.contains(task.status));
-      final attention = projectTasks
+      final activeCount = projectTasks
+          .where((task) => _activeStatuses.contains(task.status))
+          .length;
+      final attentionCount = projectTasks
           .where((task) => _attentionStatuses.contains(task.status))
           .length;
+      final completedCount = projectTasks
+          .where(
+            (task) =>
+                task.status == 'INTEGRATED' ||
+                task.integrationStatus == 'INTEGRATED',
+          )
+          .length;
+      final stageLabel = attentionCount > 0
+          ? 'يحتاج مراجعة'
+          : activeCount > 0
+              ? 'قيد العمل'
+              : projectTasks.isNotEmpty && completedCount == projectTasks.length
+                  ? 'مكتمل'
+                  : 'مسجل';
       result.add(
         UserProjectSummary(
           projectId: projectId,
           label: DailyWorkspaceController.friendlyProjectLabel(projectId),
           workCount: projectTasks.length,
-          activeCount: active.length,
-          attentionCount: attention,
-          progress: progress.clamp(0.0, 1.0).toDouble(),
+          activeCount: activeCount,
+          attentionCount: attentionCount,
+          completedCount: completedCount,
+          stageLabel: stageLabel,
         ),
       );
     }
@@ -122,18 +132,19 @@ class UserWorkspaceInsights {
     return null;
   }
 
-  static double progressFor(EngineeringTask task) {
+  static String stageLabel(EngineeringTask task) {
     if (task.status == 'INTEGRATED' || task.integrationStatus == 'INTEGRATED') {
-      return 1;
+      return 'مكتمل';
     }
     return switch (task.status) {
-      'IN_REVIEW' || 'NEEDS_REVIEW' => 0.86,
-      'WIP_REMOTE_CHECKPOINTED' => 0.68,
-      'RUNNING' || 'IN_PROGRESS' => 0.58,
-      'BLOCKED' || 'AWAITING_APPROVAL' => 0.46,
-      'READY' => 0.24,
-      'CANCELLED' => 0.0,
-      _ => 0.12,
+      'WIP_REMOTE_CHECKPOINTED' => 'محفوظ للمتابعة',
+      'IN_REVIEW' || 'NEEDS_REVIEW' => 'جاهز للمراجعة',
+      'BLOCKED' => 'متوقف',
+      'AWAITING_APPROVAL' => 'بانتظار موافقتك',
+      'RUNNING' || 'IN_PROGRESS' => 'قيد العمل',
+      'READY' => 'جاهز',
+      'CANCELLED' => 'ملغى',
+      _ => DailyWorkspaceController.friendlyTaskStatus(task.status),
     };
   }
 
@@ -181,7 +192,8 @@ class UserProjectSummary {
     required this.workCount,
     required this.activeCount,
     required this.attentionCount,
-    required this.progress,
+    required this.completedCount,
+    required this.stageLabel,
   });
 
   final String projectId;
@@ -189,7 +201,8 @@ class UserProjectSummary {
   final int workCount;
   final int activeCount;
   final int attentionCount;
-  final double progress;
+  final int completedCount;
+  final String stageLabel;
 }
 
 class UserWorkspaceSuggestion {
