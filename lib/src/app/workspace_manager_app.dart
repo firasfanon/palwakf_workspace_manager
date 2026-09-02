@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../core/theme/palwakf_theme.dart';
 import '../features/daily_workspace/presentation/advanced_operations_hub_page.dart';
 import '../features/daily_workspace/presentation/daily_workspace_home_page.dart';
+import '../features/daily_workspace/presentation/user_dashboard_page.dart';
 import '../features/dashboard/presentation/operational_list_pages.dart';
 import '../features/dashboard/presentation/workspace_dashboard_page.dart';
 import '../features/engineering_os/presentation/extensions_center_page.dart';
@@ -30,6 +31,10 @@ final workspaceRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => DailyWorkspaceHomePage(
               initialTaskId: state.uri.queryParameters['taskId'],
             ),
+          ),
+          GoRoute(
+            path: '/overview',
+            builder: (context, state) => const UserWorkspaceDashboardPage(),
           ),
           GoRoute(
             path: '/work',

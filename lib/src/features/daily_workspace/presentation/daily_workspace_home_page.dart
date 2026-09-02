@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../engineering_os/domain/engineering_os_models.dart';
 import '../application/daily_workspace_controller.dart';
+import '../domain/user_workspace_insights.dart';
 
 class DailyWorkspaceHomePage extends ConsumerStatefulWidget {
   const DailyWorkspaceHomePage({this.initialTaskId, super.key});
@@ -18,6 +19,7 @@ class DailyWorkspaceHomePage extends ConsumerStatefulWidget {
 class _DailyWorkspaceHomePageState
     extends ConsumerState<DailyWorkspaceHomePage> {
   final _intentController = TextEditingController();
+  final _intentFocus = FocusNode();
 
   @override
   void initState() {
@@ -32,12 +34,14 @@ class _DailyWorkspaceHomePageState
   @override
   void dispose() {
     _intentController.dispose();
+    _intentFocus.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(dailyWorkspaceControllerProvider);
+    final insights = UserWorkspaceInsights.fromTasks(state.tasks);
 
     return RefreshIndicator(
       onRefresh: () => ref
@@ -45,64 +49,109 @@ class _DailyWorkspaceHomePageState
           .load(preferTaskId: state.selectedTaskId),
       child: ListView(
         key: const ValueKey<String>('daily-workspace-home'),
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         children: <Widget>[
-          _WorkspaceStartPanel(
-            intentController: _intentController,
-            selectedProjectId: state.selectedProjectId,
-            projectIds: state.projectIds,
-            busy: state.executing,
-            onProjectChanged: (projectId) {
-              if (projectId != null) {
-                ref
-                    .read(dailyWorkspaceControllerProvider.notifier)
-                    .selectProject(projectId);
-              }
-            },
-            onStart: state.tasks.isEmpty || state.executing
-                ? null
-                : _confirmAndExecute,
-          ),
-          const SizedBox(height: 18),
-          if (state.loading) const LinearProgressIndicator(),
-          if (state.phase != DailyExecutionPhase.idle)
-            _ExecutionProgressCard(state: state),
-          if (state.error != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 14),
-              child: _FriendlyErrorCard(
-                message: state.error!,
-                technicalError: state.technicalError,
-              ),
-            ),
-          const SizedBox(height: 28),
-          _SectionHeader(
-            title: 'أعمالك الحالية',
-            actionLabel: 'عرض الكل',
-            onAction: () => context.go('/work'),
-          ),
-          const SizedBox(height: 10),
-          if (!state.loading && state.tasks.isEmpty)
-            _EmptyTasksCard(onProjects: () => context.go('/projects'))
-          else
-            ...state.tasks.take(4).map(
-                  (task) => Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: _DailyTaskCard(
-                      task: task,
-                      selected: task.taskId == state.selectedTaskId,
-                      onResume: () {
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1380),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  _WelcomeStrip(state: state, insights: insights),
+                  const SizedBox(height: 18),
+                  _CommandCenter(
+                    intentController: _intentController,
+                    intentFocus: _intentFocus,
+                    selectedProjectId: state.selectedProjectId,
+                    projectIds: state.projectIds,
+                    busy: state.executing,
+                    onProjectChanged: (projectId) {
+                      if (projectId != null) {
                         ref
                             .read(dailyWorkspaceControllerProvider.notifier)
-                            .selectTask(task.taskId);
-                        _intentController.clear();
-                      },
-                    ),
+                            .selectProject(projectId);
+                      }
+                    },
+                    onQuickAction: _applyQuickAction,
+                    onStart: state.tasks.isEmpty || state.executing
+                        ? null
+                        : _confirmAndExecute,
                   ),
-                ),
+                  if (state.loading) ...<Widget>[
+                    const SizedBox(height: 14),
+                    const LinearProgressIndicator(),
+                  ],
+                  if (state.phase != DailyExecutionPhase.idle) ...<Widget>[
+                    const SizedBox(height: 18),
+                    _ExecutionProgressCard(state: state),
+                  ],
+                  if (state.error != null) ...<Widget>[
+                    const SizedBox(height: 14),
+                    _FriendlyErrorCard(
+                      message: state.error!,
+                      technicalError: state.technicalError,
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                  _HomeMetricGrid(insights: insights),
+                  const SizedBox(height: 28),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final wide = constraints.maxWidth >= 1040;
+                      final work = _ContinuationSection(
+                        tasks: insights.continuationTasks,
+                        selectedTaskId: state.selectedTaskId,
+                        loading: state.loading,
+                        onResume: _resumeTask,
+                        onAll: () => context.go('/work'),
+                        onProjects: () => context.go('/projects'),
+                      );
+                      final suggestion = _SuggestionPanel(
+                        suggestion: insights.primarySuggestion,
+                        onOpenSuggestion: (task) => _resumeTask(task.taskId),
+                        onDashboard: () => context.go('/overview'),
+                      );
+
+                      if (!wide) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            work,
+                            const SizedBox(height: 18),
+                            suggestion,
+                          ],
+                        );
+                      }
+
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Expanded(flex: 7, child: work),
+                          const SizedBox(width: 18),
+                          Expanded(flex: 3, child: suggestion),
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  void _applyQuickAction(String text) {
+    _intentController.text = text;
+    _intentController.selection = TextSelection.collapsed(offset: text.length);
+    _intentFocus.requestFocus();
+  }
+
+  void _resumeTask(String taskId) {
+    ref.read(dailyWorkspaceControllerProvider.notifier).selectTask(taskId);
+    _intentController.clear();
+    _intentFocus.requestFocus();
   }
 
   Future<void> _confirmAndExecute() async {
@@ -164,102 +213,236 @@ class _DailyWorkspaceHomePageState
   }
 }
 
-class _WorkspaceStartPanel extends StatelessWidget {
-  const _WorkspaceStartPanel({
+class _WelcomeStrip extends StatelessWidget {
+  const _WelcomeStrip({required this.state, required this.insights});
+
+  final DailyWorkspaceState state;
+  final UserWorkspaceInsights insights;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final greeting = DateTime.now().hour < 12 ? 'صباح الخير' : 'مساء الخير';
+    final ready = !state.loading && state.error == null;
+
+    return Wrap(
+      alignment: WrapAlignment.spaceBetween,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      runSpacing: 10,
+      children: <Widget>[
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              greeting,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              insights.activeWorkCount == 0
+                  ? 'مساحة العمل جاهزة لبدء مهمة جديدة.'
+                  : 'لديك ${insights.activeWorkCount} أعمال يمكنك متابعتها الآن.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+        Chip(
+          avatar: Icon(
+            ready ? Icons.check_circle_outline : Icons.sync,
+            size: 17,
+          ),
+          label: Text(ready ? 'مساحة العمل جاهزة' : 'جاري التحديث'),
+        ),
+      ],
+    );
+  }
+}
+
+class _CommandCenter extends StatelessWidget {
+  const _CommandCenter({
     required this.intentController,
+    required this.intentFocus,
     required this.selectedProjectId,
     required this.projectIds,
     required this.busy,
     required this.onProjectChanged,
+    required this.onQuickAction,
     required this.onStart,
   });
 
   final TextEditingController intentController;
+  final FocusNode intentFocus;
   final String? selectedProjectId;
   final List<String> projectIds;
   final bool busy;
   final ValueChanged<String?> onProjectChanged;
+  final ValueChanged<String> onQuickAction;
   final VoidCallback? onStart;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Card(
+    final scheme = theme.colorScheme;
+
+    return Container(
+      key: const ValueKey<String>('workspace-command-center'),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: scheme.outlineVariant),
+        gradient: LinearGradient(
+          begin: AlignmentDirectional.topStart,
+          end: AlignmentDirectional.bottomEnd,
+          colors: <Color>[
+            scheme.primary.withValues(alpha: 0.13),
+            scheme.surface,
+            scheme.surfaceContainerHighest.withValues(alpha: 0.75),
+          ],
+        ),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(26),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             Row(
               children: <Widget>[
-                const Icon(Icons.auto_awesome_outlined, size: 30),
-                const SizedBox(width: 10),
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: scheme.primary.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(Icons.auto_awesome, color: scheme.primary),
+                ),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(
-                        'مساحة عمل PalWakf',
+                        'ماذا تريد أن تنجز اليوم؟',
                         style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        'قل ما تريد إنجازه، وسيتولى النظام اختيار مسار العمل المناسب.',
-                        style: theme.textTheme.bodyMedium,
+                        'اكتب طلبك بطريقتك. سيحدد Workspace مسار العمل المناسب في الخلفية.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 22),
-            Text(
-              'ماذا تريد أن تنجز؟',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 20),
             TextField(
               key: const ValueKey<String>('daily-intent-input'),
               controller: intentController,
+              focusNode: intentFocus,
               enabled: !busy,
-              minLines: 3,
-              maxLines: 6,
+              minLines: 4,
+              maxLines: 7,
               decoration: const InputDecoration(
                 hintText:
-                    'مثال: أصلح مشكلة شاشة المشاريع، ثم شغّل الاختبارات وتحقق من النتيجة.',
+                    'مثال: حسّن الصفحة الرئيسية واجعل متابعة المشاريع أوضح، ثم شغّل الاختبارات وتحقق من النتيجة.',
                 border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 14),
-            _ProjectSelector(
-              projectIds: projectIds,
-              selectedProjectId: selectedProjectId,
-              busy: busy,
-              onChanged: onProjectChanged,
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: <Widget>[
-                const Icon(Icons.auto_fix_high_outlined, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'سيحدد النظام نوع العمل والمهمة المناسبة تلقائيًا داخل المشروع المختار.',
-                    style: theme.textTheme.bodySmall,
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final selector = _ProjectSelector(
+                  projectIds: projectIds,
+                  selectedProjectId: selectedProjectId,
+                  busy: busy,
+                  onChanged: onProjectChanged,
+                );
+                final action = FilledButton.icon(
+                  key: const ValueKey<String>('daily-start-work'),
+                  onPressed: onStart,
+                  icon: Icon(
+                    busy ? Icons.hourglass_top : Icons.play_arrow_rounded,
                   ),
+                  label: Text(busy ? 'جاري العمل…' : 'ابدأ التنفيذ'),
+                );
+
+                if (constraints.maxWidth < 720) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      selector,
+                      const SizedBox(height: 12),
+                      SizedBox(height: 48, child: action),
+                    ],
+                  );
+                }
+
+                return Row(
+                  children: <Widget>[
+                    Expanded(child: selector),
+                    const SizedBox(width: 12),
+                    SizedBox(width: 190, height: 48, child: action),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'اقتراحات سريعة',
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: <Widget>[
+                ActionChip(
+                  avatar: const Icon(Icons.playlist_play, size: 18),
+                  label: const Text('تابع آخر عمل'),
+                  onPressed: busy
+                      ? null
+                      : () => onQuickAction(
+                            'تابع آخر عمل مسجل، تحقق من حالته وأكمل الخطوة التالية المناسبة.',
+                          ),
+                ),
+                ActionChip(
+                  avatar: const Icon(Icons.fact_check_outlined, size: 18),
+                  label: const Text('راجع المشروع'),
+                  onPressed: busy
+                      ? null
+                      : () => onQuickAction(
+                            'راجع حالة المشروع الحالية وحدد ما يحتاج انتباهًا دون تعديل.',
+                          ),
+                ),
+                ActionChip(
+                  avatar: const Icon(Icons.science_outlined, size: 18),
+                  label: const Text('اختبر النسخة'),
+                  onPressed: busy
+                      ? null
+                      : () => onQuickAction(
+                            'اختبر النسخة الحالية وتحقق من النتائج دون توسيع النطاق.',
+                          ),
+                ),
+                ActionChip(
+                  avatar: const Icon(Icons.build_circle_outlined, size: 18),
+                  label: const Text('أصلح مشكلة'),
+                  onPressed: busy
+                      ? null
+                      : () => onQuickAction(
+                            'أصلح المشكلة الحالية ضمن نطاق العمل المسجل ثم شغّل الاختبارات.',
+                          ),
                 ),
               ],
-            ),
-            const SizedBox(height: 18),
-            FilledButton.icon(
-              key: const ValueKey<String>('daily-start-work'),
-              onPressed: onStart,
-              icon: Icon(busy ? Icons.hourglass_top : Icons.play_arrow),
-              label: Text(busy ? 'جاري العمل…' : 'ابدأ التنفيذ'),
             ),
           ],
         ),
@@ -329,6 +512,404 @@ class _ProjectSelector extends StatelessWidget {
   }
 }
 
+class _HomeMetricGrid extends StatelessWidget {
+  const _HomeMetricGrid({required this.insights});
+
+  final UserWorkspaceInsights insights;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final columns = width >= 1080
+            ? 4
+            : width >= 620
+                ? 2
+                : 1;
+        const gap = 12.0;
+        final itemWidth = (width - gap * (columns - 1)) / columns;
+
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: <Widget>[
+            _MetricCard(
+              width: itemWidth,
+              icon: Icons.folder_copy_outlined,
+              label: 'مشاريعي',
+              value: '${insights.projectCount}',
+              helper: 'مشروعات مرتبطة بمساحة العمل',
+              onTap: () => context.go('/projects'),
+            ),
+            _MetricCard(
+              width: itemWidth,
+              icon: Icons.play_circle_outline,
+              label: 'قيد المتابعة',
+              value: '${insights.activeWorkCount}',
+              helper: 'أعمال يمكن استئنافها الآن',
+              onTap: () => context.go('/work'),
+            ),
+            _MetricCard(
+              width: itemWidth,
+              icon: Icons.priority_high_rounded,
+              label: 'تحتاج انتباهك',
+              value: '${insights.attentionCount}',
+              helper: insights.attentionCount == 0
+                  ? 'لا توجد قرارات معلقة'
+                  : 'أعمال تستحق المراجعة أولًا',
+              onTap: () => context.go('/overview'),
+            ),
+            _MetricCard(
+              width: itemWidth,
+              icon: Icons.task_alt,
+              label: 'مكتمل',
+              value: '${insights.completedCount}',
+              helper: 'أعمال مسجلة كمكتملة',
+              onTap: () => context.go('/overview'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _MetricCard extends StatefulWidget {
+  const _MetricCard({
+    required this.width,
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.helper,
+    required this.onTap,
+  });
+
+  final double width;
+  final IconData icon;
+  final String label;
+  final String value;
+  final String helper;
+  final VoidCallback onTap;
+
+  @override
+  State<_MetricCard> createState() => _MetricCardState();
+}
+
+class _MetricCardState extends State<_MetricCard> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return SizedBox(
+      width: widget.width,
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          decoration: BoxDecoration(
+            color: _hovered
+                ? scheme.surfaceContainerHighest.withValues(alpha: 0.82)
+                : scheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: _hovered ? scheme.primary : scheme.outlineVariant,
+            ),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: widget.onTap,
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Row(
+                children: <Widget>[
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: scheme.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                    child: Icon(widget.icon, color: scheme.primary),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          widget.value,
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(fontWeight: FontWeight.w900),
+                        ),
+                        Text(
+                          widget.label,
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          widget.helper,
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ContinuationSection extends StatelessWidget {
+  const _ContinuationSection({
+    required this.tasks,
+    required this.selectedTaskId,
+    required this.loading,
+    required this.onResume,
+    required this.onAll,
+    required this.onProjects,
+  });
+
+  final List<EngineeringTask> tasks;
+  final String? selectedTaskId;
+  final bool loading;
+  final ValueChanged<String> onResume;
+  final VoidCallback onAll;
+  final VoidCallback onProjects;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        _SectionTitle(
+          title: 'استكمل من حيث توقفت',
+          subtitle:
+              'أهم الأعمال التي يمكنك متابعتها دون البحث في التفاصيل التقنية.',
+          actionLabel: 'عرض جميع الأعمال',
+          onAction: onAll,
+        ),
+        const SizedBox(height: 12),
+        if (loading)
+          const LinearProgressIndicator()
+        else if (tasks.isEmpty)
+          _EmptyTasksCard(onProjects: onProjects)
+        else
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final twoColumns = constraints.maxWidth >= 720;
+              final cardWidth = twoColumns
+                  ? (constraints.maxWidth - 12) / 2
+                  : constraints.maxWidth;
+              return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: tasks.take(4).map((task) {
+                  return SizedBox(
+                    width: cardWidth,
+                    child: _ContinuationCard(
+                      task: task,
+                      selected: task.taskId == selectedTaskId,
+                      onResume: () => onResume(task.taskId),
+                    ),
+                  );
+                }).toList(growable: false),
+              );
+            },
+          ),
+      ],
+    );
+  }
+}
+
+class _ContinuationCard extends StatelessWidget {
+  const _ContinuationCard({
+    required this.task,
+    required this.selected,
+    required this.onResume,
+  });
+
+  final EngineeringTask task;
+  final bool selected;
+  final VoidCallback onResume;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final progress = UserWorkspaceInsights.progressFor(task);
+    final attention = UserWorkspaceInsights.needsAttention(task);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                CircleAvatar(
+                  backgroundColor: scheme.primary.withValues(alpha: 0.12),
+                  child: Icon(
+                    attention
+                        ? Icons.priority_high_rounded
+                        : Icons.assignment_outlined,
+                    color: attention ? scheme.error : scheme.primary,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        DailyWorkspaceController.friendlyTaskTitle(task),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        DailyWorkspaceController.friendlyProjectLabel(
+                          task.projectId,
+                        ),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            LinearProgressIndicator(value: progress, minHeight: 7),
+            const SizedBox(height: 8),
+            Text(
+              UserWorkspaceInsights.activityLabel(task),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: attention ? scheme.error : scheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: FilledButton.tonal(
+                onPressed: onResume,
+                child: Text(selected ? 'محدد للمتابعة' : 'استئناف العمل'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SuggestionPanel extends StatelessWidget {
+  const _SuggestionPanel({
+    required this.suggestion,
+    required this.onOpenSuggestion,
+    required this.onDashboard,
+  });
+
+  final UserWorkspaceSuggestion? suggestion;
+  final ValueChanged<EngineeringTask> onOpenSuggestion;
+  final VoidCallback onDashboard;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Container(
+          key: const ValueKey<String>('workspace-smart-suggestion'),
+          decoration: BoxDecoration(
+            color: scheme.secondary.withValues(alpha: 0.09),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: scheme.secondary.withValues(alpha: 0.38),
+            ),
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  Icon(Icons.lightbulb_outline, color: scheme.secondary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'يقترح عليك Workspace',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              if (suggestion == null)
+                Text(
+                  'لا يوجد إجراء عاجل الآن. يمكنك بدء طلب جديد من أعلى الصفحة.',
+                  style: theme.textTheme.bodyMedium,
+                )
+              else ...<Widget>[
+                Text(
+                  suggestion!.title,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  suggestion!.message,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                OutlinedButton.icon(
+                  onPressed: () => onOpenSuggestion(suggestion!.task),
+                  icon: const Icon(Icons.arrow_back),
+                  label: Text(suggestion!.actionLabel),
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        OutlinedButton.icon(
+          onPressed: onDashboard,
+          icon: const Icon(Icons.space_dashboard_outlined),
+          label: const Text('فتح لوحة التحكم'),
+        ),
+      ],
+    );
+  }
+}
+
 class _ExecutionProgressCard extends StatelessWidget {
   const _ExecutionProgressCard({required this.state});
 
@@ -344,64 +925,61 @@ class _ExecutionProgressCard extends StatelessWidget {
             ? Icons.error_outline
             : Icons.sync;
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 18),
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              Row(
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Icon(icon),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    success
+                        ? 'تم إنجاز العمل'
+                        : failed
+                            ? 'توقف العمل بأمان'
+                            : 'جاري العمل',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(state.message ?? 'أتابع حالة العمل…'),
+            const SizedBox(height: 14),
+            _ProgressSteps(phase: state.phase),
+            if (state.changedFiles.isNotEmpty) ...<Widget>[
+              const SizedBox(height: 12),
+              const Text('تم حفظ التغييرات المطلوبة على فرع العمل.'),
+            ],
+            if (state.activeRunId != null)
+              ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                title: const Text('تفاصيل تقنية'),
                 children: <Widget>[
-                  Icon(icon),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      success
-                          ? 'تم إنجاز العمل'
-                          : failed
-                              ? 'توقف العمل بأمان'
-                              : 'جاري العمل',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: SelectableText(
+                      'Run: ${state.activeRunId}',
+                      textDirection: TextDirection.ltr,
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Text(state.message ?? 'أتابع حالة العمل…'),
-              const SizedBox(height: 14),
-              _ProgressSteps(phase: state.phase),
-              if (state.changedFiles.isNotEmpty) ...<Widget>[
-                const SizedBox(height: 12),
-                const Text('تم حفظ التغييرات المطلوبة على فرع العمل.'),
-              ],
-              if (state.activeRunId != null)
-                ExpansionTile(
-                  tilePadding: EdgeInsets.zero,
-                  title: const Text('تفاصيل تقنية'),
-                  children: <Widget>[
+                  if (state.changedFiles.isNotEmpty)
                     Align(
                       alignment: AlignmentDirectional.centerStart,
-                      child: SelectableText(
-                        'Run: ${state.activeRunId}',
+                      child: Text(
+                        'Changed files: ${state.changedFiles.length}',
                         textDirection: TextDirection.ltr,
                       ),
                     ),
-                    if (state.changedFiles.isNotEmpty)
-                      Align(
-                        alignment: AlignmentDirectional.centerStart,
-                        child: Text(
-                          'Changed files: ${state.changedFiles.length}',
-                          textDirection: TextDirection.ltr,
-                        ),
-                      ),
-                  ],
-                ),
-            ],
-          ),
+                ],
+              ),
+          ],
         ),
       ),
     );
@@ -514,64 +1092,46 @@ class _FriendlyErrorCard extends StatelessWidget {
   }
 }
 
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({
     required this.title,
+    required this.subtitle,
     required this.actionLabel,
     required this.onAction,
   });
 
   final String title;
+  final String subtitle;
   final String actionLabel;
   final VoidCallback onAction;
 
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: <Widget>[
         Expanded(
-          child: Text(
-            title,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                subtitle,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+            ],
           ),
         ),
         TextButton(onPressed: onAction, child: Text(actionLabel)),
       ],
-    );
-  }
-}
-
-class _DailyTaskCard extends StatelessWidget {
-  const _DailyTaskCard({
-    required this.task,
-    required this.selected,
-    required this.onResume,
-  });
-
-  final EngineeringTask task;
-  final bool selected;
-  final VoidCallback onResume;
-
-  @override
-  Widget build(BuildContext context) {
-    final title = DailyWorkspaceController.friendlyTaskTitle(task);
-    final project =
-        DailyWorkspaceController.friendlyProjectLabel(task.projectId);
-    final status = DailyWorkspaceController.friendlyTaskStatus(task.status);
-
-    return Card(
-      child: ListTile(
-        selected: selected,
-        leading: const CircleAvatar(child: Icon(Icons.assignment_outlined)),
-        title: Text(title),
-        subtitle: Text('$project · $status'),
-        trailing: TextButton(
-          onPressed: onResume,
-          child: Text(selected ? 'محدد' : 'استئناف'),
-        ),
-      ),
     );
   }
 }
@@ -628,40 +1188,52 @@ class _DailyWorkspaceTasksPageState
       key: const ValueKey<String>('daily-workspace-tasks'),
       padding: const EdgeInsets.all(24),
       children: <Widget>[
-        Text(
-          'أعمالي',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
-        ),
-        const SizedBox(height: 4),
-        const Text('الأعمال التي يمكنك استئنافها من مساحة العمل اليومية.'),
-        const SizedBox(height: 18),
-        if (state.loading) const LinearProgressIndicator(),
-        if (!state.loading && state.tasks.isEmpty)
-          _EmptyTasksCard(onProjects: () => context.go('/projects')),
-        ...state.tasks.map(
-          (task) => Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Card(
-              child: ListTile(
-                leading: const CircleAvatar(
-                  child: Icon(Icons.work_outline),
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1180),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Text(
+                  'أعمالي',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
                 ),
-                title: Text(
-                  DailyWorkspaceController.friendlyTaskTitle(task),
+                const SizedBox(height: 4),
+                const Text(
+                  'الأعمال التي يمكنك استئنافها من مساحة العمل اليومية.',
                 ),
-                subtitle: Text(
-                  '${DailyWorkspaceController.friendlyProjectLabel(task.projectId)}'
-                  ' · ${DailyWorkspaceController.friendlyTaskStatus(task.status)}',
-                ),
-                trailing: FilledButton.tonal(
-                  onPressed: () => context.go(
-                    '/home?taskId=${Uri.encodeComponent(task.taskId)}',
+                const SizedBox(height: 18),
+                if (state.loading) const LinearProgressIndicator(),
+                if (!state.loading && state.tasks.isEmpty)
+                  _EmptyTasksCard(onProjects: () => context.go('/projects')),
+                ...state.tasks.map(
+                  (task) => Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Card(
+                      child: ListTile(
+                        leading: const CircleAvatar(
+                          child: Icon(Icons.work_outline),
+                        ),
+                        title: Text(
+                          DailyWorkspaceController.friendlyTaskTitle(task),
+                        ),
+                        subtitle: Text(
+                          '${DailyWorkspaceController.friendlyProjectLabel(task.projectId)}'
+                          ' · ${DailyWorkspaceController.friendlyTaskStatus(task.status)}',
+                        ),
+                        trailing: FilledButton.tonal(
+                          onPressed: () => context.go(
+                            '/home?taskId=${Uri.encodeComponent(task.taskId)}',
+                          ),
+                          child: const Text('استئناف'),
+                        ),
+                      ),
+                    ),
                   ),
-                  child: const Text('استئناف'),
                 ),
-              ),
+              ],
             ),
           ),
         ),

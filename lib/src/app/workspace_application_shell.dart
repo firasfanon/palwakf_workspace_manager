@@ -18,70 +18,37 @@ class WorkspaceApplicationShell extends ConsumerWidget {
   final String location;
   final Widget child;
 
-  /// The ordinary user's primary workspace. Governance is intentionally not a
-  /// primary destination; it remains available as a secondary advanced action.
   static const dailyDestinations = <ShellDestination>[
     ShellDestination('/home', 'الرئيسية', Icons.home_outlined, Icons.home),
     ShellDestination(
-      '/projects',
-      'مشاريعي',
-      Icons.folder_outlined,
-      Icons.folder,
+      '/overview',
+      'لوحة التحكم',
+      Icons.space_dashboard_outlined,
+      Icons.space_dashboard,
     ),
     ShellDestination(
-      '/work',
-      'أعمالي',
-      Icons.checklist_outlined,
-      Icons.checklist,
-    ),
+        '/projects', 'مشاريعي', Icons.folder_outlined, Icons.folder),
+    ShellDestination(
+        '/work', 'أعمالي', Icons.checklist_outlined, Icons.checklist),
   ];
 
-  /// Compatibility registry for the advanced control-plane routes.
   static const destinations = <ShellDestination>[
-    ShellDestination(
-      '/dashboard',
-      'لوحة العمليات',
-      Icons.dashboard_outlined,
-      Icons.dashboard,
-    ),
+    ShellDestination('/dashboard', 'لوحة العمليات', Icons.dashboard_outlined,
+        Icons.dashboard),
     ShellDestination('/projects', 'المشاريع', Icons.hub_outlined, Icons.hub),
     ShellDestination(
-      '/tasks',
-      'المهام',
-      Icons.task_alt_outlined,
-      Icons.task_alt,
-    ),
+        '/tasks', 'المهام', Icons.task_alt_outlined, Icons.task_alt),
     ShellDestination(
-      '/extensions',
-      'التوسعات',
-      Icons.extension_outlined,
-      Icons.extension,
-    ),
-    ShellDestination(
-      '/operations',
-      'التشغيل',
-      Icons.settings_suggest_outlined,
-      Icons.settings_suggest,
-    ),
+        '/extensions', 'التوسعات', Icons.extension_outlined, Icons.extension),
+    ShellDestination('/operations', 'التشغيل', Icons.settings_suggest_outlined,
+        Icons.settings_suggest),
     ShellDestination('/tools', 'الأدوات', Icons.build_outlined, Icons.build),
+    ShellDestination('/alerts', 'التنبيهات', Icons.notifications_outlined,
+        Icons.notifications),
     ShellDestination(
-      '/alerts',
-      'التنبيهات',
-      Icons.notifications_outlined,
-      Icons.notifications,
-    ),
-    ShellDestination(
-      '/evidence',
-      'الأدلة',
-      Icons.fact_check_outlined,
-      Icons.fact_check,
-    ),
-    ShellDestination(
-      '/settings/connections',
-      'الاتصالات',
-      Icons.cable_outlined,
-      Icons.cable,
-    ),
+        '/evidence', 'الأدلة', Icons.fact_check_outlined, Icons.fact_check),
+    ShellDestination('/settings/connections', 'الاتصالات', Icons.cable_outlined,
+        Icons.cable),
   ];
 
   @override
@@ -97,8 +64,8 @@ class WorkspaceApplicationShell extends ConsumerWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final desktop = constraints.maxWidth >= 1024;
-        final extended = constraints.maxWidth >= 1280;
-        final mobile = constraints.maxWidth < 720;
+        final extended = constraints.maxWidth >= 1320;
+        final mobile = constraints.maxWidth < 760;
 
         return Scaffold(
           appBar: AppBar(
@@ -180,7 +147,7 @@ class WorkspaceApplicationShell extends ConsumerWidget {
                 if (!mobile)
                   NavigationRail(
                     extended: desktop && extended,
-                    minExtendedWidth: 220,
+                    minExtendedWidth: 230,
                     selectedIndex: selectedIndex,
                     labelType: desktop && extended
                         ? NavigationRailLabelType.none
@@ -194,7 +161,7 @@ class WorkspaceApplicationShell extends ConsumerWidget {
                     trailing: Padding(
                       padding: const EdgeInsets.only(top: 18),
                       child: SizedBox(
-                        width: extended ? 180 : 72,
+                        width: extended ? 190 : 76,
                         child: TextButton(
                           key: const ValueKey<String>('advanced-secondary-nav'),
                           onPressed: () => context.go('/advanced'),
@@ -253,14 +220,25 @@ class WorkspaceApplicationShell extends ConsumerWidget {
   }
 
   int? _selectedDailyIndex(String path) {
-    if (path == '/home' || path == '/') return 0;
-    if (path == '/projects' || path.startsWith('/projects/')) return 1;
-    if (path == '/work' || path.startsWith('/work/')) return 2;
+    if (path == '/home' || path == '/') {
+      return 0;
+    }
+    if (path == '/overview' || path.startsWith('/overview/')) {
+      return 1;
+    }
+    if (path == '/projects' || path.startsWith('/projects/')) {
+      return 2;
+    }
+    if (path == '/work' || path.startsWith('/work/')) {
+      return 3;
+    }
     return null;
   }
 
   static bool _isAdvancedPath(String path) {
-    if (path == '/advanced' || path.startsWith('/advanced/')) return true;
+    if (path == '/advanced' || path.startsWith('/advanced/')) {
+      return true;
+    }
     return destinations.any(
       (item) =>
           item.route != '/projects' &&
@@ -269,12 +247,27 @@ class WorkspaceApplicationShell extends ConsumerWidget {
   }
 
   static String _pageTitle(String path) {
-    if (path == '/home' || path == '/') return 'الرئيسية';
-    if (path == '/work' || path.startsWith('/work/')) return 'أعمالي';
-    if (path == '/projects') return 'مشاريعي';
-    if (path.startsWith('/projects/')) return 'تفاصيل المشروع';
-    if (path == '/advanced') return 'الإدارة المتقدمة';
-    if (path.startsWith('/tools/')) return 'تفاصيل الأداة';
+    if (path == '/home' || path == '/') {
+      return 'الرئيسية';
+    }
+    if (path == '/overview' || path.startsWith('/overview/')) {
+      return 'لوحة التحكم';
+    }
+    if (path == '/work' || path.startsWith('/work/')) {
+      return 'أعمالي';
+    }
+    if (path == '/projects') {
+      return 'مشاريعي';
+    }
+    if (path.startsWith('/projects/')) {
+      return 'تفاصيل المشروع';
+    }
+    if (path == '/advanced') {
+      return 'الإدارة المتقدمة';
+    }
+    if (path.startsWith('/tools/')) {
+      return 'تفاصيل الأداة';
+    }
 
     return destinations
         .firstWhere(
@@ -320,9 +313,10 @@ class _DrawerNavigation extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(18, 20, 18, 14),
           child: Text(
             'مساحة عمل PalWakf',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(fontWeight: FontWeight.w800),
           ),
         ),
         const Divider(height: 1),
