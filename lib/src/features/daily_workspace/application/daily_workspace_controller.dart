@@ -42,6 +42,26 @@ enum DailyWorkKind {
       this == DailyWorkKind.development || this == DailyWorkKind.fix;
 }
 
+class DailyIntentPreview {
+  const DailyIntentPreview({
+    required this.task,
+    required this.kind,
+  });
+
+  final EngineeringTask task;
+  final DailyWorkKind kind;
+
+  String get projectLabel =>
+      DailyWorkspaceController.friendlyProjectLabel(task.projectId);
+
+  String get workTitle => DailyWorkspaceController.friendlyTaskTitle(task);
+
+  String get confirmationText =>
+      'سأتابع «$workTitle» ضمن مشروع «$projectLabel». '
+      'سأستخدم حدود العمل المسجلة تلقائيًا، وأتحقق من النتيجة قبل اعتمادها. '
+      'لن يتم نشر أو دمج أي تغيير نهائي دون موافقتك.';
+}
+
 enum DailyExecutionPhase {
   idle,
   syncing,
@@ -82,6 +102,20 @@ class DailyWorkspaceState {
       if (task.taskId == selectedTaskId) return task;
     }
     return null;
+  }
+
+  String? get selectedProjectId {
+    final selected = selectedTask;
+    if (selected != null) return selected.projectId;
+    return tasks.isEmpty ? null : tasks.first.projectId;
+  }
+
+  List<String> get projectIds {
+    final values = <String>[];
+    for (final task in tasks) {
+      if (!values.contains(task.projectId)) values.add(task.projectId);
+    }
+    return values;
   }
 
   bool get executing => switch (phase) {
@@ -140,7 +174,7 @@ class DailyWorkspaceController extends StateNotifier<DailyWorkspaceState> {
         selected = state.selectedTaskId;
       }
       if (selected == null || !tasks.any((task) => task.taskId == selected)) {
-        selected = tasks.isEmpty ? null : tasks.first.taskId;
+        selected = _bestDefaultTask(tasks)?.taskId;
       }
       state = DailyWorkspaceState(
         tasks: tasks,
@@ -162,42 +196,74 @@ class DailyWorkspaceController extends StateNotifier<DailyWorkspaceState> {
     }
   }
 
+  void selectProject(String projectId) {
+    final candidates =
+        state.tasks.where((task) => task.projectId == projectId).toList();
+    final selected = _bestDefaultTask(candidates);
+    if (selected == null) return;
+    state = state.copyWith(selectedTaskId: selected.taskId);
+  }
+
   void selectTask(String taskId) {
     if (!state.tasks.any((task) => task.taskId == taskId)) return;
     state = state.copyWith(selectedTaskId: taskId);
   }
 
+  DailyIntentPreview previewIntent(String prompt) {
+    final normalizedPrompt = prompt.trim();
+    if (normalizedPrompt.isEmpty) {
+      throw StateError('EMPTY_DAILY_INTENT');
+    }
+
+    final projectId = state.selectedProjectId;
+    if (projectId == null) {
+      throw StateError('NO_DAILY_PROJECT_AVAILABLE');
+    }
+
+    final candidates =
+        state.tasks.where((task) => task.projectId == projectId).toList();
+    if (candidates.isEmpty) {
+      throw StateError('NO_WORK_FOR_SELECTED_PROJECT');
+    }
+
+    final kind = inferKind(normalizedPrompt);
+    final task = _resolveTask(candidates, normalizedPrompt, kind);
+    state = state.copyWith(selectedTaskId: task.taskId);
+    return DailyIntentPreview(task: task, kind: kind);
+  }
+
   Future<void> execute({
     required String prompt,
-    required DailyWorkKind kind,
+    DailyIntentPreview? preview,
   }) async {
-    final task = state.selectedTask;
-    if (task == null) {
-      _fail('اختر مهمة مسجلة أولًا.', 'NO_SELECTED_ENGINEERING_TASK');
-      return;
-    }
     if (prompt.trim().isEmpty) {
       _fail('اكتب ما تريد إنجازه أولًا.', 'EMPTY_DAILY_INTENT');
       return;
     }
+
+    final resolution = preview ?? previewIntent(prompt);
+    final task = resolution.task;
+    final kind = resolution.kind;
+
     if (task.scopePatterns.isEmpty) {
       _fail(
-        'هذه المهمة لا تحتوي نطاق عمل معتمدًا. يلزم تجهيزها من الإدارة المتقدمة.',
+        'هذا العمل يحتاج تجهيز نطاقه أولًا. لم يبدأ النظام أي تعديل.',
         'EMPTY_PARENT_SCOPE',
       );
       return;
     }
     if (kind.mutating && task.mutationClass != 'source-write') {
       _fail(
-        'هذه المهمة مسجلة للقراءة فقط ولا تسمح بتعديل المصدر.',
+        'هذا العمل مهيأ للمراجعة فقط ولا يسمح بالتعديل الآن.',
         'PARENT_MUTATION_AUTHORITY_IS_${task.mutationClass}',
       );
       return;
     }
 
     state = state.copyWith(
+      selectedTaskId: task.taskId,
       phase: DailyExecutionPhase.syncing,
-      message: 'أتحقق من نسخة المشروع الحالية…',
+      message: 'أراجع حالة المشروع…',
       clearError: true,
       clearTechnicalError: true,
       clearRun: true,
@@ -209,7 +275,7 @@ class DailyWorkspaceController extends StateNotifier<DailyWorkspaceState> {
 
       state = state.copyWith(
         phase: DailyExecutionPhase.preparing,
-        message: 'أجهز التنفيذ ضمن حدود المهمة…',
+        message: 'أجهز مساحة العمل…',
       );
 
       final stamp = DateTime.now().microsecondsSinceEpoch;
@@ -248,13 +314,13 @@ class DailyWorkspaceController extends StateNotifier<DailyWorkspaceState> {
       state = state.copyWith(
         phase: DailyExecutionPhase.authorizing,
         activeRunId: run.executionRunId,
-        message: 'أثبت موافقتك وحدود التنفيذ…',
+        message: 'أجهز مساحة العمل…',
       );
       final authorized = await _orchestrator.authorize(run.operatorTask);
 
       state = state.copyWith(
         phase: DailyExecutionPhase.planning,
-        message: 'أجهز الأدوات اللازمة في الخلفية…',
+        message: 'أجهز مساحة العمل…',
       );
       final plan = await _orchestrator.planTools(authorized.taskId);
       if (plan.dispatchBlocked) {
@@ -263,14 +329,14 @@ class DailyWorkspaceController extends StateNotifier<DailyWorkspaceState> {
 
       state = state.copyWith(
         phase: DailyExecutionPhase.dispatching,
-        message: 'أبدأ التنفيذ الآن…',
+        message: 'أبدأ تنفيذ المطلوب…',
       );
       final dispatched = await _orchestrator.dispatch(authorized.taskId);
       if (_acceptTerminal(dispatched)) return;
 
       state = state.copyWith(
         phase: DailyExecutionPhase.running,
-        message: 'يجري تنفيذ المهمة ضمن النطاق المسموح…',
+        message: 'يجري تنفيذ المطلوب الآن…',
       );
       await _pollUntilTerminal(dispatched.taskId);
     } catch (error) {
@@ -290,7 +356,7 @@ class DailyWorkspaceController extends StateNotifier<DailyWorkspaceState> {
     }
     state = state.copyWith(
       phase: DailyExecutionPhase.running,
-      message: 'التنفيذ ما زال مستمرًا. يمكنك مغادرة الصفحة والعودة لاحقًا.',
+      message: 'العمل ما زال مستمرًا. يمكنك مغادرة الصفحة والعودة لاحقًا.',
     );
   }
 
@@ -300,15 +366,15 @@ class DailyWorkspaceController extends StateNotifier<DailyWorkspaceState> {
         state = state.copyWith(
           phase: DailyExecutionPhase.completed,
           message: task.changedFiles.isEmpty
-              ? 'اكتمل التنفيذ وبانتظار التحقق النهائي.'
-              : 'اكتمل التنفيذ وتم حفظ التغيير على فرع العمل.',
+              ? 'اكتمل العمل وبانتظار التحقق النهائي.'
+              : 'اكتمل العمل وتم حفظ التغييرات على فرع العمل.',
           changedFiles: task.changedFiles,
         );
         return true;
       case OrchestratorTaskStatus.verified:
         state = state.copyWith(
           phase: DailyExecutionPhase.completed,
-          message: 'اكتملت المهمة وتم التحقق من النتيجة.',
+          message: 'اكتمل العمل وتم التحقق من النتيجة.',
           changedFiles: task.changedFiles,
         );
         return true;
@@ -334,18 +400,179 @@ class DailyWorkspaceController extends StateNotifier<DailyWorkspaceState> {
       phase: DailyExecutionPhase.failed,
       error: userMessage,
       technicalError: technical,
-      message: 'لم يتم اعتماد نتيجة ناقصة.',
+      message: 'لم يعتمد النظام نتيجة غير مكتملة.',
     );
   }
 
   static String _runningMessage(OrchestratorTaskStatus status) {
     return switch (status) {
-      OrchestratorTaskStatus.pending => 'أجهز المهمة للإرسال…',
-      OrchestratorTaskStatus.queued => 'المهمة في صف التنفيذ…',
-      OrchestratorTaskStatus.running => 'يجري تنفيذ المهمة…',
+      OrchestratorTaskStatus.pending => 'أجهز التنفيذ…',
+      OrchestratorTaskStatus.queued => 'العمل جاهز وسيبدأ بعد قليل…',
+      OrchestratorTaskStatus.running => 'يجري تنفيذ المطلوب…',
       OrchestratorTaskStatus.awaitingApproval =>
-        'تحتاج المهمة قرارًا إضافيًا قبل المتابعة.',
-      _ => 'أتابع حالة التنفيذ…',
+        'يوجد قرار يحتاج موافقتك قبل المتابعة.',
+      _ => 'أتابع حالة العمل…',
+    };
+  }
+
+  static DailyWorkKind inferKind(String prompt) {
+    final value = _normalize(prompt);
+    final noMutation = _containsAny(value, const <String>[
+      'لا تعدل',
+      'لا تغير',
+      'دون تعديل',
+      'بدون تعديل',
+      'من غير تعديل',
+      'قراءه فقط',
+      'read only',
+      'read-only',
+      'do not modify',
+      'without changes',
+    ]);
+
+    final scores = <DailyWorkKind, int>{
+      DailyWorkKind.development: _weightedIntentScore(
+            value,
+            directives: const <String>[
+              'طور',
+              'تطوير',
+              'اضف',
+              'انشئ',
+              'ابن',
+              'نفذ',
+              'implement',
+              'build',
+              'add',
+              'create',
+              'develop',
+            ],
+          ) -
+          (noMutation ? 8 : 0),
+      DailyWorkKind.fix: _weightedIntentScore(
+            value,
+            directives: const <String>[
+              'اصلح',
+              'اصلاح',
+              'صحح',
+              'عالج',
+              'fix',
+              'repair',
+            ],
+            context: const <String>[
+              'مشكله',
+              'خطا',
+              'خلل',
+              'bug',
+              'error',
+            ],
+          ) -
+          (noMutation ? 8 : 0),
+      DailyWorkKind.review: _weightedIntentScore(
+        value,
+        directives: const <String>[
+          'راجع',
+          'مراجعه',
+          'دقق',
+          'تدقيق',
+          'قيم',
+          'review',
+          'audit',
+          'inspect',
+        ],
+      ),
+      DailyWorkKind.analysis: _weightedIntentScore(
+        value,
+        directives: const <String>[
+          'حلل',
+          'تحليل',
+          'شخص',
+          'تشخيص',
+          'افحص',
+          'analyze',
+          'analyse',
+          'diagnose',
+          'debug',
+        ],
+      ),
+    };
+
+    var best = DailyWorkKind.development;
+    var bestScore = scores[best] ?? 0;
+    for (final kind in const <DailyWorkKind>[
+      DailyWorkKind.fix,
+      DailyWorkKind.review,
+      DailyWorkKind.analysis,
+    ]) {
+      final score = scores[kind] ?? 0;
+      if (score > bestScore) {
+        best = kind;
+        bestScore = score;
+      }
+    }
+
+    if (bestScore <= 0) return DailyWorkKind.development;
+    return best;
+  }
+
+  static String friendlyProjectLabel(String projectId) {
+    switch (projectId.toUpperCase()) {
+      case 'PALWAKF_WORKSPACE_MANAGER':
+        return 'مساحة عمل PalWakf';
+      case 'PAL_EYES':
+      case 'PALWAKF_EYES':
+        return 'بعيون فلسطينية';
+      case 'PALWAKF_PLATFORM':
+      case 'PALWAKF_PLATFORM_SYSTEM':
+        return 'منصة PalWakf';
+      case 'MANASIKUNA_APP':
+        return 'مناسكنا';
+    }
+
+    final cleaned = projectId
+        .replaceFirst(RegExp(r'^PALWAKF_'), '')
+        .replaceAll('_', ' ')
+        .trim();
+    return cleaned.isEmpty ? 'مشروع PalWakf' : cleaned;
+  }
+
+  static String friendlyTaskTitle(EngineeringTask task) {
+    final id = task.taskId.toUpperCase();
+
+    if (id.contains('DAILY_USER_EXPERIENCE')) {
+      return 'تحسين مساحة العمل اليومية';
+    }
+    if (id.contains('PROVIDER_BOUNDED_WRITE_PROOF')) {
+      return 'التحقق من التنفيذ الآمن داخل المشروع';
+    }
+    if (id.contains('OPERATIONS_SURFACE_PROVIDER_CONTROL_ALIGNMENT')) {
+      return 'تحسين تشغيل المساعد داخل مساحة العمل';
+    }
+    if (id.contains('CODEX_READ_ONLY_PROVIDER_CERT')) {
+      return 'التحقق من جاهزية المساعد';
+    }
+    if (id.contains('GOVERNED_ENGINEERING_PROVIDER_RUNTIME')) {
+      return 'تجهيز محرك التنفيذ الآمن';
+    }
+
+    final hasArabic = RegExp(r'[\u0600-\u06FF]').hasMatch(task.title);
+    final exposesTechnicalTerms = RegExp(
+      r'provider|codex|sha|head|branch|dispatch|baseline|control plane|runtime',
+      caseSensitive: false,
+    ).hasMatch(task.title);
+
+    if (hasArabic && !exposesTechnicalTerms) return task.title;
+    return 'متابعة العمل على ${friendlyProjectLabel(task.projectId)}';
+  }
+
+  static String friendlyTaskStatus(String status) {
+    return switch (status) {
+      'READY' => 'جاهز للبدء',
+      'WIP_REMOTE_CHECKPOINTED' => 'جاهز للمتابعة',
+      'IN_REVIEW' => 'بانتظار المراجعة',
+      'INTEGRATED' => 'مكتمل',
+      'BLOCKED' => 'يحتاج إجراء',
+      'CANCELLED' => 'متوقف',
+      _ => 'مسجل',
     };
   }
 
@@ -354,7 +581,7 @@ class DailyWorkspaceController extends StateNotifier<DailyWorkspaceState> {
 طلب المستخدم اليومي:
 ${prompt.trim()}
 
-نوع العمل: ${kind.arabicLabel}
+نوع العمل المستنتج: ${kind.arabicLabel}
 
 نفّذ هذا الطلب فقط داخل صلاحية ونطاق المهمة الأب المسجلين في Workspace Manager.
 لا توسّع النطاق، ولا تدمج إلى main، ولا تنشر، ولا تعدّل قاعدة بيانات أو إنتاج.
@@ -369,17 +596,17 @@ ${prompt.trim()}
       return 'لم ينتج عن المحاولة أي تعديل فعلي. لم يتم تغيير المشروع أو رفع أي ملفات.';
     }
     if (raw.contains('PROVIDER_CERTIFICATION_REQUIRED')) {
-      return 'مزود التنفيذ يحتاج اعتمادًا تقنيًا إضافيًا قبل استخدامه لهذه المهمة.';
+      return 'أداة التنفيذ تحتاج تجهيزًا إضافيًا قبل استخدام هذا النوع من العمل.';
     }
     if (raw.contains('TOOL_PLAN_BLOCKED') ||
         raw.contains('tool plan') ||
         raw.contains('tool decisions')) {
-      return 'تعذر تجهيز خطة التنفيذ الداخلية. لم يبدأ أي تعديل على المشروع.';
+      return 'تعذر تجهيز التنفيذ الداخلي. لم يبدأ أي تعديل على المشروع.';
     }
     if (raw.contains('HEAD drift') ||
         raw.contains('HEAD_DRIFT') ||
         raw.contains('HEAD_BINDING_MISMATCH')) {
-      return 'تغيّرت نسخة المشروع منذ تجهيز المهمة. يلزم تحديثها قبل التنفيذ.';
+      return 'تغيّرت نسخة المشروع منذ تجهيز العمل. يلزم تحديثها قبل التنفيذ.';
     }
     if (raw.contains('worktree is not clean') || raw.contains('WORKTREE')) {
       return 'توجد تغييرات محلية غير محسومة. أوقف النظام التنفيذ لحماية العمل الموجود.';
@@ -389,9 +616,113 @@ ${prompt.trim()}
         raw.contains('403')) {
       return 'جلسة التنفيذ أو صلاحيتها غير جاهزة. أعد الاتصال ثم حاول مرة أخرى.';
     }
-    if (raw.contains('NO_SELECTED_ENGINEERING_TASK')) {
-      return 'اختر مهمة مسجلة أولًا.';
+    if (raw.contains('NO_DAILY_PROJECT_AVAILABLE') ||
+        raw.contains('NO_WORK_FOR_SELECTED_PROJECT')) {
+      return 'لا يوجد عمل مسجل وجاهز لهذا المشروع الآن.';
     }
-    return 'تعذر إكمال المهمة بأمان. لم يعتمد النظام نتيجة غير مكتملة.';
+    if (raw.contains('EMPTY_DAILY_INTENT')) {
+      return 'اكتب ما تريد إنجازه أولًا.';
+    }
+    return 'تعذر إكمال العمل بأمان. لم يعتمد النظام نتيجة غير مكتملة.';
+  }
+
+  EngineeringTask _resolveTask(
+    List<EngineeringTask> candidates,
+    String prompt,
+    DailyWorkKind kind,
+  ) {
+    final promptTokens = _tokens(prompt);
+    EngineeringTask? best;
+    var bestScore = -100000;
+
+    for (final task in candidates) {
+      var score = _statusScore(task.status);
+      if (task.taskId == state.selectedTaskId) score += 4;
+      if (task.scopePatterns.isEmpty) score -= 50;
+      if (kind.mutating && task.mutationClass != 'source-write') score -= 40;
+
+      final haystack = _normalize(
+        '${task.title} ${task.description} ${task.taskId}',
+      );
+      for (final token in promptTokens) {
+        if (token.length >= 3 && haystack.contains(token)) score += 4;
+      }
+
+      if (score > bestScore) {
+        best = task;
+        bestScore = score;
+      }
+    }
+
+    return best ?? candidates.first;
+  }
+
+  static EngineeringTask? _bestDefaultTask(List<EngineeringTask> tasks) {
+    if (tasks.isEmpty) return null;
+    EngineeringTask? best;
+    var bestScore = -100000;
+    for (final task in tasks) {
+      var score = _statusScore(task.status);
+      if (task.scopePatterns.isEmpty) score -= 20;
+      if (score > bestScore) {
+        best = task;
+        bestScore = score;
+      }
+    }
+    return best ?? tasks.first;
+  }
+
+  static int _statusScore(String status) {
+    return switch (status) {
+      'WIP_REMOTE_CHECKPOINTED' => 60,
+      'READY' => 50,
+      'IN_REVIEW' => 30,
+      'INTEGRATED' => 10,
+      'BLOCKED' => -60,
+      'CANCELLED' => -100,
+      _ => 0,
+    };
+  }
+
+  static int _weightedIntentScore(
+    String value, {
+    required List<String> directives,
+    List<String> context = const <String>[],
+  }) {
+    var score = 0;
+    for (final keyword in directives) {
+      if (value.contains(keyword)) score += 5;
+    }
+    for (final keyword in context) {
+      if (value.contains(keyword)) score += 1;
+    }
+    return score;
+  }
+
+  static bool _containsAny(String value, List<String> phrases) {
+    for (final phrase in phrases) {
+      if (value.contains(phrase)) return true;
+    }
+    return false;
+  }
+
+  static Set<String> _tokens(String value) {
+    return _normalize(value)
+        .split(RegExp(r'[\s\-_./,:;()\[\]{}]+'))
+        .where((token) => token.trim().isNotEmpty)
+        .toSet();
+  }
+
+  static String _normalize(String value) {
+    return value
+        .toLowerCase()
+        .replaceAll('أ', 'ا')
+        .replaceAll('إ', 'ا')
+        .replaceAll('آ', 'ا')
+        .replaceAll('ة', 'ه')
+        .replaceAll('ى', 'ي')
+        .replaceAll('ؤ', 'و')
+        .replaceAll('ئ', 'ي')
+        .trim();
   }
 }

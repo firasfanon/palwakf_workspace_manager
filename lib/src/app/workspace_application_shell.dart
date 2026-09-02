@@ -18,7 +18,8 @@ class WorkspaceApplicationShell extends ConsumerWidget {
   final String location;
   final Widget child;
 
-  /// Primary destinations shown to ordinary users.
+  /// The ordinary user's primary workspace. Governance is intentionally not a
+  /// primary destination; it remains available as a secondary advanced action.
   static const dailyDestinations = <ShellDestination>[
     ShellDestination('/home', 'الرئيسية', Icons.home_outlined, Icons.home),
     ShellDestination(
@@ -33,18 +34,9 @@ class WorkspaceApplicationShell extends ConsumerWidget {
       Icons.checklist_outlined,
       Icons.checklist,
     ),
-    ShellDestination(
-      '/advanced',
-      'الإدارة المتقدمة',
-      Icons.admin_panel_settings_outlined,
-      Icons.admin_panel_settings,
-    ),
   ];
 
   /// Compatibility registry for the advanced control-plane routes.
-  ///
-  /// These routes remain reachable and testable, but are no longer exposed as
-  /// the ordinary user's primary navigation.
   static const destinations = <ShellDestination>[
     ShellDestination(
       '/dashboard',
@@ -168,9 +160,14 @@ class WorkspaceApplicationShell extends ConsumerWidget {
                   child: SafeArea(
                     child: _DrawerNavigation(
                       selectedIndex: selectedIndex,
+                      advancedSelected: advanced,
                       onSelected: (index) {
                         Navigator.of(context).pop();
                         context.go(dailyDestinations[index].route);
+                      },
+                      onAdvanced: () {
+                        Navigator.of(context).pop();
+                        context.go('/advanced');
                       },
                     ),
                   ),
@@ -194,6 +191,31 @@ class WorkspaceApplicationShell extends ConsumerWidget {
                       padding: EdgeInsets.only(bottom: 14),
                       child: Icon(Icons.account_balance_outlined),
                     ),
+                    trailing: Padding(
+                      padding: const EdgeInsets.only(top: 18),
+                      child: SizedBox(
+                        width: extended ? 180 : 72,
+                        child: TextButton(
+                          key: const ValueKey<String>('advanced-secondary-nav'),
+                          onPressed: () => context.go('/advanced'),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              Icon(
+                                advanced
+                                    ? Icons.admin_panel_settings
+                                    : Icons.admin_panel_settings_outlined,
+                              ),
+                              const SizedBox(height: 3),
+                              const FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text('الإدارة المتقدمة'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                     destinations: dailyDestinations
                         .map(
                           (destination) => NavigationRailDestination(
@@ -209,9 +231,9 @@ class WorkspaceApplicationShell extends ConsumerWidget {
               ],
             ),
           ),
-          bottomNavigationBar: mobile
+          bottomNavigationBar: mobile && !advanced
               ? NavigationBar(
-                  selectedIndex: selectedIndex,
+                  selectedIndex: selectedIndex ?? 0,
                   onDestinationSelected: (index) =>
                       context.go(dailyDestinations[index].route),
                   destinations: dailyDestinations
@@ -230,11 +252,11 @@ class WorkspaceApplicationShell extends ConsumerWidget {
     );
   }
 
-  int _selectedDailyIndex(String path) {
+  int? _selectedDailyIndex(String path) {
     if (path == '/home' || path == '/') return 0;
     if (path == '/projects' || path.startsWith('/projects/')) return 1;
     if (path == '/work' || path.startsWith('/work/')) return 2;
-    return 3;
+    return null;
   }
 
   static bool _isAdvancedPath(String path) {
@@ -257,7 +279,12 @@ class WorkspaceApplicationShell extends ConsumerWidget {
     return destinations
         .firstWhere(
           (item) => path == item.route || path.startsWith('${item.route}/'),
-          orElse: () => dailyDestinations.last,
+          orElse: () => const ShellDestination(
+            '/advanced',
+            'الإدارة المتقدمة',
+            Icons.admin_panel_settings_outlined,
+            Icons.admin_panel_settings,
+          ),
         )
         .label;
   }
@@ -274,11 +301,15 @@ class WorkspaceApplicationShell extends ConsumerWidget {
 class _DrawerNavigation extends StatelessWidget {
   const _DrawerNavigation({
     required this.selectedIndex,
+    required this.advancedSelected,
     required this.onSelected,
+    required this.onAdvanced,
   });
 
-  final int selectedIndex;
+  final int? selectedIndex;
+  final bool advancedSelected;
   final ValueChanged<int> onSelected;
+  final VoidCallback onAdvanced;
 
   @override
   Widget build(BuildContext context) {
@@ -314,6 +345,19 @@ class _DrawerNavigation extends StatelessWidget {
               );
             },
           ),
+        ),
+        const Divider(height: 1),
+        ListTile(
+          key: const ValueKey<String>('advanced-secondary-drawer'),
+          selected: advancedSelected,
+          leading: Icon(
+            advancedSelected
+                ? Icons.admin_panel_settings
+                : Icons.admin_panel_settings_outlined,
+          ),
+          title: const Text('الإدارة المتقدمة'),
+          subtitle: const Text('للتشخيص والتفاصيل التقنية'),
+          onTap: onAdvanced,
         ),
       ],
     );
