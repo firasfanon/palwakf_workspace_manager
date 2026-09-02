@@ -37,19 +37,37 @@ void main() {
     expect(items.any((item) => item.title.contains('مثال')), isFalse);
   });
 
-  test('private project intake is explicit user data and lightweight', () {
-    final controller = WorkspaceCatalogController();
-    final created = controller.registerPrivateProject(
+  test('private project identity is UUID based, immutable, and isolated', () {
+    const uid = '7f2b9b6e-0a4e-4a62-9f15-7d4d91e8c521';
+    final controller = WorkspaceCatalogController(projectUidFactory: () => uid);
+    final result = controller.registerPrivateProject(
       title: 'مشروعي الخاص',
       technicalId: 'MY_PRIVATE_PROJECT',
       localName: 'my_private_project',
     );
-    expect(created, isTrue);
+    expect(result.created, isTrue);
     expect(controller.state.privateCount, 1);
-    final item = controller.state.selectedItem!;
+    final item = result.item!;
     expect(item.itemClass, WorkspaceItemClass.privateProject);
     expect(item.governed, isFalse);
+    expect(item.projectUid, uid);
+    expect(item.id, 'private:$uid');
+    expect(item.technicalId, 'MY_PRIVATE_PROJECT');
     expect(item.sourceLabel, contains('إدخال صريح'));
+
+    controller.select('project:PALWAKF_WORKSPACE_MANAGER');
+    expect(controller.byId('private:$uid')!.projectUid, uid);
+
+    final duplicateTechnicalId = controller.registerPrivateProject(
+      title: 'نسخة أخرى',
+      technicalId: 'my_private_project',
+    );
+    expect(duplicateTechnicalId.created, isFalse);
+    expect(
+      duplicateTechnicalId.error,
+      PrivateProjectRegistrationError.duplicateTechnicalId,
+    );
+    expect(controller.state.privateCount, 1);
   });
 
   testWidgets('catalog renders scale search filters and real counts',
@@ -114,5 +132,91 @@ void main() {
     expect(source, contains('WorkspaceCatalogPage'));
     expect(source, contains("path: '/advanced/projects-registry'"));
     expect(source, contains('ExternalProjectsPage'));
+  });
+  testWidgets(
+      'private project intake is inline and updates count card and recents',
+      (tester) async {
+    tester.view.physicalSize = const Size(1440, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(body: WorkspaceCatalogPage()),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey<String>('add-private-project')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey<String>('private-project-inline-intake')),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('private-project-title-field')),
+      'مشروع عقاري خاص',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('private-project-technical-id-field')),
+      'PRIVATE_REAL_ESTATE',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('private-project-local-name-field')),
+      'private_real_estate',
+    );
+    await tester.tap(
+      find.byKey(const ValueKey<String>('private-project-register')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('مشاريعي الخاصة (1)'), findsOneWidget);
+    expect(find.text('مشروع عقاري خاص'), findsWidgets);
+    expect(find.text('معرف داخلي ثابت'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('private-project-inline-intake')),
+      findsNothing,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('inline private intake exposes validation without creating data',
+      (tester) async {
+    tester.view.physicalSize = const Size(800, 600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(body: WorkspaceCatalogPage()),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey<String>('add-private-project')));
+    await tester.pumpAndSettle();
+
+    final registerButton =
+        find.byKey(const ValueKey<String>('private-project-register'));
+    expect(registerButton, findsOneWidget);
+    await tester.ensureVisible(registerButton);
+    await tester.pumpAndSettle();
+    await tester.tap(registerButton);
+    await tester.pumpAndSettle();
+
+    final validationError =
+        find.byKey(const ValueKey<String>('private-project-validation-error'));
+    expect(validationError, findsOneWidget);
+    await tester.ensureVisible(validationError);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('أدخل اسم المشروع'), findsOneWidget);
+    expect(find.textContaining('مشاريعي الخاصة (0)'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

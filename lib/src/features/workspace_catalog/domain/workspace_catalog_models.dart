@@ -24,6 +24,7 @@ class WorkspaceCatalogItem {
     required this.status,
     required this.category,
     required this.sourceLabel,
+    this.projectUid,
     this.technicalId,
     this.localName,
     this.group,
@@ -37,6 +38,9 @@ class WorkspaceCatalogItem {
   final String status;
   final String category;
   final String sourceLabel;
+
+  /// Stable internal identity. Private projects use an immutable UUID v4.
+  final String? projectUid;
   final String? technicalId;
   final String? localName;
   final String? group;
@@ -50,6 +54,7 @@ class WorkspaceCatalogItem {
     if (query.isEmpty) return true;
     return <String?>[
       id,
+      projectUid,
       title,
       technicalId,
       localName,

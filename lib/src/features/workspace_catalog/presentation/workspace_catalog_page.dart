@@ -15,12 +15,20 @@ class WorkspaceCatalogPage extends ConsumerStatefulWidget {
 
 class _WorkspaceCatalogPageState extends ConsumerState<WorkspaceCatalogPage> {
   final _queryController = TextEditingController();
+  final _privateTitleController = TextEditingController();
+  final _privateTechnicalIdController = TextEditingController();
+  final _privateLocalNameController = TextEditingController();
   WorkspaceItemClass? _classFilter;
   String _statusFilter = 'all';
+  bool _privateIntakeExpanded = false;
+  String? _privateIntakeError;
 
   @override
   void dispose() {
     _queryController.dispose();
+    _privateTitleController.dispose();
+    _privateTechnicalIdController.dispose();
+    _privateLocalNameController.dispose();
     super.dispose();
   }
 
@@ -48,10 +56,21 @@ class _WorkspaceCatalogPageState extends ConsumerState<WorkspaceCatalogPage> {
               children: <Widget>[
                 _Header(
                   catalog: catalog,
-                  onAddPrivate: _showPrivateProjectDialog,
+                  onAddPrivate: _togglePrivateProjectIntake,
                 ),
                 const SizedBox(height: 18),
                 _SourceBand(catalog: catalog),
+                if (_privateIntakeExpanded) ...<Widget>[
+                  const SizedBox(height: 14),
+                  _PrivateProjectInlineIntake(
+                    titleController: _privateTitleController,
+                    technicalIdController: _privateTechnicalIdController,
+                    localNameController: _privateLocalNameController,
+                    errorText: _privateIntakeError,
+                    onCancel: _togglePrivateProjectIntake,
+                    onRegister: _registerPrivateProject,
+                  ),
+                ],
                 const SizedBox(height: 18),
                 TextField(
                   key: const ValueKey<String>('workspace-catalog-search'),
@@ -224,91 +243,195 @@ class _WorkspaceCatalogPageState extends ConsumerState<WorkspaceCatalogPage> {
     context.go('/home?itemId=${Uri.encodeComponent(item.id)}');
   }
 
-  Future<void> _showPrivateProjectDialog() async {
-    final title = TextEditingController();
-    final technicalId = TextEditingController();
-    final localName = TextEditingController();
+  void _togglePrivateProjectIntake() {
+    setState(() {
+      _privateIntakeExpanded = !_privateIntakeExpanded;
+      _privateIntakeError = null;
+    });
+  }
 
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('إضافة مشروع خاص'),
-        content: SizedBox(
-          width: 520,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              const Text(
-                'هذا مسار مباشر لا يرث حوكمة PalWakf. يسجل في الجلسة الحالية فقط.',
-              ),
-              const SizedBox(height: 14),
-              TextField(
-                controller: title,
-                decoration: const InputDecoration(
-                  labelText: 'اسم المشروع',
-                  border: OutlineInputBorder(),
+  void _registerPrivateProject() {
+    final result =
+        ref.read(workspaceCatalogProvider.notifier).registerPrivateProject(
+              title: _privateTitleController.text,
+              technicalId: _privateTechnicalIdController.text,
+              localName: _privateLocalNameController.text,
+            );
+    if (!result.created) {
+      setState(() => _privateIntakeError = result.message);
+      return;
+    }
+
+    final item = result.item!;
+    _privateTitleController.clear();
+    _privateTechnicalIdController.clear();
+    _privateLocalNameController.clear();
+    _queryController.clear();
+    setState(() {
+      _privateIntakeExpanded = false;
+      _privateIntakeError = null;
+      _classFilter = WorkspaceItemClass.privateProject;
+      _statusFilter = 'all';
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'تم تسجيل «${item.title}». المعرف الداخلي الثابت: ${item.projectUid}',
+        ),
+      ),
+    );
+  }
+}
+
+class _PrivateProjectInlineIntake extends StatelessWidget {
+  const _PrivateProjectInlineIntake({
+    required this.titleController,
+    required this.technicalIdController,
+    required this.localNameController,
+    required this.errorText,
+    required this.onCancel,
+    required this.onRegister,
+  });
+
+  final TextEditingController titleController;
+  final TextEditingController technicalIdController;
+  final TextEditingController localNameController;
+  final String? errorText;
+  final VoidCallback onCancel;
+  final VoidCallback onRegister;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      key: const ValueKey<String>('private-project-inline-intake'),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                const Icon(Icons.person_add_alt_1_outlined),
+                const SizedBox(width: 9),
+                Expanded(
+                  child: Text(
+                    'إضافة مشروع خاص',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: technicalId,
-                textDirection: TextDirection.ltr,
-                decoration: const InputDecoration(
-                  labelText: 'معرف تقني فريد',
-                  hintText: 'MY_PRIVATE_PROJECT',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: localName,
-                textDirection: TextDirection.ltr,
-                decoration: const InputDecoration(
-                  labelText: 'الاسم المحلي — اختياري',
-                  border: OutlineInputBorder(),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'مسار مباشر لا يرث حوكمة PalWakf. ينشئ Workspace معرفًا داخليًا UUID ثابتًا عند التسجيل، بينما يبقى المعرف التقني اسمًا مقروءًا وفريدًا داخل مساحة العمل.',
+              style: theme.textTheme.bodySmall,
+            ),
+            if (errorText != null) ...<Widget>[
+              const SizedBox(height: 12),
+              Material(
+                color: theme.colorScheme.errorContainer,
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Text(
+                    errorText!,
+                    key: const ValueKey<String>(
+                      'private-project-validation-error',
+                    ),
+                    style: TextStyle(color: theme.colorScheme.onErrorContainer),
+                  ),
                 ),
               ),
             ],
-          ),
+            const SizedBox(height: 14),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final wide = constraints.maxWidth >= 880;
+                final fields = <Widget>[
+                  TextField(
+                    key: const ValueKey<String>('private-project-title-field'),
+                    controller: titleController,
+                    decoration: const InputDecoration(
+                      labelText: 'اسم المشروع',
+                      hintText: 'مثال: إدارة العقارات الخاصة',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  TextField(
+                    key: const ValueKey<String>(
+                      'private-project-technical-id-field',
+                    ),
+                    controller: technicalIdController,
+                    textDirection: TextDirection.ltr,
+                    textCapitalization: TextCapitalization.characters,
+                    decoration: const InputDecoration(
+                      labelText: 'المعرف التقني الفريد',
+                      hintText: 'PRIVATE_REAL_ESTATE_MANAGER',
+                      helperText: 'A-Z، أرقام، وشرطة سفلية. يبدأ بحرف.',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  TextField(
+                    key: const ValueKey<String>(
+                      'private-project-local-name-field',
+                    ),
+                    controller: localNameController,
+                    textDirection: TextDirection.ltr,
+                    decoration: const InputDecoration(
+                      labelText: 'الاسم المحلي — اختياري',
+                      hintText: 'private_real_estate_manager',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ];
+                if (!wide) {
+                  final children = <Widget>[];
+                  for (var index = 0; index < fields.length; index += 1) {
+                    children.add(fields[index]);
+                    if (index != fields.length - 1) {
+                      children.add(const SizedBox(height: 10));
+                    }
+                  }
+                  return Column(children: children);
+                }
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Expanded(child: fields[0]),
+                    const SizedBox(width: 10),
+                    Expanded(child: fields[1]),
+                    const SizedBox(width: 10),
+                    Expanded(child: fields[2]),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 8,
+              runSpacing: 8,
+              children: <Widget>[
+                TextButton(
+                  key: const ValueKey<String>('private-project-cancel'),
+                  onPressed: onCancel,
+                  child: const Text('إلغاء'),
+                ),
+                FilledButton.icon(
+                  key: const ValueKey<String>('private-project-register'),
+                  onPressed: onRegister,
+                  icon: const Icon(Icons.add_circle_outline),
+                  label: const Text('تسجيل المشروع'),
+                ),
+              ],
+            ),
+          ],
         ),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('إلغاء'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('تسجيل'),
-          ),
-        ],
       ),
     );
-
-    if (result == true && mounted) {
-      final created =
-          ref.read(workspaceCatalogProvider.notifier).registerPrivateProject(
-                title: title.text,
-                technicalId: technicalId.text,
-                localName: localName.text,
-              );
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            created
-                ? 'تم تسجيل المشروع الخاص في هذه الجلسة.'
-                : 'تعذر التسجيل: تحقق من الاسم والمعرف أو من عدم تكراره.',
-          ),
-        ),
-      );
-      if (created) {
-        setState(() => _classFilter = WorkspaceItemClass.privateProject);
-      }
-    }
-
-    title.dispose();
-    technicalId.dispose();
-    localName.dispose();
   }
 }
 
@@ -493,6 +616,34 @@ class _CatalogCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
+              if (item.itemClass ==
+                  WorkspaceItemClass.privateProject) ...<Widget>[
+                const SizedBox(height: 6),
+                if (item.technicalId != null)
+                  Text(
+                    item.technicalId!,
+                    textDirection: TextDirection.ltr,
+                    style: Theme.of(context).textTheme.labelSmall,
+                  ),
+                if (item.projectUid != null) ...<Widget>[
+                  const SizedBox(height: 4),
+                  Text(
+                    'معرف داخلي ثابت',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                  ),
+                  SelectableText(
+                    item.projectUid!,
+                    key: ValueKey<String>('project-uid-${item.projectUid}'),
+                    textDirection: TextDirection.ltr,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontFamily: 'monospace',
+                          color: scheme.onSurfaceVariant,
+                        ),
+                  ),
+                ],
+              ],
               if (item.group != null || item.locality != null) ...<Widget>[
                 const SizedBox(height: 6),
                 Text(
