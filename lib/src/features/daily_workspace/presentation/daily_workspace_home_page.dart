@@ -3,13 +3,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../engineering_os/domain/engineering_os_models.dart';
+import '../../workspace_catalog/application/workspace_catalog_controller.dart';
+import '../../workspace_catalog/domain/workspace_catalog_models.dart';
 import '../application/daily_workspace_controller.dart';
 import '../domain/user_workspace_insights.dart';
 
 class DailyWorkspaceHomePage extends ConsumerStatefulWidget {
-  const DailyWorkspaceHomePage({this.initialTaskId, super.key});
+  const DailyWorkspaceHomePage({
+    this.initialTaskId,
+    this.initialWorkspaceItemId,
+    super.key,
+  });
 
   final String? initialTaskId;
+  final String? initialWorkspaceItemId;
 
   @override
   ConsumerState<DailyWorkspaceHomePage> createState() =>
@@ -25,6 +32,10 @@ class _DailyWorkspaceHomePageState
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final itemId = widget.initialWorkspaceItemId;
+      if (itemId != null && itemId.isNotEmpty) {
+        ref.read(workspaceCatalogProvider.notifier).select(itemId);
+      }
       ref
           .read(dailyWorkspaceControllerProvider.notifier)
           .load(preferTaskId: widget.initialTaskId);
@@ -41,6 +52,7 @@ class _DailyWorkspaceHomePageState
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(dailyWorkspaceControllerProvider);
+    final catalog = ref.watch(workspaceCatalogProvider);
     final insights = UserWorkspaceInsights.fromTasks(state.tasks);
 
     return RefreshIndicator(
@@ -93,7 +105,7 @@ class _DailyWorkspaceHomePageState
                     ),
                   ],
                   const SizedBox(height: 24),
-                  _HomeMetricGrid(insights: insights),
+                  _HomeMetricGrid(insights: insights, catalog: catalog),
                   const SizedBox(height: 28),
                   LayoutBuilder(
                     builder: (context, constraints) {
@@ -164,6 +176,34 @@ class _DailyWorkspaceHomePageState
     }
 
     final controller = ref.read(dailyWorkspaceControllerProvider.notifier);
+    final selectedItem = ref.read(workspaceCatalogProvider).selectedItem;
+    if (selectedItem != null && !selectedItem.governed) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'تم اختيار «${selectedItem.title}». تنفيذ الأبحاث والمشاريع الخاصة سيُختبر في بوابة Functional Execution UAT بعد نجاح اختبار تعدد العناصر؛ لن يمر هذا الطلب عبر حوكمة PalWakf.',
+          ),
+        ),
+      );
+      return;
+    }
+    if (selectedItem?.technicalId != null) {
+      final hasRegisteredTask = ref
+          .read(dailyWorkspaceControllerProvider)
+          .tasks
+          .any((task) => task.projectId == selectedItem!.technicalId);
+      if (!hasRegisteredTask) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '«${selectedItem!.title}» موجود في السجل الحقيقي، لكنه لا يملك Parent Task جاهزًا للتنفيذ من هذه الواجهة بعد.',
+            ),
+          ),
+        );
+        return;
+      }
+      controller.selectProject(selectedItem!.technicalId!);
+    }
     DailyIntentPreview preview;
     try {
       preview = controller.previewIntent(prompt);
@@ -451,7 +491,7 @@ class _CommandCenter extends StatelessWidget {
   }
 }
 
-class _ProjectSelector extends StatelessWidget {
+class _ProjectSelector extends ConsumerWidget {
   const _ProjectSelector({
     required this.projectIds,
     required this.selectedProjectId,
@@ -465,57 +505,65 @@ class _ProjectSelector extends StatelessWidget {
   final ValueChanged<String?> onChanged;
 
   @override
-  Widget build(BuildContext context) {
-    if (projectIds.isEmpty) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final catalog = ref.watch(workspaceCatalogProvider);
+    final selected = catalog.selectedItem;
+    if (catalog.items.isEmpty) {
       return const InputDecorator(
         decoration: InputDecoration(
-          labelText: 'المشروع',
+          labelText: 'المشروع / البحث',
           border: OutlineInputBorder(),
         ),
-        child: Text('لا يوجد مشروع جاهز للعمل الآن'),
+        child: Text('لا توجد عناصر مسجلة'),
       );
     }
 
-    if (projectIds.length == 1) {
-      return InputDecorator(
-        decoration: const InputDecoration(
-          labelText: 'المشروع',
-          border: OutlineInputBorder(),
-        ),
-        child: Text(
-          DailyWorkspaceController.friendlyProjectLabel(projectIds.first),
-        ),
-      );
-    }
-
-    return DropdownButtonFormField<String>(
+    return DropdownMenu<String>(
       key: const ValueKey<String>('daily-project-selector'),
-      initialValue: selectedProjectId ?? projectIds.first,
-      isExpanded: true,
-      decoration: const InputDecoration(
-        labelText: 'المشروع',
-        border: OutlineInputBorder(),
-      ),
-      items: projectIds
+      initialSelection: selected?.id ?? catalog.items.first.id,
+      enabled: !busy,
+      enableFilter: true,
+      enableSearch: true,
+      requestFocusOnTap: true,
+      label: const Text('المشروع / البحث'),
+      helperText:
+          'ابحث بالاسم أو المعرف؛ الأبحاث والمشاريع الخاصة تعمل بمسار مباشر.',
+      dropdownMenuEntries: catalog.items
           .map(
-            (projectId) => DropdownMenuItem<String>(
-              value: projectId,
-              child: Text(
-                DailyWorkspaceController.friendlyProjectLabel(projectId),
-                overflow: TextOverflow.ellipsis,
+            (item) => DropdownMenuEntry<String>(
+              value: item.id,
+              label: '${item.title} · ${item.itemClass.arabicLabel}',
+              leadingIcon: Icon(
+                item.itemClass == WorkspaceItemClass.research
+                    ? Icons.menu_book_outlined
+                    : item.itemClass == WorkspaceItemClass.privateProject
+                        ? Icons.person_outline
+                        : Icons.account_balance_outlined,
               ),
             ),
           )
           .toList(growable: false),
-      onChanged: busy ? null : onChanged,
+      onSelected: busy
+          ? null
+          : (itemId) {
+              if (itemId == null) return;
+              final catalogController =
+                  ref.read(workspaceCatalogProvider.notifier);
+              catalogController.select(itemId);
+              final item = catalogController.byId(itemId);
+              if (item?.governed == true && item?.technicalId != null) {
+                onChanged(item!.technicalId);
+              }
+            },
     );
   }
 }
 
 class _HomeMetricGrid extends StatelessWidget {
-  const _HomeMetricGrid({required this.insights});
+  const _HomeMetricGrid({required this.insights, required this.catalog});
 
   final UserWorkspaceInsights insights;
+  final WorkspaceCatalogState catalog;
 
   @override
   Widget build(BuildContext context) {
@@ -537,9 +585,10 @@ class _HomeMetricGrid extends StatelessWidget {
             _MetricCard(
               width: itemWidth,
               icon: Icons.folder_copy_outlined,
-              label: 'مشاريعي',
-              value: '${insights.projectCount}',
-              helper: 'مشروعات مرتبطة بمساحة العمل',
+              label: 'مساحة العمل',
+              value: '${catalog.totalCount}',
+              helper:
+                  '${catalog.governedCount} مشروع PalWakf · ${catalog.researchCount} بحث · ${catalog.privateCount} خاص',
               onTap: () => context.go('/projects'),
             ),
             _MetricCard(

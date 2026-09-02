@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../engineering_os/domain/engineering_os_models.dart';
+import '../../workspace_catalog/application/workspace_catalog_controller.dart';
 import '../application/daily_workspace_controller.dart';
 import '../domain/user_workspace_insights.dart';
 
@@ -30,6 +31,7 @@ class _UserWorkspaceDashboardPageState
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(dailyWorkspaceControllerProvider);
+    final catalog = ref.watch(workspaceCatalogProvider);
     final insights = UserWorkspaceInsights.fromTasks(state.tasks);
     final scheme = Theme.of(context).colorScheme;
 
@@ -50,6 +52,8 @@ class _UserWorkspaceDashboardPageState
                     onNewWork: () => context.go('/home'),
                     onProjects: () => context.go('/projects'),
                   ),
+                  const SizedBox(height: 18),
+                  _WorkspaceCatalogSummary(catalog: catalog),
                   if (state.loading) ...<Widget>[
                     const SizedBox(height: 14),
                     const LinearProgressIndicator(),
@@ -149,6 +153,88 @@ class _UserWorkspaceDashboardPageState
   }
 }
 
+class _WorkspaceCatalogSummary extends StatelessWidget {
+  const _WorkspaceCatalogSummary({required this.catalog});
+
+  final WorkspaceCatalogState catalog;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final values = <({IconData icon, String label, int value})>[
+          (
+            icon: Icons.grid_view_outlined,
+            label: 'إجمالي مساحة العمل',
+            value: catalog.totalCount,
+          ),
+          (
+            icon: Icons.account_balance_outlined,
+            label: 'مشاريع PalWakf',
+            value: catalog.governedCount,
+          ),
+          (
+            icon: Icons.menu_book_outlined,
+            label: 'الأبحاث',
+            value: catalog.researchCount,
+          ),
+          (
+            icon: Icons.person_outline,
+            label: 'المشاريع الخاصة',
+            value: catalog.privateCount,
+          ),
+        ];
+        final columns = constraints.maxWidth >= 900
+            ? 4
+            : constraints.maxWidth >= 520
+                ? 2
+                : 1;
+        const gap = 10.0;
+        final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: values
+              .map(
+                (entry) => SizedBox(
+                  width: width,
+                  child: Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Row(
+                        children: <Widget>[
+                          Icon(entry.icon),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                Text(
+                                  '${entry.value}',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleLarge
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                ),
+                                Text(entry.label),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              )
+              .toList(growable: false),
+        );
+      },
+    );
+  }
+}
+
 class _DashboardHeader extends StatelessWidget {
   const _DashboardHeader({required this.onNewWork, required this.onProjects});
 
@@ -171,7 +257,7 @@ class _DashboardHeader extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'نظرة مركزة على مشاريعك وأعمالك وما يحتاج انتباهك.',
+              'نظرة موحدة على مشاريع PalWakf والأبحاث والمشاريع الخاصة وأعمالك الحالية.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),

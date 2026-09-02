@@ -15,6 +15,7 @@ import '../features/orchestrator/presentation/orchestrator_workspace_page.dart';
 import '../features/orchestrator/presentation/tool_health_page.dart';
 import '../features/projects/presentation/external_projects_page.dart';
 import '../features/projects/presentation/project_reality_page.dart';
+import '../features/workspace_catalog/presentation/workspace_catalog_page.dart';
 import 'workspace_application_shell.dart';
 
 final workspaceRouterProvider = Provider<GoRouter>((ref) {
@@ -30,6 +31,7 @@ final workspaceRouterProvider = Provider<GoRouter>((ref) {
             path: '/home',
             builder: (context, state) => DailyWorkspaceHomePage(
               initialTaskId: state.uri.queryParameters['taskId'],
+              initialWorkspaceItemId: state.uri.queryParameters['itemId'],
             ),
           ),
           GoRoute(
@@ -43,6 +45,10 @@ final workspaceRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/advanced',
             builder: (context, state) => const AdvancedOperationsHubPage(),
+          ),
+          GoRoute(
+            path: '/advanced/projects-registry',
+            builder: (context, state) => const ExternalProjectsPage(),
           ),
           GoRoute(
             path: '/dashboard',
@@ -76,7 +82,7 @@ final workspaceRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/projects',
-            builder: (context, state) => const ExternalProjectsPage(),
+            builder: (context, state) => const WorkspaceCatalogPage(),
             routes: <RouteBase>[
               GoRoute(
                 path: ':projectId',

@@ -48,6 +48,12 @@ class AdvancedOperationsHubPage extends StatelessWidget {
       Icons.extension_outlined,
     ),
     _AdvancedAction(
+      'سجل المشاريع التقني',
+      'إدخال المشاريع الخارجية والفحص التقني وسلطة التشغيل.',
+      '/advanced/projects-registry',
+      Icons.hub_outlined,
+    ),
+    _AdvancedAction(
       'الاتصالات',
       'إعداد الخدمة والاتصالات التشغيلية.',
       '/settings/connections',
