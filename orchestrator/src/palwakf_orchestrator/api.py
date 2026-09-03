@@ -68,6 +68,10 @@ from palwakf_orchestrator.external_execution_contracts import (
 from palwakf_orchestrator.external_execution_workspace import (
     ExternalExecutionWorkspaceService,
 )
+from palwakf_orchestrator.intersystem_contracts import (
+    WorkspaceAuthorityPackageV1,
+    build_workspace_authority_package,
+)
 from palwakf_orchestrator.local_product import LocalProductService, ManagedWorkspaceStatus
 from palwakf_orchestrator.local_session import LOCAL_SESSION_COOKIE, LocalSessionManager
 from palwakf_orchestrator.mcp_server import create_mcp_server
@@ -578,6 +582,19 @@ def _add_execution_run_routes(
     def execution_error(exc: GovernanceError) -> HTTPException:
         missing = str(exc) in {"ENGINEERING_TASK_NOT_FOUND", "EXECUTION_RUN_NOT_FOUND"}
         return HTTPException(status_code=404 if missing else 409, detail=str(exc))
+
+    @app.get(
+        "/v1/execution-runs/{execution_run_id}/intersystem/authority-package",
+        response_model=WorkspaceAuthorityPackageV1,
+    )
+    async def intersystem_authority_package(
+        execution_run_id: str,
+    ) -> WorkspaceAuthorityPackageV1:
+        try:
+            view = execution_runs.get_operational_view(execution_run_id)
+            return build_workspace_authority_package(view)
+        except GovernanceError as exc:
+            raise execution_error(exc) from exc
 
     @app.get(
         "/v1/engineering-os/tasks/{task_id}/execution-context",
