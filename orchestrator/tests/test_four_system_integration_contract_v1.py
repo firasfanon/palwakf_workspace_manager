@@ -2,7 +2,11 @@ from datetime import UTC, datetime
 
 import pytest
 
-from palwakf_orchestrator.engineering_os_contracts import ActorType, DependencyMode, EngineeringTaskRecord
+from palwakf_orchestrator.engineering_os_contracts import (
+    ActorType,
+    DependencyMode,
+    EngineeringTaskRecord,
+)
 from palwakf_orchestrator.errors import GovernanceError
 from palwakf_orchestrator.execution_run_contracts import ExecutionRunOperationalView
 from palwakf_orchestrator.intersystem_contracts import build_workspace_authority_package

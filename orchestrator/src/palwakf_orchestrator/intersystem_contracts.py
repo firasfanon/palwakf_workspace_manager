@@ -4,16 +4,14 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from palwakf_orchestrator.execution_run_contracts import ExecutionRunOperationalView
 from palwakf_orchestrator.errors import GovernanceError
+from palwakf_orchestrator.execution_run_contracts import ExecutionRunOperationalView
 
 
 class WorkspaceAuthorityPackageV1(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    contract_version: Literal["PALWAKF_INTERSYSTEM_CONTRACT_V1"] = (
-        "PALWAKF_INTERSYSTEM_CONTRACT_V1"
-    )
+    contract_version: Literal["PALWAKF_INTERSYSTEM_CONTRACT_V1"] = "PALWAKF_INTERSYSTEM_CONTRACT_V1"
     state_package_id: str
     execution_run_id: str
     project_id: str
@@ -68,9 +66,7 @@ def build_workspace_authority_package(
         constraints=list(run.constraints),
         timeout_seconds=run.timeout_seconds,
         scope_patterns=list(parent.scope_patterns),
-        allow_network_read=(
-            "LOCAL_PROVIDER_NETWORK_READ" in parent.required_capabilities
-        ),
+        allow_network_read=("LOCAL_PROVIDER_NETWORK_READ" in parent.required_capabilities),
         required_capabilities=list(parent.required_capabilities),
         required_tests=list(parent.required_tests),
     )
