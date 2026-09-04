@@ -1,3 +1,5 @@
+import pytest
+
 from palwakf_orchestrator.engineering_os_contracts import (
     ActorType,
     CreateEngineeringTaskRequest,
@@ -8,9 +10,11 @@ from palwakf_orchestrator.engineering_os_contracts import (
     RemoteCheckpointRequest,
 )
 from palwakf_orchestrator.engineering_os_service import EngineeringOsService
+from palwakf_orchestrator.errors import GovernanceError
 from palwakf_orchestrator.persistence import MemoryStateStore
 
 HEAD = "a" * 40
+REMOTE_HEAD = "b" * 40
 
 
 def task_request() -> CreateEngineeringTaskRequest:
@@ -33,11 +37,12 @@ def task_request() -> CreateEngineeringTaskRequest:
     )
 
 
-def test_remote_first_task_and_checkpoint() -> None:
+def test_remote_first_task_and_explicit_checkpoint_remains_backward_compatible() -> None:
     service = EngineeringOsService(MemoryStateStore())
 
     created = service.create_task(task_request())
     assert created.base_sha == HEAD
+    assert created.integrated_head_at_creation == HEAD
     assert created.task_branch == "task/WM-101"
     assert created.status.value == "READY"
     assert created.latest_remote_task_sha is None
@@ -45,13 +50,69 @@ def test_remote_first_task_and_checkpoint() -> None:
     checkpointed = service.checkpoint_task(
         created.task_id,
         RemoteCheckpointRequest(
-            remote_sha="b" * 40,
+            remote_sha=REMOTE_HEAD,
             evidence=["github:task/WM-101"],
         ),
     )
     assert checkpointed.status.value == "WIP_REMOTE_CHECKPOINTED"
-    assert checkpointed.latest_remote_task_sha == "b" * 40
+    assert checkpointed.latest_remote_task_sha == REMOTE_HEAD
     assert checkpointed.wip_checkpoint_status == "REMOTE_CHECKPOINTED"
+
+
+def test_remote_checkpoint_without_sha_resolves_and_records_verified_remote_head() -> None:
+    calls: list[tuple[str, str]] = []
+
+    def resolver(repository: str, branch: str) -> str:
+        calls.append((repository, branch))
+        return REMOTE_HEAD.upper()
+
+    service = EngineeringOsService(
+        MemoryStateStore(),
+        remote_head_resolver=resolver,
+    )
+    created = service.create_task(task_request())
+
+    checkpointed = service.checkpoint_task(
+        created.task_id,
+        RemoteCheckpointRequest(
+            evidence=["workspace-manager:verified-remote-wip-sync"],
+        ),
+    )
+
+    assert calls == [
+        ("firasfanon/palwakf_workspace_manager", "task/WM-101"),
+    ]
+    assert checkpointed.base_sha == HEAD
+    assert checkpointed.integrated_head_at_creation == HEAD
+    assert checkpointed.latest_remote_task_sha == REMOTE_HEAD
+    assert checkpointed.status.value == "WIP_REMOTE_CHECKPOINTED"
+    assert checkpointed.wip_checkpoint_status == "REMOTE_CHECKPOINTED"
+    assert (
+        "github-remote-head-verified:"
+        "firasfanon/palwakf_workspace_manager:task/WM-101@" + REMOTE_HEAD
+        in checkpointed.evidence
+    )
+
+
+def test_verified_remote_checkpoint_fails_closed_on_invalid_resolver_sha() -> None:
+    service = EngineeringOsService(
+        MemoryStateStore(),
+        remote_head_resolver=lambda _repository, _branch: "not-a-sha",
+    )
+    created = service.create_task(task_request())
+
+    with pytest.raises(GovernanceError, match="REMOTE_WIP_HEAD_INVALID"):
+        service.checkpoint_task(
+            created.task_id,
+            RemoteCheckpointRequest(
+                evidence=["workspace-manager:verified-remote-wip-sync"],
+            ),
+        )
+
+    unchanged = service.get_task(created.task_id)
+    assert unchanged.latest_remote_task_sha is None
+    assert unchanged.wip_checkpoint_status == "NOT_CHECKPOINTED"
+    assert unchanged.status.value == "READY"
 
 
 def test_extension_enters_quarantine_and_summary_counts() -> None:

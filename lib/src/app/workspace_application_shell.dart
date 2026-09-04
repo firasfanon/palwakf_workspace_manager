@@ -18,66 +18,55 @@ class WorkspaceApplicationShell extends ConsumerWidget {
   final String location;
   final Widget child;
 
-  static const destinations = <ShellDestination>[
+  static const dailyDestinations = <ShellDestination>[
+    ShellDestination('/home', 'الرئيسية', Icons.home_outlined, Icons.home),
     ShellDestination(
-      '/dashboard',
-      'لوحة العمليات',
-      Icons.dashboard_outlined,
-      Icons.dashboard,
+      '/overview',
+      'لوحة التحكم',
+      Icons.space_dashboard_outlined,
+      Icons.space_dashboard,
     ),
+    ShellDestination(
+        '/projects', 'مشاريعي', Icons.folder_outlined, Icons.folder),
+    ShellDestination(
+        '/work', 'أعمالي', Icons.checklist_outlined, Icons.checklist),
+  ];
+
+  static const destinations = <ShellDestination>[
+    ShellDestination('/dashboard', 'لوحة العمليات', Icons.dashboard_outlined,
+        Icons.dashboard),
     ShellDestination('/projects', 'المشاريع', Icons.hub_outlined, Icons.hub),
     ShellDestination(
-      '/tasks',
-      'المهام',
-      Icons.task_alt_outlined,
-      Icons.task_alt,
-    ),
+        '/tasks', 'المهام', Icons.task_alt_outlined, Icons.task_alt),
     ShellDestination(
-      '/extensions',
-      'التوسعات',
-      Icons.extension_outlined,
-      Icons.extension,
-    ),
-    ShellDestination(
-      '/operations',
-      'التشغيل',
-      Icons.settings_suggest_outlined,
-      Icons.settings_suggest,
-    ),
+        '/extensions', 'التوسعات', Icons.extension_outlined, Icons.extension),
+    ShellDestination('/operations', 'التشغيل', Icons.settings_suggest_outlined,
+        Icons.settings_suggest),
     ShellDestination('/tools', 'الأدوات', Icons.build_outlined, Icons.build),
+    ShellDestination('/alerts', 'التنبيهات', Icons.notifications_outlined,
+        Icons.notifications),
     ShellDestination(
-      '/alerts',
-      'التنبيهات',
-      Icons.notifications_outlined,
-      Icons.notifications,
-    ),
-    ShellDestination(
-      '/evidence',
-      'الأدلة',
-      Icons.fact_check_outlined,
-      Icons.fact_check,
-    ),
-    ShellDestination(
-      '/settings/connections',
-      'الاتصالات',
-      Icons.cable_outlined,
-      Icons.cable,
-    ),
+        '/evidence', 'الأدلة', Icons.fact_check_outlined, Icons.fact_check),
+    ShellDestination('/settings/connections', 'الاتصالات', Icons.cable_outlined,
+        Icons.cable),
   ];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selectedIndex = _selectedIndex(location);
+    final selectedIndex = _selectedDailyIndex(location);
     final connection =
         ref.watch(dashboardControllerProvider).summary?.connection;
     final hasToken =
         (ref.watch(orchestratorTokenProvider) ?? '').trim().isNotEmpty;
     final previewMode = PreviewModeUi.isVisualPreview;
+    final advanced = _isAdvancedPath(location);
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final desktop = constraints.maxWidth >= 1024;
-        final extended = constraints.maxWidth >= 1280;
-        final mobile = constraints.maxWidth < 720;
+        final extended = constraints.maxWidth >= 1320;
+        final mobile = constraints.maxWidth < 760;
+
         return Scaffold(
           appBar: AppBar(
             automaticallyImplyLeading: mobile,
@@ -87,8 +76,10 @@ class WorkspaceApplicationShell extends ConsumerWidget {
               children: <Widget>[
                 Text(_pageTitle(location)),
                 Text(
-                  'PalWakf Workspace Manager',
-                  textDirection: TextDirection.ltr,
+                  advanced
+                      ? 'PalWakf Workspace · الإدارة المتقدمة'
+                      : 'PalWakf Workspace',
+                  textDirection: TextDirection.rtl,
                   style: Theme.of(context).textTheme.labelSmall,
                 ),
               ],
@@ -108,16 +99,14 @@ class WorkspaceApplicationShell extends ConsumerWidget {
                     ),
                     label: Text(
                       previewMode
-                          ? 'معاينة بصرية'
+                          ? 'معاينة'
                           : connection?.ready ?? false
-                              ? connection!.localSecure
-                                  ? 'محلي آمن'
-                                  : 'متصل'
-                              : 'غير متصل',
+                              ? 'الخدمة متصلة'
+                              : 'الخدمة غير متصلة',
                     ),
                   ),
                 ),
-              if (!previewMode)
+              if (advanced && !previewMode)
                 IconButton(
                   tooltip: hasToken
                       ? 'مصادقة الخدمة مهيأة في هذه الجلسة'
@@ -126,7 +115,7 @@ class WorkspaceApplicationShell extends ConsumerWidget {
                   icon: Icon(hasToken ? Icons.lock : Icons.lock_open_outlined),
                 ),
               IconButton(
-                tooltip: 'تحديث الحالة الموثقة',
+                tooltip: 'تحديث',
                 onPressed: () => _refresh(ref),
                 icon: const Icon(Icons.refresh),
               ),
@@ -138,9 +127,14 @@ class WorkspaceApplicationShell extends ConsumerWidget {
                   child: SafeArea(
                     child: _DrawerNavigation(
                       selectedIndex: selectedIndex,
+                      advancedSelected: advanced,
                       onSelected: (index) {
                         Navigator.of(context).pop();
-                        context.go(destinations[index].route);
+                        context.go(dailyDestinations[index].route);
+                      },
+                      onAdvanced: () {
+                        Navigator.of(context).pop();
+                        context.go('/advanced');
                       },
                     ),
                   ),
@@ -153,18 +147,43 @@ class WorkspaceApplicationShell extends ConsumerWidget {
                 if (!mobile)
                   NavigationRail(
                     extended: desktop && extended,
-                    minExtendedWidth: 232,
+                    minExtendedWidth: 230,
                     selectedIndex: selectedIndex,
                     labelType: desktop && extended
                         ? NavigationRailLabelType.none
                         : NavigationRailLabelType.all,
                     onDestinationSelected: (index) =>
-                        context.go(destinations[index].route),
+                        context.go(dailyDestinations[index].route),
                     leading: const Padding(
                       padding: EdgeInsets.only(bottom: 14),
                       child: Icon(Icons.account_balance_outlined),
                     ),
-                    destinations: destinations
+                    trailing: Padding(
+                      padding: const EdgeInsets.only(top: 18),
+                      child: SizedBox(
+                        width: extended ? 190 : 76,
+                        child: TextButton(
+                          key: const ValueKey<String>('advanced-secondary-nav'),
+                          onPressed: () => context.go('/advanced'),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              Icon(
+                                advanced
+                                    ? Icons.admin_panel_settings
+                                    : Icons.admin_panel_settings_outlined,
+                              ),
+                              const SizedBox(height: 3),
+                              const FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text('الإدارة المتقدمة'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    destinations: dailyDestinations
                         .map(
                           (destination) => NavigationRailDestination(
                             icon: Icon(destination.icon),
@@ -179,13 +198,12 @@ class WorkspaceApplicationShell extends ConsumerWidget {
               ],
             ),
           ),
-          bottomNavigationBar: mobile
+          bottomNavigationBar: mobile && !advanced
               ? NavigationBar(
-                  selectedIndex: selectedIndex <= 3 ? selectedIndex : 0,
+                  selectedIndex: selectedIndex ?? 0,
                   onDestinationSelected: (index) =>
-                      context.go(destinations[index].route),
-                  destinations: destinations
-                      .take(4)
+                      context.go(dailyDestinations[index].route),
+                  destinations: dailyDestinations
                       .map(
                         (destination) => NavigationDestination(
                           icon: Icon(destination.icon),
@@ -201,21 +219,65 @@ class WorkspaceApplicationShell extends ConsumerWidget {
     );
   }
 
-  int _selectedIndex(String path) {
-    final index = destinations.indexWhere(
-      (destination) =>
-          path == destination.route || path.startsWith('${destination.route}/'),
+  int? _selectedDailyIndex(String path) {
+    if (path == '/home' || path == '/') {
+      return 0;
+    }
+    if (path == '/overview' || path.startsWith('/overview/')) {
+      return 1;
+    }
+    if (path == '/projects' || path.startsWith('/projects/')) {
+      return 2;
+    }
+    if (path == '/work' || path.startsWith('/work/')) {
+      return 3;
+    }
+    return null;
+  }
+
+  static bool _isAdvancedPath(String path) {
+    if (path == '/advanced' || path.startsWith('/advanced/')) {
+      return true;
+    }
+    return destinations.any(
+      (item) =>
+          item.route != '/projects' &&
+          (path == item.route || path.startsWith('${item.route}/')),
     );
-    return index < 0 ? 0 : index;
   }
 
   static String _pageTitle(String path) {
-    if (path.startsWith('/projects/')) return 'تفاصيل المشروع';
-    if (path.startsWith('/tools/')) return 'تفاصيل الأداة';
+    if (path == '/home' || path == '/') {
+      return 'الرئيسية';
+    }
+    if (path == '/overview' || path.startsWith('/overview/')) {
+      return 'لوحة التحكم';
+    }
+    if (path == '/work' || path.startsWith('/work/')) {
+      return 'أعمالي';
+    }
+    if (path == '/projects') {
+      return 'مشاريعي';
+    }
+    if (path.startsWith('/projects/')) {
+      return 'تفاصيل المشروع';
+    }
+    if (path == '/advanced') {
+      return 'الإدارة المتقدمة';
+    }
+    if (path.startsWith('/tools/')) {
+      return 'تفاصيل الأداة';
+    }
+
     return destinations
         .firstWhere(
           (item) => path == item.route || path.startsWith('${item.route}/'),
-          orElse: () => destinations.first,
+          orElse: () => const ShellDestination(
+            '/advanced',
+            'الإدارة المتقدمة',
+            Icons.admin_panel_settings_outlined,
+            Icons.admin_panel_settings,
+          ),
         )
         .label;
   }
@@ -232,11 +294,15 @@ class WorkspaceApplicationShell extends ConsumerWidget {
 class _DrawerNavigation extends StatelessWidget {
   const _DrawerNavigation({
     required this.selectedIndex,
+    required this.advancedSelected,
     required this.onSelected,
+    required this.onAdvanced,
   });
 
-  final int selectedIndex;
+  final int? selectedIndex;
+  final bool advancedSelected;
   final ValueChanged<int> onSelected;
+  final VoidCallback onAdvanced;
 
   @override
   Widget build(BuildContext context) {
@@ -247,18 +313,20 @@ class _DrawerNavigation extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(18, 20, 18, 14),
           child: Text(
             'مساحة عمل PalWakf',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(fontWeight: FontWeight.w800),
           ),
         ),
         const Divider(height: 1),
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(vertical: 8),
-            itemCount: WorkspaceApplicationShell.destinations.length,
+            itemCount: WorkspaceApplicationShell.dailyDestinations.length,
             itemBuilder: (context, index) {
-              final destination = WorkspaceApplicationShell.destinations[index];
+              final destination =
+                  WorkspaceApplicationShell.dailyDestinations[index];
               return ListTile(
                 selected: index == selectedIndex,
                 leading: Icon(
@@ -271,6 +339,19 @@ class _DrawerNavigation extends StatelessWidget {
               );
             },
           ),
+        ),
+        const Divider(height: 1),
+        ListTile(
+          key: const ValueKey<String>('advanced-secondary-drawer'),
+          selected: advancedSelected,
+          leading: Icon(
+            advancedSelected
+                ? Icons.admin_panel_settings
+                : Icons.admin_panel_settings_outlined,
+          ),
+          title: const Text('الإدارة المتقدمة'),
+          subtitle: const Text('للتشخيص والتفاصيل التقنية'),
+          onTap: onAdvanced,
         ),
       ],
     );

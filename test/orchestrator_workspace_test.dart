@@ -139,10 +139,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('التشغيل'));
+    await tester.tap(find.text('الإدارة المتقدمة'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('مركز التشغيل'));
     await tester.pumpAndSettle();
 
-    expect(find.text('PalWakf Workspace Manager'), findsOneWidget);
     expect(find.text('صف المهام'), findsOneWidget);
     expect(find.text('ترحيل المستخدم'), findsOneWidget);
     expect(find.text('قدرات التشغيل'), findsOneWidget);
@@ -171,6 +172,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.tap(find.text('الإدارة المتقدمة'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('الأدوات'));
     await tester.pumpAndSettle();
 
@@ -242,6 +245,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.tap(find.text('الإدارة المتقدمة'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('الأدوات'));
     await tester.pumpAndSettle();
 

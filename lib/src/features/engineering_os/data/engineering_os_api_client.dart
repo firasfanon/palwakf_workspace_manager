@@ -48,6 +48,20 @@ class EngineeringOsApiClient {
     );
   }
 
+  Future<EngineeringTask> syncRemoteCheckpoint(String engineeringTaskId) async {
+    final encoded = Uri.encodeComponent(engineeringTaskId);
+    return EngineeringTask.fromJson(
+      await _postObject(
+        '/v1/engineering-os/tasks/$encoded/checkpoint',
+        <String, dynamic>{
+          'evidence': const <String>[
+            'workspace-manager:verified-remote-wip-sync',
+          ],
+        },
+      ),
+    );
+  }
+
   Future<EngineeringTaskExecutionContext> executionContext(
     String engineeringTaskId,
   ) async {

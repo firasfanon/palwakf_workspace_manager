@@ -121,6 +121,7 @@ class NewExecutionRunDraft {
     required this.timeoutSeconds,
     required this.idempotencyKey,
     required this.relayProviderId,
+    this.providerMode = 'execution_relay',
     this.requiresExplicitAuthorization = true,
   });
 
@@ -133,6 +134,7 @@ class NewExecutionRunDraft {
   final int timeoutSeconds;
   final String idempotencyKey;
   final String relayProviderId;
+  final String providerMode;
   final bool requiresExplicitAuthorization;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
@@ -145,6 +147,7 @@ class NewExecutionRunDraft {
         'timeout_seconds': timeoutSeconds,
         'idempotency_key': idempotencyKey,
         'relay_provider_id': relayProviderId,
+        'provider_mode': providerMode,
         'requires_explicit_authorization': requiresExplicitAuthorization,
       };
 }

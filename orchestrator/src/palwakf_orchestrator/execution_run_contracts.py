@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from palwakf_orchestrator.engineering_os_contracts import EngineeringTaskRecord
 from palwakf_orchestrator.operator_contracts import OperatorTaskRecord
+from palwakf_orchestrator.provider_contracts import ProviderMode
 from palwakf_orchestrator.state_rollup_policy import StateRollupDecision
 
 
@@ -26,6 +27,7 @@ class CreateExecutionRunRequest(BaseModel):
         default="chatgpt",
         pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{1,127}$",
     )
+    provider_mode: ProviderMode = ProviderMode.execution_relay
     requires_explicit_authorization: Literal[True] = True
 
 

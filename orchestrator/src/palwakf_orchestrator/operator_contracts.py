@@ -6,6 +6,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from palwakf_orchestrator.provider_contracts import ProviderMode
+
 
 class OperatorTaskStatus(StrEnum):
     pending = "pending"
@@ -67,6 +69,7 @@ class CreateOperatorTaskRequest(BaseModel):
         default="codex",
         pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{1,127}$",
     )
+    provider_mode: ProviderMode = ProviderMode.execution_relay
 
 
 class OperatorTaskRecord(BaseModel):
@@ -88,6 +91,8 @@ class OperatorTaskRecord(BaseModel):
     requires_explicit_authorization: bool = False
     scope_patterns: list[str] = Field(default_factory=list)
     relay_provider_id: str = "codex"
+    provider_mode: ProviderMode = ProviderMode.execution_relay
+    selected_provider_id: str | None = None
     authorized_at: datetime | None = None
     authorized_by: str | None = None
     dispatch_mode: DispatchMode = DispatchMode.automatic

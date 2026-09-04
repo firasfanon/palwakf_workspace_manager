@@ -1,5 +1,12 @@
 from __future__ import annotations
 
+import os
+import re
+from collections.abc import Callable
+from urllib.parse import quote
+
+import httpx
+
 from palwakf_orchestrator.engineering_os_contracts import (
     CreateEngineeringTaskRequest,
     DependencyMode,
@@ -19,11 +26,63 @@ from palwakf_orchestrator.provider_contracts import quarantined_role_authorities
 
 TASKS_KEY = "engineering_os_tasks_v1"
 EXTENSIONS_KEY = "engineering_os_extensions_v1"
+_REMOTE_SHA_RE = re.compile(r"^[0-9a-fA-F]{40}$")
+RemoteHeadResolver = Callable[[str, str], str]
+
+
+def _github_remote_head(repository: str, branch: str) -> str:
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository):
+        raise GovernanceError("ENGINEERING_TASK_REPOSITORY_INVALID")
+    if not branch.startswith("task/"):
+        raise GovernanceError("REMOTE_WIP_BRANCH_MUST_BE_TASK_BRANCH")
+
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "PalWakf-Engineering-Remote-WIP-Verifier",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+    token = os.environ.get("GITHUB_TOKEN", "").strip()
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+
+    ref = quote(f"heads/{branch}", safe="/")
+    try:
+        with httpx.Client(headers=headers, timeout=15.0, follow_redirects=False) as client:
+            response = client.get(
+                f"https://api.github.com/repos/{repository}/git/ref/{ref}"
+            )
+    except httpx.HTTPError as exc:
+        raise GovernanceError("REMOTE_WIP_HEAD_READ_FAILED") from exc
+
+    if response.status_code == 404:
+        raise GovernanceError("REMOTE_TASK_BRANCH_NOT_FOUND")
+    if response.status_code >= 400:
+        raise GovernanceError(f"REMOTE_WIP_HEAD_READ_FAILED:{response.status_code}")
+
+    try:
+        payload = response.json()
+    except ValueError as exc:
+        raise GovernanceError("REMOTE_WIP_HEAD_RESPONSE_INVALID") from exc
+    if not isinstance(payload, dict):
+        raise GovernanceError("REMOTE_WIP_HEAD_RESPONSE_INVALID")
+    target = payload.get("object")
+    if not isinstance(target, dict):
+        raise GovernanceError("REMOTE_WIP_HEAD_RESPONSE_INVALID")
+    observed = str(target.get("sha", ""))
+    if not _REMOTE_SHA_RE.fullmatch(observed):
+        raise GovernanceError("REMOTE_WIP_HEAD_INVALID")
+    return observed.lower()
 
 
 class EngineeringOsService:
-    def __init__(self, state_store: StateStore) -> None:
+    def __init__(
+        self,
+        state_store: StateStore,
+        *,
+        remote_head_resolver: RemoteHeadResolver | None = None,
+    ) -> None:
         self.state_store = state_store
+        self._remote_head_resolver = remote_head_resolver or _github_remote_head
 
     def list_tasks(self) -> list[EngineeringTaskRecord]:
         state = self.state_store.load()
@@ -84,12 +143,27 @@ class EngineeringOsService:
         }:
             raise GovernanceError("TASK_STATE_REJECTS_WIP_CHECKPOINT")
 
+        evidence = [*record.evidence, *request.evidence]
+        if request.remote_sha is None:
+            remote_sha = self._remote_head_resolver(
+                record.repository,
+                record.task_branch,
+            ).lower()
+            if not _REMOTE_SHA_RE.fullmatch(remote_sha):
+                raise GovernanceError("REMOTE_WIP_HEAD_INVALID")
+            evidence.append(
+                "github-remote-head-verified:"
+                f"{record.repository}:{record.task_branch}@{remote_sha}"
+            )
+        else:
+            remote_sha = request.remote_sha.lower()
+
         updated = record.model_copy(
             update={
-                "latest_remote_task_sha": request.remote_sha.lower(),
+                "latest_remote_task_sha": remote_sha,
                 "wip_checkpoint_status": "REMOTE_CHECKPOINTED",
                 "status": EngineeringTaskStatus.wip_remote_checkpointed,
-                "evidence": [*record.evidence, *request.evidence],
+                "evidence": evidence,
                 "updated_at": utc_now(),
             }
         )

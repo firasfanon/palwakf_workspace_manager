@@ -396,14 +396,42 @@ class _NewExecutionRunDialog extends StatefulWidget {
 }
 
 class _NewExecutionRunDialogState extends State<_NewExecutionRunDialog> {
+  static const List<String> _providerModes = <String>[
+    'execution_relay',
+    'code_review',
+    'diagnostic_debug',
+    'bounded_bug_fix',
+    'engineering_proposal',
+    'test_and_regression_analysis',
+  ];
+  static const Set<String> _readOnlyProviderModes = <String>{
+    'code_review',
+    'diagnostic_debug',
+    'engineering_proposal',
+    'test_and_regression_analysis',
+  };
+  static const Set<String> _mutatingProviderModes = <String>{
+    'execution_relay',
+    'bounded_bug_fix',
+  };
+
   final prompt = TextEditingController();
   final provider = TextEditingController(text: 'chatgpt');
   final constraints = TextEditingController(
     text: 'NO_SCOPE_EXPANSION\nNO_PRODUCTION\nNO_DATABASE_MUTATION',
   );
+  late String providerMode;
   String? promptError;
   String? providerError;
   String? constraintsError;
+
+  @override
+  void initState() {
+    super.initState();
+    providerMode = widget.parent.mutationClass == 'source-write'
+        ? 'execution_relay'
+        : 'code_review';
+  }
 
   @override
   void dispose() {
@@ -433,6 +461,29 @@ class _NewExecutionRunDialogState extends State<_NewExecutionRunDialog> {
                       'المشروع والمستودع والفرع وHEAD والنطاق تورث من المهمة ولا يمكن توسيعها هنا.',
                   errorText: promptError,
                 ),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                key: const ValueKey<String>('phase6-run-provider-mode'),
+                initialValue: providerMode,
+                decoration: const InputDecoration(
+                  labelText: 'وضع المزود',
+                ),
+                items: _providerModes
+                    .map(
+                      (mode) => DropdownMenuItem<String>(
+                        value: mode,
+                        enabled:
+                            widget.parent.mutationClass == 'source-write' ||
+                                !_mutatingProviderModes.contains(mode),
+                        child: Text(mode),
+                      ),
+                    )
+                    .toList(growable: false),
+                onChanged: (value) {
+                  if (value == null) return;
+                  setState(() => providerMode = value);
+                },
               ),
               const SizedBox(height: 12),
               TextField(
@@ -503,9 +554,7 @@ class _NewExecutionRunDialogState extends State<_NewExecutionRunDialog> {
         .replaceAll(RegExp(r'[^A-Z0-9_-]'), '_');
     final boundedParent =
         parentId.length > 80 ? parentId.substring(0, 80) : parentId;
-    final sandbox = widget.parent.mutationClass == 'read-only'
-        ? 'read-only'
-        : 'workspace-write';
+    final sandbox = _sandboxForProviderMode(providerMode);
     Navigator.pop(
       context,
       NewExecutionRunDraft(
@@ -519,9 +568,19 @@ class _NewExecutionRunDialogState extends State<_NewExecutionRunDialog> {
         timeoutSeconds: 1800,
         idempotencyKey: 'run:$boundedParent:$stamp',
         relayProviderId: providerValue,
+        providerMode: providerMode,
         requiresExplicitAuthorization: true,
       ),
     );
+  }
+
+  String _sandboxForProviderMode(String mode) {
+    if (_readOnlyProviderModes.contains(mode)) {
+      return 'read-only';
+    }
+    return widget.parent.mutationClass == 'source-write'
+        ? 'workspace-write'
+        : 'read-only';
   }
 }
 

@@ -1,0 +1,308 @@
+{
+  "registry_version": "PALWAKF_TOOL_ROLE_AND_INVOCATION_REGISTRY_R3_20260824",
+  "capabilities": {
+    "code.execution": [],
+    "governed.patch_relay": [
+      "codex",
+      "claude-code",
+      "kimi",
+      "local-agent"
+    ],
+    "source.control": [
+      "github"
+    ],
+    "continuous.integration": [
+      "github-actions"
+    ],
+    "runtime.verification": [
+      "local-runtime"
+    ],
+    "evidence.capture": [
+      "evidence-recorder"
+    ],
+    "product.design": [
+      "figma"
+    ],
+    "communication.asset": [
+      "canva"
+    ],
+    "legal.authority": [
+      "midpage",
+      "official-source"
+    ],
+    "academic.discovery": [
+      "consensus"
+    ],
+    "academic.fulltext": [
+      "scispace"
+    ],
+    "ml.hub": [
+      "hugging-face"
+    ],
+    "relational.runtime": [
+      "supabase"
+    ],
+    "governed.code_review": [
+      "codex",
+      "claude-code",
+      "kimi",
+      "local-agent"
+    ],
+    "governed.diagnostic_debug": [
+      "codex",
+      "claude-code",
+      "kimi",
+      "local-agent"
+    ],
+    "governed.bounded_bug_fix": [
+      "codex",
+      "claude-code",
+      "kimi",
+      "local-agent"
+    ],
+    "governed.engineering_proposal": [
+      "codex",
+      "claude-code",
+      "kimi",
+      "local-agent"
+    ],
+    "governed.test_regression_analysis": [
+      "codex",
+      "claude-code",
+      "kimi",
+      "local-agent"
+    ]
+  },
+  "adapters": {
+    "codex": {
+      "lifecycle": "available",
+      "permission_status": "authorized",
+      "write_capable": true,
+      "read_only_fallback": false,
+      "role_authorities": {
+        "autonomous_development": "SUSPENDED",
+        "autonomous_decision_making": "FORBIDDEN",
+        "independent_debugging": "FORBIDDEN",
+        "governed_patch_relay": "AUTHORIZED_GOVERNED_SCOPE",
+        "git_transport": "AUTHORIZED_GOVERNED_SCOPE",
+        "commit_push_pr": "AUTHORIZED_GOVERNED_SCOPE",
+        "governed_code_review": "AUTHORIZED_GOVERNED_SCOPE",
+        "governed_diagnostic_debug": "AUTHORIZED_GOVERNED_SCOPE",
+        "governed_bounded_bug_fix": "AUTHORIZED_GOVERNED_SCOPE",
+        "governed_engineering_proposal": "AUTHORIZED_GOVERNED_SCOPE",
+        "governed_test_regression_analysis": "AUTHORIZED_GOVERNED_SCOPE"
+      },
+      "evidence_contract": [
+        "thread_id",
+        "final_response",
+        "changed_files"
+      ],
+      "provider_kind": "engineering_execution_provider",
+      "provider_certification_status": "TRIAL_AUTHORIZED",
+      "supported_provider_modes": [
+        "execution_relay",
+        "code_review",
+        "diagnostic_debug",
+        "bounded_bug_fix",
+        "engineering_proposal",
+        "test_and_regression_analysis"
+      ]
+    },
+    "github": {
+      "lifecycle": "available",
+      "permission_status": "authorized",
+      "write_capable": true,
+      "read_only_fallback": true,
+      "evidence_contract": [
+        "repository",
+        "branch",
+        "commit_sha"
+      ]
+    },
+    "github-actions": {
+      "lifecycle": "available",
+      "permission_status": "authorized",
+      "write_capable": false,
+      "read_only_fallback": false,
+      "evidence_contract": [
+        "workflow_run_id",
+        "conclusion"
+      ]
+    },
+    "local-runtime": {
+      "lifecycle": "available",
+      "permission_status": "authorized",
+      "write_capable": false,
+      "read_only_fallback": false,
+      "evidence_contract": [
+        "command",
+        "exit_code"
+      ]
+    },
+    "evidence-recorder": {
+      "lifecycle": "available",
+      "permission_status": "authorized",
+      "write_capable": true,
+      "read_only_fallback": false,
+      "evidence_contract": [
+        "evidence_path",
+        "sha256"
+      ]
+    },
+    "figma": {
+      "lifecycle": "available",
+      "permission_status": "authorized",
+      "write_capable": true,
+      "read_only_fallback": false,
+      "evidence_contract": [
+        "file_key",
+        "node_id"
+      ]
+    },
+    "canva": {
+      "lifecycle": "available",
+      "permission_status": "authorized",
+      "write_capable": true,
+      "read_only_fallback": false,
+      "evidence_contract": [
+        "design_id",
+        "export_reference"
+      ]
+    },
+    "midpage": {
+      "lifecycle": "available",
+      "permission_status": "authorized",
+      "write_capable": false,
+      "read_only_fallback": true,
+      "evidence_contract": [
+        "authority_url",
+        "citation"
+      ]
+    },
+    "official-source": {
+      "lifecycle": "available",
+      "permission_status": "authorized",
+      "write_capable": false,
+      "read_only_fallback": true,
+      "evidence_contract": [
+        "official_url",
+        "retrieved_at"
+      ]
+    },
+    "consensus": {
+      "lifecycle": "available",
+      "permission_status": "authorized",
+      "write_capable": false,
+      "read_only_fallback": false,
+      "evidence_contract": [
+        "paper_id",
+        "citation"
+      ]
+    },
+    "scispace": {
+      "lifecycle": "available",
+      "permission_status": "authorized",
+      "write_capable": false,
+      "read_only_fallback": false,
+      "evidence_contract": [
+        "paper_id",
+        "passage_reference"
+      ]
+    },
+    "hugging-face": {
+      "lifecycle": "available",
+      "permission_status": "approval_required",
+      "write_capable": true,
+      "read_only_fallback": true,
+      "evidence_contract": [
+        "repository_id",
+        "revision"
+      ]
+    },
+    "supabase": {
+      "lifecycle": "blocked",
+      "permission_status": "blocked",
+      "write_capable": true,
+      "read_only_fallback": false,
+      "evidence_contract": [
+        "project_id",
+        "migration_reference"
+      ]
+    },
+    "claude-code": {
+      "lifecycle": "discovered",
+      "permission_status": "untested",
+      "write_capable": false,
+      "read_only_fallback": false,
+      "provider_kind": "engineering_execution_provider_candidate",
+      "provider_certification_status": "DISCOVERED",
+      "supported_provider_modes": [],
+      "role_authorities": {
+        "autonomous_development": "SUSPENDED",
+        "autonomous_decision_making": "FORBIDDEN",
+        "independent_debugging": "FORBIDDEN",
+        "governed_patch_relay": "NOT_AUTHORIZED",
+        "governed_code_review": "NOT_AUTHORIZED",
+        "governed_diagnostic_debug": "NOT_AUTHORIZED",
+        "governed_bounded_bug_fix": "NOT_AUTHORIZED",
+        "governed_engineering_proposal": "NOT_AUTHORIZED",
+        "governed_test_regression_analysis": "NOT_AUTHORIZED",
+        "git_transport": "NOT_AUTHORIZED",
+        "commit_push_pr": "NOT_AUTHORIZED"
+      },
+      "evidence_contract": [
+        "provider_certification_evidence_required"
+      ]
+    },
+    "kimi": {
+      "lifecycle": "discovered",
+      "permission_status": "untested",
+      "write_capable": false,
+      "read_only_fallback": false,
+      "provider_kind": "engineering_execution_provider_candidate",
+      "provider_certification_status": "DISCOVERED",
+      "supported_provider_modes": [],
+      "role_authorities": {
+        "autonomous_development": "SUSPENDED",
+        "autonomous_decision_making": "FORBIDDEN",
+        "independent_debugging": "FORBIDDEN",
+        "governed_patch_relay": "NOT_AUTHORIZED",
+        "governed_code_review": "NOT_AUTHORIZED",
+        "governed_diagnostic_debug": "NOT_AUTHORIZED",
+        "governed_bounded_bug_fix": "NOT_AUTHORIZED",
+        "governed_engineering_proposal": "NOT_AUTHORIZED",
+        "governed_test_regression_analysis": "NOT_AUTHORIZED",
+        "git_transport": "NOT_AUTHORIZED",
+        "commit_push_pr": "NOT_AUTHORIZED"
+      },
+      "evidence_contract": [
+        "provider_certification_evidence_required"
+      ]
+    },
+    "local-agent": {
+      "lifecycle": "discovered",
+      "permission_status": "untested",
+      "write_capable": false,
+      "read_only_fallback": false,
+      "provider_kind": "engineering_execution_provider_candidate",
+      "provider_certification_status": "DISCOVERED",
+      "supported_provider_modes": [],
+      "role_authorities": {
+        "autonomous_development": "SUSPENDED",
+        "autonomous_decision_making": "FORBIDDEN",
+        "independent_debugging": "FORBIDDEN",
+        "governed_patch_relay": "NOT_AUTHORIZED",
+        "governed_code_review": "NOT_AUTHORIZED",
+        "governed_diagnostic_debug": "NOT_AUTHORIZED",
+        "governed_bounded_bug_fix": "NOT_AUTHORIZED",
+        "governed_engineering_proposal": "NOT_AUTHORIZED",
+        "governed_test_regression_analysis": "NOT_AUTHORIZED",
+        "git_transport": "NOT_AUTHORIZED",
+        "commit_push_pr": "NOT_AUTHORIZED"
+      },
+      "evidence_contract": [
+        "provider_certification_evidence_required"
+      ]
+    }
+  }
+}

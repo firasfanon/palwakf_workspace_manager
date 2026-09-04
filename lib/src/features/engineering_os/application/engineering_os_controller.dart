@@ -83,6 +83,18 @@ class EngineeringOsController extends StateNotifier<EngineeringOsState> {
     await load();
   }
 
+  Future<EngineeringTask> syncRemoteCheckpoint(String taskId) async {
+    final updated = await _api.syncRemoteCheckpoint(taskId);
+    state = state.copyWith(
+      tasks: <EngineeringTask>[
+        updated,
+        ...state.tasks.where((task) => task.taskId != updated.taskId),
+      ],
+    );
+    await load();
+    return updated;
+  }
+
   Future<void> registerExtension(NewExtensionDraft draft) async {
     final created = await _api.registerExtension(draft);
     state = state.copyWith(

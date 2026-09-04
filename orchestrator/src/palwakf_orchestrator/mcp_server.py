@@ -16,6 +16,15 @@ from palwakf_orchestrator.connected_contracts import (
 )
 from palwakf_orchestrator.connected_service import ConnectedApplicationService
 from palwakf_orchestrator.dashboard_service import DashboardAggregationService
+from palwakf_orchestrator.engineering_os_contracts import CreateEngineeringTaskRequest
+from palwakf_orchestrator.engineering_os_service import EngineeringOsService
+from palwakf_orchestrator.errors import GovernanceError
+from palwakf_orchestrator.execution_run_adapter import ExecutionRunAdapter
+from palwakf_orchestrator.execution_run_contracts import CreateExecutionRunRequest
+from palwakf_orchestrator.operator_contracts import (
+    TaskAuthorizationRequest,
+    TaskCapabilityRequest,
+)
 
 
 class RegistryTokenVerifier:
@@ -49,6 +58,9 @@ def create_mcp_server(
     application: ConnectedApplicationService,
     auth_registry: AuthRegistry,
     dashboard: DashboardAggregationService | None = None,
+    *,
+    engineering_os: EngineeringOsService | None = None,
+    execution_runs: ExecutionRunAdapter | None = None,
 ) -> FastMCP:
     settings = application.settings
     issuer_url = settings.oauth_authorization_server or "http://localhost:8421"
@@ -129,6 +141,103 @@ def create_mcp_server(
     def list_recent_tasks(limit: int = 50) -> list[dict[str, object]]:
         _principal(ServiceScope.read)
         return [task.model_dump(mode="json") for task in application.list_recent(limit)]
+
+    if engineering_os is not None and execution_runs is not None:
+
+        @server.tool(
+            description=(
+                "Create one governed engineering task. This does not dispatch "
+                "or authorize source mutation."
+            )
+        )
+        def create_engineering_task(
+            request: CreateEngineeringTaskRequest,
+        ) -> dict[str, object]:
+            _principal(ServiceScope.dispatch)
+            return engineering_os.create_task(request).model_dump(mode="json")
+
+        @server.tool(description="Read one governed engineering task.")
+        def get_engineering_task(task_id: str) -> dict[str, object]:
+            _principal(ServiceScope.read)
+            return engineering_os.get_task(task_id).model_dump(mode="json")
+
+        @server.tool(
+            description=(
+                "Create, explicitly authorize, capability-plan, and queue one "
+                "governed engineering-provider execution run."
+            )
+        )
+        async def dispatch_engineering_run(
+            parent_task_id: str,
+            run: CreateExecutionRunRequest,
+            authorization: TaskAuthorizationRequest,
+            tool_plan: TaskCapabilityRequest,
+        ) -> dict[str, object]:
+            principal = _principal(ServiceScope.dispatch)
+            view = execution_runs.create_governed_run(parent_task_id, run)
+            task = view.operator_task
+            application.operator.authorize_task(
+                task.task_id,
+                authorization,
+                principal_id=principal.client_id,
+            )
+            plan = application.operator.plan_tools(task.task_id, tool_plan)
+            if plan.dispatch_blocked:
+                raise GovernanceError(
+                    "ENGINEERING_PROVIDER_PLAN_BLOCKED:" + ",".join(plan.blockers)
+                )
+            receipt = await application.dispatch_existing(
+                task.task_id,
+                principal,
+                transport="mcp",
+            )
+            return receipt.model_dump(mode="json")
+
+        @server.tool(description="Read a governed engineering-provider run status.")
+        def get_engineering_run_status(task_id: str) -> dict[str, object]:
+            result = application.status(
+                task_id,
+                _principal(ServiceScope.read),
+                transport="mcp",
+            )
+            return result.model_dump(mode="json")
+
+        @server.tool(description="Continue a compatible governed engineering-provider run.")
+        async def continue_engineering_run(
+            task_id: str,
+            command: ContinueTaskRequest,
+        ) -> dict[str, object]:
+            result = await application.continue_task(
+                task_id,
+                command,
+                _principal(ServiceScope.continue_task),
+                transport="mcp",
+            )
+            return result.model_dump(mode="json")
+
+        @server.tool(description="Cancel a governed engineering-provider run.")
+        def cancel_engineering_run(task_id: str) -> dict[str, object]:
+            result = application.cancel(
+                task_id,
+                _principal(ServiceScope.cancel),
+                transport="mcp",
+            )
+            return result.model_dump(mode="json")
+
+        @server.tool(
+            description="Persist independent verification for an engineering-provider run."
+        )
+        def verify_engineering_run_result(
+            task_id: str,
+            command: VerifyCommand,
+        ) -> dict[str, object]:
+            result = application.verify(
+                task_id,
+                command,
+                _principal(ServiceScope.verify),
+                transport="mcp",
+            )
+            return result.model_dump(mode="json")
 
     if dashboard is not None:
 
