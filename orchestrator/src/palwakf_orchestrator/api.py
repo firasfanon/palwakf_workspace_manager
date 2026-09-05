@@ -68,6 +68,7 @@ from palwakf_orchestrator.external_execution_contracts import (
 from palwakf_orchestrator.external_execution_workspace import (
     ExternalExecutionWorkspaceService,
 )
+from palwakf_orchestrator.four_system_l4 import mount_four_system_l4
 from palwakf_orchestrator.intersystem_contracts import (
     WorkspaceAuthorityPackageV1,
     build_workspace_authority_package,
@@ -243,6 +244,11 @@ def create_app(
     app.state.execution_run_adapter = execution_runs
     app.state.external_execution_workspace_service = external_execution
     app.state.direct_execution_service = direct_execution
+    mount_four_system_l4(
+        app,
+        state_store=resolved_store,
+        execution_runs=execution_runs,
+    )
     app.add_middleware(
         CORSMiddleware,
         allow_origin_regex=r"^https?://(127\.0\.0\.1|localhost)(:\d+)?$",

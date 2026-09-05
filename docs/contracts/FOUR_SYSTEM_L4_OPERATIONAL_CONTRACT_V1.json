@@ -1,0 +1,86 @@
+{
+  "agentic_to_workspace": {
+    "required": [
+      "workspace_run_id",
+      "correlation_id",
+      "request_sha256",
+      "result_sha256",
+      "agentic_result",
+      "resume_token"
+    ]
+  },
+  "authority": {
+    "agentic_ai": "EXECUTION_EVALUATION_LEARNING_CANDIDATES_NO_SOVEREIGN_AUTHORITY",
+    "mind_assistant": "REVIEW_CONFLICT_PROVENANCE_NO_CANONICAL_AUTO_PROMOTION",
+    "workspace_drive": "SOVEREIGN_DURABLE_STATE_AND_EVIDENCE",
+    "workspace_manager": "CONTROL_PLANE_AND_FINAL_ACCEPTANCE"
+  },
+  "batch_id": "PALWAKF_FOUR_SYSTEM_L4_OPERATIONAL_MEGA_BATCH_V1",
+  "contract_id": "PALWAKF_FOUR_SYSTEM_L4_OPERATIONAL_CONTRACT_V1",
+  "contract_version": 1,
+  "drive_to_workspace_ack": {
+    "required": [
+      "drive_document_id",
+      "drive_revision_id",
+      "envelope_sha256"
+    ]
+  },
+  "invariants": [
+    "MORE_RESTRICTIVE_POLICY_WINS",
+    "NO_SELF_AUTHORIZATION",
+    "READ_ONLY_FIRST_PILOT",
+    "HERMES_OPERATIONAL_ADMISSION_REMAINS_CLOSED",
+    "CANONICAL_KNOWLEDGE_AUTO_PROMOTION_FORBIDDEN",
+    "ACCEPT_REQUIRES_SOVEREIGN_CHECKPOINT_ACK",
+    "CHECKPOINT_HASH_CHAIN_APPEND_ONLY",
+    "IDEMPOTENT_REPLAY_MUST_NOT_DUPLICATE_EXECUTION"
+  ],
+  "mind_to_workspace": {
+    "required": [
+      "workspace_run_id",
+      "correlation_id",
+      "request_sha256",
+      "result_sha256",
+      "review_result",
+      "resume_token"
+    ]
+  },
+  "stages": [
+    "OPENED",
+    "AGENTIC_COMPLETED",
+    "MIND_REVIEW_COMPLETED",
+    "SOVEREIGN_CHECKPOINT_ACKNOWLEDGED",
+    "ACCEPTED",
+    "REWORK_REQUIRED",
+    "REJECTED"
+  ],
+  "workspace_to_agentic": {
+    "required": [
+      "workspace_run_id",
+      "correlation_id",
+      "authority_package"
+    ]
+  },
+  "workspace_to_drive": {
+    "mode": "EXTERNAL_SOVEREIGN_CONNECTOR",
+    "required": [
+      "workspace_run_id",
+      "correlation_id",
+      "stage",
+      "checkpoint_chain_sha256",
+      "authority_sha256",
+      "agentic_result_sha256",
+      "mind_review_sha256",
+      "envelope_sha256"
+    ]
+  },
+  "workspace_to_mind": {
+    "required": [
+      "workspace_run_id",
+      "correlation_id",
+      "learning_bundle",
+      "evaluation",
+      "execution_summary"
+    ]
+  }
+}
