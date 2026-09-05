@@ -336,15 +336,18 @@ class FourSystemL4OperationalService:
         ack: L4SovereignAck,
     ) -> L4OperationalRunRecord:
         record = self.get(workspace_run_id)
-        expected = self.sovereign_envelope(workspace_run_id)
-        if ack.envelope_sha256 != expected["envelope_sha256"]:
-            raise GovernanceError("FOUR_SYSTEM_L4_SOVEREIGN_ENVELOPE_HASH_MISMATCH")
-
         incoming = ack.model_dump(mode="json")
+
+        # Idempotent replay must be resolved against the persisted receipt before
+        # re-deriving any envelope from mutable post-ACK lifecycle state.
         if record.sovereign_ack is not None:
             if _sha(record.sovereign_ack) != _sha(incoming):
                 raise GovernanceError("FOUR_SYSTEM_L4_SOVEREIGN_ACK_REPLAY_CONFLICT")
             return record
+
+        expected = self.sovereign_envelope(workspace_run_id)
+        if ack.envelope_sha256 != expected["envelope_sha256"]:
+            raise GovernanceError("FOUR_SYSTEM_L4_SOVEREIGN_ENVELOPE_HASH_MISMATCH")
 
         record = record.model_copy(update={"sovereign_ack": incoming, "updated_at": _now()})
         record = self._checkpoint(
