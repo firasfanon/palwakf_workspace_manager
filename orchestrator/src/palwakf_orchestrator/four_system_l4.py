@@ -52,6 +52,7 @@ class L4OpenRunRequest(BaseModel):
 class L4AgenticResultEnvelope(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    contract_id: Literal["PALWAKF_FOUR_SYSTEM_L4_OPERATIONAL_CONTRACT_V1"]
     workspace_run_id: str
     correlation_id: str
     request_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
@@ -63,6 +64,7 @@ class L4AgenticResultEnvelope(BaseModel):
 class L4MindReviewEnvelope(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    contract_id: Literal["PALWAKF_FOUR_SYSTEM_L4_OPERATIONAL_CONTRACT_V1"]
     workspace_run_id: str
     correlation_id: str
     request_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")

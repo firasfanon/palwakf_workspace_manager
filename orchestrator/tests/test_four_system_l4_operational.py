@@ -1,4 +1,8 @@
+import pytest
+from pydantic import ValidationError
+
 from palwakf_orchestrator.four_system_l4 import (
+    CONTRACT_ID,
     FourSystemL4OperationalService,
     L4AgenticResultEnvelope,
     L4DecisionRequest,
@@ -56,6 +60,7 @@ def agentic_envelope(workspace_run_id: str) -> L4AgenticResultEnvelope:
         "external_review_required": True,
     }
     return L4AgenticResultEnvelope(
+        contract_id=CONTRACT_ID,
         workspace_run_id=workspace_run_id,
         correlation_id="corr-1",
         request_sha256="a" * 64,
@@ -67,6 +72,7 @@ def agentic_envelope(workspace_run_id: str) -> L4AgenticResultEnvelope:
 
 def mind_envelope(workspace_run_id: str) -> L4MindReviewEnvelope:
     return L4MindReviewEnvelope(
+        contract_id=CONTRACT_ID,
         workspace_run_id=workspace_run_id,
         correlation_id="corr-1",
         request_sha256="c" * 64,
@@ -151,3 +157,46 @@ def test_accept_requires_sovereign_checkpoint():
         assert "FOUR_SYSTEM_L4_SOVEREIGN_CHECKPOINT_REQUIRED" in str(error)
     else:
         raise AssertionError("acceptance must fail closed without sovereign checkpoint")
+
+
+def test_l4_inbound_wire_contract_id_is_required_and_exact():
+    agentic = agentic_envelope("l4-wire-agentic").model_dump(mode="json")
+    mind = mind_envelope("l4-wire-mind").model_dump(mode="json")
+    assert agentic["contract_id"] == CONTRACT_ID
+    assert mind["contract_id"] == CONTRACT_ID
+    assert L4AgenticResultEnvelope.model_validate(agentic).contract_id == CONTRACT_ID
+    assert L4MindReviewEnvelope.model_validate(mind).contract_id == CONTRACT_ID
+    missing_agentic = dict(agentic)
+    missing_agentic.pop("contract_id")
+    missing_mind = dict(mind)
+    missing_mind.pop("contract_id")
+    with pytest.raises(ValidationError):
+        L4AgenticResultEnvelope.model_validate(missing_agentic)
+    with pytest.raises(ValidationError):
+        L4MindReviewEnvelope.model_validate(missing_mind)
+    with pytest.raises(ValidationError):
+        L4AgenticResultEnvelope.model_validate({**agentic, "contract_id": "PALWAKF_WRONG_CONTRACT"})
+    with pytest.raises(ValidationError):
+        L4MindReviewEnvelope.model_validate({**mind, "contract_id": "PALWAKF_WRONG_CONTRACT"})
+
+
+def test_l4_agentic_wire_payload_with_contract_id_reaches_service():
+    store = MemoryStateStore()
+    service = FourSystemL4OperationalService(store)
+    opened = service.open_authority_run(package=package(), correlation_id="corr-1")
+    payload = agentic_envelope(opened.workspace_run_id).model_dump(mode="json")
+    recorded = service.record_agentic(opened.workspace_run_id, L4AgenticResultEnvelope.model_validate(payload))
+    assert recorded.stage == "AGENTIC_COMPLETED"
+    assert recorded.agentic_envelope["contract_id"] == CONTRACT_ID
+
+
+def test_l4_mind_wire_payload_with_contract_id_reaches_service():
+    store = MemoryStateStore()
+    service = FourSystemL4OperationalService(store)
+    opened = service.open_authority_run(package=package(), correlation_id="corr-1")
+    service.record_agentic(opened.workspace_run_id, agentic_envelope(opened.workspace_run_id))
+    payload = mind_envelope(opened.workspace_run_id).model_dump(mode="json")
+    recorded = service.record_mind(opened.workspace_run_id, L4MindReviewEnvelope.model_validate(payload))
+    assert recorded.stage == "MIND_REVIEW_COMPLETED"
+    assert recorded.mind_envelope["contract_id"] == CONTRACT_ID
+
