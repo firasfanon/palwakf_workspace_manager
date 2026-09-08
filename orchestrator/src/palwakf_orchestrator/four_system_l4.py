@@ -15,6 +15,11 @@ from palwakf_orchestrator.intersystem_contracts import (
     build_workspace_authority_package,
 )
 from palwakf_orchestrator.persistence import StateStore
+from palwakf_orchestrator.risk_adaptive_execution import (
+    MethodPilotDecision,
+    MethodPilotRequest,
+    RiskAdaptiveExecutionPilot,
+)
 
 STATE_KEY = "four_system_l4_operational_runs_v1"
 CONTRACT_ID = "PALWAKF_FOUR_SYSTEM_L4_OPERATIONAL_CONTRACT_V1"
@@ -143,7 +148,7 @@ class FourSystemL4OperationalService:
         payload_sha = _sha(payload)
         previous = record.checkpoints[-1].chain_sha256 if record.checkpoints else "0" * 64
         chain_sha = hashlib.sha256(
-            f"{previous}:{seq}:{stage}:{payload_sha}".encode("utf-8")
+            f"{previous}:{seq}:{stage}:{payload_sha}".encode()
         ).hexdigest()
         checkpoint = L4Checkpoint(
             seq=seq,
@@ -402,7 +407,9 @@ def mount_four_system_l4(
     execution_runs: ExecutionRunAdapter,
 ) -> None:
     service = FourSystemL4OperationalService(state_store)
+    method_pilot = RiskAdaptiveExecutionPilot()
     app.state.four_system_l4_service = service
+    app.state.risk_adaptive_method_pilot = method_pilot
 
     def _guard(callable_obj):
         try:
@@ -446,6 +453,18 @@ def mount_four_system_l4(
     )
     def resume_run(workspace_run_id: str) -> L4OperationalRunRecord:
         return _guard(lambda: service.get(workspace_run_id))
+
+    @app.post(
+        "/api/v1/four-system/l4/runs/{workspace_run_id}/method-pilot/readiness",
+        response_model=MethodPilotDecision,
+    )
+    def method_pilot_readiness(
+        workspace_run_id: str,
+        request: MethodPilotRequest,
+    ) -> MethodPilotDecision:
+        return _guard(
+            lambda: method_pilot.decide(service.get(workspace_run_id), request)
+        )
 
     @app.post(
         "/api/v1/four-system/l4/runs/{workspace_run_id}/agentic-result",
