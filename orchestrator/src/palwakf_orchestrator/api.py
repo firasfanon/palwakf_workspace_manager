@@ -111,6 +111,11 @@ from palwakf_orchestrator.project_contracts import (
     ProjectAdapterKind,
     ProjectIntakeRequest,
 )
+from palwakf_orchestrator.project_manifest_service import (
+    ProjectContractManifestRegistryV1,
+    ProjectContractManifestService,
+    ProjectContractManifestV1,
+)
 from palwakf_orchestrator.project_reality import (
     GitHubRepositoryRealityAdapter,
     HttpxGitHubReadClient,
@@ -198,6 +203,7 @@ def create_app(
         },
         resolved_store,
     )
+    project_manifests = ProjectContractManifestService()
     local_sessions = local_session_manager or LocalSessionManager()
     local_product = local_product_service
     if local_product is None and (resolved_settings.workspace_root / ".git").is_dir():
@@ -246,6 +252,7 @@ def create_app(
     )
     app.state.connected_service = connected
     app.state.project_service = resolved_projects
+    app.state.project_contract_manifest_service = project_manifests
     app.state.dashboard_service = dashboard
     app.state.local_product_service = local_product
     app.state.engineering_os_service = engineering_os
@@ -496,7 +503,7 @@ def create_app(
     _add_execution_run_routes(app, execution_runs, external_execution)
     _add_direct_execution_routes(app, direct_execution)
     _add_legacy_routes(app, resolved_operator, connected)
-    _add_project_routes(app, resolved_projects, engineering_os)
+    _add_project_routes(app, resolved_projects, engineering_os, project_manifests)
     app.mount("/mcp", mcp_http_app, name="mcp")
 
     @app.get("/{ui_path:path}", include_in_schema=False)
@@ -939,6 +946,7 @@ def _add_project_routes(
     app: FastAPI,
     projects: ExternalProjectService,
     engineering_os: EngineeringOsService,
+    project_manifests: ProjectContractManifestService,
 ) -> None:
     def project_error(exc: GovernanceError) -> HTTPException:
         status = (
@@ -949,10 +957,28 @@ def _add_project_routes(
                 "PROJECT_REALITY_NOT_PROBED",
                 "PROJECT_REPOSITORY_NOT_FOUND",
                 "PROJECT_CANDIDATE_NOT_FOUND",
+                "PROJECT_CONTRACT_MANIFEST_NOT_FOUND",
             }
             else 409
         )
         return HTTPException(status_code=status, detail=str(exc))
+
+    @app.get(
+        "/v1/project-contract-manifests",
+        response_model=ProjectContractManifestRegistryV1,
+    )
+    async def project_contract_manifest_registry() -> ProjectContractManifestRegistryV1:
+        return project_manifests.registry()
+
+    @app.get(
+        "/v1/project-contract-manifests/{project_id}",
+        response_model=ProjectContractManifestV1,
+    )
+    async def project_contract_manifest(project_id: str) -> ProjectContractManifestV1:
+        try:
+            return project_manifests.get_manifest(project_id)
+        except GovernanceError as exc:
+            raise project_error(exc) from exc
 
     @app.post("/v1/projects/intake", response_model=ExternalProjectRecord)
     async def project_intake(command: ProjectIntakeRequest) -> ExternalProjectRecord:
