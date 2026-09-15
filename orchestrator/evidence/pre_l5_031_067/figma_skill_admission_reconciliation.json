@@ -1,0 +1,41 @@
+{
+  "schema": "PALWAKF_FIGMA_SKILL_ADMISSION_RECONCILIATION_V1",
+  "figma_role": "DESIGN_AUTHORITY",
+  "file_type": "FIGJAM",
+  "file_key": "tbnxGEP2C8YinJogysusxW",
+  "root_node_id": "0:1",
+  "title": "PalWakf External Skill Admission Gate V1",
+  "readback": "PASS",
+  "flow_verified": [
+    "EXTERNAL_SKILL_DISCOVERED",
+    "SOURCE_PIN_AND_HASH",
+    "LICENSE_AND_PROVENANCE",
+    "STATIC_SECURITY_AND_BUNDLE_REVIEW",
+    "CAPABILITY_AND_AUTHORITY_CLASSIFICATION",
+    "READ_ONLY_SANDBOX_EVALUATION",
+    "MIND_REVIEW",
+    "WORKSPACE_DECISION",
+    "BOUNDED_PILOT_OR_ADAPTATION",
+    "SEPARATE_TASK_AUTHORIZATION",
+    "PROJECT_PROOF_AND_REGRESSION",
+    "CROSS_PROJECT_CANDIDATE",
+    "WORKSPACE_ONLY_CANONICAL_PROMOTION"
+  ],  "guardrails_verified": [
+    "NO_SELF_AUTHORIZATION",
+    "NO_BULK_INSTALL",
+    "NO_AUTOMATIC_CANONICAL_PROMOTION",
+    "MORE_RESTRICTIVE_POLICY_WINS"
+  ],
+  "implementation_mapping": {
+    "workspace_manager": "ADMISSION_REGISTRY_AUTHORITY_DECISION_UI",
+    "mind_assistant": "PROVENANCE_OVERLAP_CONFLICT_ADAPTATION_REVIEW",
+    "agentic_ai": "PARSER_BUNDLE_SECURITY_SANDBOX_AUTHORITY_ENFORCEMENT"
+  },
+  "external_skills_installed": false,
+  "external_skills_execution_enabled": false,
+  "bulk_install": false,
+  "auto_promotion": false,
+  "main_merge": false,
+  "production": false,
+  "l5_authorized": false
+}

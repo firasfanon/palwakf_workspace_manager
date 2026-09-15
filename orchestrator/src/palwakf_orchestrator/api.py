@@ -68,6 +68,13 @@ from palwakf_orchestrator.external_execution_contracts import (
 from palwakf_orchestrator.external_execution_workspace import (
     ExternalExecutionWorkspaceService,
 )
+from palwakf_orchestrator.external_skill_admission import (
+    EffectiveSkillAuthority,
+    SkillAdmissionCandidate,
+    SkillAdmissionStage,
+    SkillAuthorityEvaluationRequest,
+)
+from palwakf_orchestrator.external_skill_admission_service import ExternalSkillAdmissionService
 from palwakf_orchestrator.four_system_l4 import mount_four_system_l4
 from palwakf_orchestrator.intersystem_contracts import (
     WorkspaceAuthorityPackageV1,
@@ -133,6 +140,7 @@ def create_app(
     resolved_service = service or OrchestratorService(resolved_settings)
     resolved_store = state_store or SQLiteStateStore(resolved_settings.resolved_state_db_path)
     engineering_os = engineering_os_service or EngineeringOsService(resolved_store)
+    external_skill_admission = ExternalSkillAdmissionService(resolved_store)
     jwt_config = (
         JwtAuthConfig(
             issuer=resolved_settings.oauth_authorization_server,
@@ -484,7 +492,7 @@ def create_app(
         except GovernanceError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
 
-    _add_engineering_os_routes(app, engineering_os)
+    _add_engineering_os_routes(app, engineering_os, external_skill_admission)
     _add_execution_run_routes(app, execution_runs, external_execution)
     _add_direct_execution_routes(app, direct_execution)
     _add_legacy_routes(app, resolved_operator, connected)
@@ -525,7 +533,12 @@ def _scope_for(request: Request) -> ServiceScope:
 def _add_engineering_os_routes(
     app: FastAPI,
     engineering_os: EngineeringOsService,
+    external_skill_admission: ExternalSkillAdmissionService | None = None,
 ) -> None:
+    skill_admission = external_skill_admission or ExternalSkillAdmissionService(
+        engineering_os.state_store
+    )
+
     def engineering_error(exc: GovernanceError) -> HTTPException:
         status = 404 if str(exc) == "ENGINEERING_TASK_NOT_FOUND" else 409
         return HTTPException(status_code=status, detail=str(exc))
@@ -576,6 +589,41 @@ def _add_engineering_os_routes(
     ) -> ExtensionRecord:
         try:
             return engineering_os.register_extension(command)
+        except GovernanceError as exc:
+            raise engineering_error(exc) from exc
+
+    @app.get("/v1/skills/admissions", response_model=list[SkillAdmissionCandidate])
+    async def list_skill_admissions() -> list[SkillAdmissionCandidate]:
+        return skill_admission.list()
+
+    @app.post("/v1/skills/admissions", response_model=SkillAdmissionCandidate)
+    async def register_skill_admission(
+        command: SkillAdmissionCandidate,
+    ) -> SkillAdmissionCandidate:
+        try:
+            return skill_admission.register(command)
+        except GovernanceError as exc:
+            raise engineering_error(exc) from exc
+
+    @app.post(
+        "/v1/skills/admissions/{skill_id}/transition/{stage}",
+        response_model=SkillAdmissionCandidate,
+    )
+    async def transition_skill_admission(
+        skill_id: str,
+        stage: SkillAdmissionStage,
+    ) -> SkillAdmissionCandidate:
+        try:
+            return skill_admission.transition(skill_id, stage)
+        except GovernanceError as exc:
+            raise engineering_error(exc) from exc
+
+    @app.post("/v1/skills/authority/evaluate", response_model=EffectiveSkillAuthority)
+    async def evaluate_skill_authority(
+        command: SkillAuthorityEvaluationRequest,
+    ) -> EffectiveSkillAuthority:
+        try:
+            return command.evaluate()
         except GovernanceError as exc:
             raise engineering_error(exc) from exc
 
@@ -991,6 +1039,7 @@ def _add_project_routes(
             return engineering_os.create_task(prepared)
         except GovernanceError as exc:
             raise project_error(exc) from exc
+
 
 def _add_direct_execution_routes(
     app: FastAPI,

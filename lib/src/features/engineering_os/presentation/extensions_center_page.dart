@@ -19,10 +19,10 @@ class _ExtensionsCenterPageState extends ConsumerState<ExtensionsCenterPage>
   late final TabController tabs;
 
   static const kinds = <(String, String, IconData)>[
-    ('SKILL', 'المهارات', Icons.extension_outlined),
-    ('AGENT', 'الوكلاء', Icons.smart_toy_outlined),
-    ('TOOL', 'الأدوات', Icons.build_circle_outlined),
-    ('PROVIDER', 'المزودون', Icons.psychology_alt_outlined),
+    ('SKILL', 'ط§ظ„ظ…ظ‡ط§ط±ط§طھ', Icons.extension_outlined),
+    ('AGENT', 'ط§ظ„ظˆظƒظ„ط§ط،', Icons.smart_toy_outlined),
+    ('TOOL', 'ط§ظ„ط£ط¯ظˆط§طھ', Icons.build_circle_outlined),
+    ('PROVIDER', 'ط§ظ„ظ…ط²ظˆط¯ظˆظ†', Icons.psychology_alt_outlined),
   ];
 
   @override
@@ -64,14 +64,14 @@ class _ExtensionsCenterPageState extends ConsumerState<ExtensionsCenterPage>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Text(
-                    'مركز التوسعات',
+                    'ظ…ط±ظƒط² ط§ظ„طھظˆط³ط¹ط§طھ',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.w800,
                         ),
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    'الأولوية للمصادر المفتوحة؛ كل إضافة خارجية تبدأ بالحجر والمراجعة.',
+                    'ط§ظ„ط£ظˆظ„ظˆظٹط© ظ„ظ„ظ…طµط§ط¯ط± ط§ظ„ظ…ظپطھظˆط­ط©ط› ظƒظ„ ط¥ط¶ط§ظپط© ط®ط§ط±ط¬ظٹط© طھط¨ط¯ط£ ط¨ط§ظ„ط­ط¬ط± ظˆط§ظ„ظ…ط±ط§ط¬ط¹ط©.',
                   ),
                 ],
               ),
@@ -84,11 +84,11 @@ class _ExtensionsCenterPageState extends ConsumerState<ExtensionsCenterPage>
                       '${PreviewModeUi.metricValue(
                         state.summary?.quarantinedExtensions ?? 0,
                         dataAvailable: dataAvailable,
-                      )} بالحجر',
+                      )} ط¨ط§ظ„ط­ط¬ط±',
                     ),
                   ),
                   IconButton.outlined(
-                    tooltip: 'تحديث',
+                    tooltip: 'طھط­ط¯ظٹط«',
                     onPressed:
                         ref.read(engineeringOsControllerProvider.notifier).load,
                     icon: const Icon(Icons.refresh),
@@ -98,12 +98,16 @@ class _ExtensionsCenterPageState extends ConsumerState<ExtensionsCenterPage>
                         ? null
                         : () => _showAddExtension(context),
                     icon: const Icon(Icons.add),
-                    label: const Text('إضافة توسعة'),
+                    label: const Text('ط¥ط¶ط§ظپط© طھظˆط³ط¹ط©'),
                   ),
                 ],
               ),
             ],
           ),
+        ),
+        const Padding(
+          padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
+          child: _SkillAdmissionPolicyBanner(),
         ),
         TabBar(
           controller: tabs,
@@ -125,9 +129,9 @@ class _ExtensionsCenterPageState extends ConsumerState<ExtensionsCenterPage>
           child: previewUnavailable
               ? const PreviewUnavailablePanel(
                   icon: Icons.extension_outlined,
-                  title: 'بيانات التوسعات غير متاحة',
+                  title: 'ط¨ظٹط§ظ†ط§طھ ط§ظ„طھظˆط³ط¹ط§طھ ط؛ظٹط± ظ…طھط§ط­ط©',
                   description:
-                      'هذه معاينة بصرية ولا تعني أن سجلات المهارات أو الوكلاء أو الأدوات أو المزودين فارغة.',
+                      'ظ‡ط°ظ‡ ظ…ط¹ط§ظٹظ†ط© ط¨طµط±ظٹط© ظˆظ„ط§ طھط¹ظ†ظٹ ط£ظ† ط³ط¬ظ„ط§طھ ط§ظ„ظ…ظ‡ط§ط±ط§طھ ط£ظˆ ط§ظ„ظˆظƒظ„ط§ط، ط£ظˆ ط§ظ„ط£ط¯ظˆط§طھ ط£ظˆ ط§ظ„ظ…ط²ظˆط¯ظٹظ† ظپط§ط±ط؛ط©.',
                 )
               : TabBarView(
                   controller: tabs,
@@ -137,7 +141,7 @@ class _ExtensionsCenterPageState extends ConsumerState<ExtensionsCenterPage>
                           items: state.extensions
                               .where((item) => item.kind == kind.$1)
                               .toList(growable: false),
-                          emptyLabel: 'لا توجد ${kind.$2} مسجلة',
+                          emptyLabel: 'ظ„ط§ طھظˆط¬ط¯ ${kind.$2} ظ…ط³ط¬ظ„ط©',
                         ),
                       )
                       .toList(growable: false),
@@ -166,6 +170,52 @@ class _ExtensionsCenterPageState extends ConsumerState<ExtensionsCenterPage>
   }
 }
 
+class _SkillAdmissionPolicyBanner extends StatelessWidget {
+  const _SkillAdmissionPolicyBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            const Row(
+              children: <Widget>[
+                Icon(Icons.verified_user_outlined),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'بوابة قبول المهارات الخارجية — PREL5-031 / PREL5-067',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'اكتشاف ← تثبيت المصدر والهاش ← الترخيص ← الأمن ← السلطة ← Sandbox/Eval ← مراجعة Mind ← قرار Workspace',
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: <Widget>[
+                Chip(label: Text('Agent Skills Standard: ADOPT')),
+                Chip(label: Text('Bulk install: NO')),
+                Chip(label: Text('Auto promotion: NO')),
+                Chip(label: Text('Self authorization: NO')),
+                Chip(label: Text('Figma = Design Authority')),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ExtensionGrid extends StatelessWidget {
   const _ExtensionGrid({required this.items, required this.emptyLabel});
 
@@ -184,7 +234,7 @@ class _ExtensionGrid extends StatelessWidget {
             Text(emptyLabel),
             const SizedBox(height: 4),
             const Text(
-                'يمكن إضافة مصدر من GitHub أو MCP أو Local أو API مع حجر افتراضي.'),
+                'ظٹظ…ظƒظ† ط¥ط¶ط§ظپط© ظ…طµط¯ط± ظ…ظ† GitHub ط£ظˆ MCP ط£ظˆ Local ط£ظˆ API ظ…ط¹ ط­ط¬ط± ط§ظپطھط±ط§ط¶ظٹ.'),
           ],
         ),
       );
@@ -229,7 +279,7 @@ class _ExtensionCard extends StatelessWidget {
                         style: const TextStyle(fontWeight: FontWeight.w800),
                       ),
                       Text(
-                        '${item.version} · ${item.sourceKind}',
+                        '${item.version} آ· ${item.sourceKind}',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
@@ -265,8 +315,8 @@ class _ExtensionCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               item.capabilities.isEmpty
-                  ? 'لا توجد قدرات معلنة'
-                  : item.capabilities.take(3).join(' · '),
+                  ? 'ظ„ط§ طھظˆط¬ط¯ ظ‚ط¯ط±ط§طھ ظ…ط¹ظ„ظ†ط©'
+                  : item.capabilities.take(3).join(' آ· '),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodySmall,
@@ -280,7 +330,7 @@ class _ExtensionCard extends StatelessWidget {
                       (role) =>
                           '$role: ${item.roleAuthorities[role] ?? "NOT_AUTHORIZED"}',
                     )
-                    .join(' · '),
+                    .join(' آ· '),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodySmall,
@@ -345,7 +395,7 @@ class _NewExtensionDialogState extends State<_NewExtensionDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('إضافة توسعة'),
+      title: const Text('ط¥ط¶ط§ظپط© طھظˆط³ط¹ط©'),
       content: SizedBox(
         width: 580,
         child: Form(
@@ -354,11 +404,11 @@ class _NewExtensionDialogState extends State<_NewExtensionDialog> {
             child: Column(
               children: <Widget>[
                 _field(id, 'Extension ID', ltr: true),
-                _field(name, 'الاسم'),
-                _field(version, 'الإصدار', ltr: true),
+                _field(name, 'ط§ظ„ط§ط³ظ…'),
+                _field(version, 'ط§ظ„ط¥طµط¯ط§ط±', ltr: true),
                 DropdownButtonFormField<String>(
                   initialValue: kind,
-                  decoration: const InputDecoration(labelText: 'النوع'),
+                  decoration: const InputDecoration(labelText: 'ط§ظ„ظ†ظˆط¹'),
                   items: const <DropdownMenuItem<String>>[
                     DropdownMenuItem(value: 'SKILL', child: Text('Skill')),
                     DropdownMenuItem(value: 'AGENT', child: Text('Agent')),
@@ -373,7 +423,7 @@ class _NewExtensionDialogState extends State<_NewExtensionDialog> {
                 const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
                   initialValue: sourceKind,
-                  decoration: const InputDecoration(labelText: 'المصدر'),
+                  decoration: const InputDecoration(labelText: 'ط§ظ„ظ…طµط¯ط±'),
                   items: const <DropdownMenuItem<String>>[
                     DropdownMenuItem(value: 'GITHUB', child: Text('GitHub')),
                     DropdownMenuItem(value: 'MCP', child: Text('MCP')),
@@ -391,27 +441,30 @@ class _NewExtensionDialogState extends State<_NewExtensionDialog> {
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   value: openSource,
-                  title: const Text('مفتوح المصدر'),
+                  title: const Text('ظ…ظپطھظˆط­ ط§ظ„ظ…طµط¯ط±'),
                   subtitle: const Text(
-                    'الأولوية للمفتوح المصدر والقابل للفحص والتطوير.',
+                    'ط§ظ„ط£ظˆظ„ظˆظٹط© ظ„ظ„ظ…ظپطھظˆط­ ط§ظ„ظ…طµط¯ط± ظˆط§ظ„ظ‚ط§ط¨ظ„ ظ„ظ„ظپط­طµ ظˆط§ظ„طھط·ظˆظٹط±.',
                   ),
                   onChanged: (value) => setState(() => openSource = value),
                 ),
                 _field(
                   license,
-                  openSource ? 'License (مطلوب)' : 'License (اختياري)',
+                  openSource
+                      ? 'License (ظ…ط·ظ„ظˆط¨)'
+                      : 'License (ط§ط®طھظٹط§ط±ظٹ)',
                   ltr: true,
                 ),
-                _field(capabilities, 'Capabilities مفصولة بفاصلة', ltr: true),
+                _field(capabilities, 'Capabilities ظ…ظپطµظˆظ„ط© ط¨ظپط§طµظ„ط©',
+                    ltr: true),
                 _field(
                   declaredRoles,
-                  'الأدوار المطلوبة (اختياري) مفصولة بفاصلة',
+                  'ط§ظ„ط£ط¯ظˆط§ط± ط§ظ„ظ…ط·ظ„ظˆط¨ط© (ط§ط®طھظٹط§ط±ظٹ) ظ…ظپطµظˆظ„ط© ط¨ظپط§طµظ„ط©',
                   ltr: true,
                 ),
                 const Align(
                   alignment: Alignment.centerRight,
                   child: Text(
-                    'الأدوار المعلنة لا تمنح صلاحية؛ كل توسعة خارجية تبقى غير مصرح لها أثناء الحجر.',
+                    'ط§ظ„ط£ط¯ظˆط§ط± ط§ظ„ظ…ط¹ظ„ظ†ط© ظ„ط§ طھظ…ظ†ط­ طµظ„ط§ط­ظٹط©ط› ظƒظ„ طھظˆط³ط¹ط© ط®ط§ط±ط¬ظٹط© طھط¨ظ‚ظ‰ ط؛ظٹط± ظ…طµط±ط­ ظ„ظ‡ط§ ط£ط«ظ†ط§ط، ط§ظ„ط­ط¬ط±.',
                   ),
                 ),
               ],
@@ -422,9 +475,11 @@ class _NewExtensionDialogState extends State<_NewExtensionDialog> {
       actions: <Widget>[
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('إلغاء'),
+          child: const Text('ط¥ظ„ط؛ط§ط،'),
         ),
-        FilledButton(onPressed: _submit, child: const Text('إدخال إلى الحجر')),
+        FilledButton(
+            onPressed: _submit,
+            child: const Text('ط¥ط¯ط®ط§ظ„ ط¥ظ„ظ‰ ط§ظ„ط­ط¬ط±')),
       ],
     );
   }
@@ -441,9 +496,9 @@ class _NewExtensionDialogState extends State<_NewExtensionDialog> {
         textDirection: ltr ? TextDirection.ltr : null,
         decoration: InputDecoration(labelText: label),
         validator: (value) {
-          final required =
-              !label.contains('اختياري') && !label.startsWith('Capabilities');
-          if (required && (value ?? '').trim().isEmpty) return 'مطلوب';
+          final required = !label.contains('ط§ط®طھظٹط§ط±ظٹ') &&
+              !label.startsWith('Capabilities');
+          if (required && (value ?? '').trim().isEmpty) return 'ظ…ط·ظ„ظˆط¨';
           return null;
         },
       ),
