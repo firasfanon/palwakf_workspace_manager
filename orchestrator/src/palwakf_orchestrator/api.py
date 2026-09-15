@@ -111,6 +111,11 @@ from palwakf_orchestrator.project_contracts import (
     ProjectAdapterKind,
     ProjectIntakeRequest,
 )
+from palwakf_orchestrator.project_health import (
+    ProjectHealthRecord,
+    ProjectHealthStateMachine,
+    ProjectHealthTransitionRequest,
+)
 from palwakf_orchestrator.project_manifest_service import (
     ProjectContractManifestRegistryV1,
     ProjectContractManifestService,
@@ -204,6 +209,7 @@ def create_app(
         resolved_store,
     )
     project_manifests = ProjectContractManifestService()
+    project_health = ProjectHealthStateMachine(resolved_projects, resolved_store)
     local_sessions = local_session_manager or LocalSessionManager()
     local_product = local_product_service
     if local_product is None and (resolved_settings.workspace_root / ".git").is_dir():
@@ -253,6 +259,7 @@ def create_app(
     app.state.connected_service = connected
     app.state.project_service = resolved_projects
     app.state.project_contract_manifest_service = project_manifests
+    app.state.project_health_state_machine = project_health
     app.state.dashboard_service = dashboard
     app.state.local_product_service = local_product
     app.state.engineering_os_service = engineering_os
@@ -503,7 +510,7 @@ def create_app(
     _add_execution_run_routes(app, execution_runs, external_execution)
     _add_direct_execution_routes(app, direct_execution)
     _add_legacy_routes(app, resolved_operator, connected)
-    _add_project_routes(app, resolved_projects, engineering_os, project_manifests)
+    _add_project_routes(app, resolved_projects, engineering_os, project_manifests, project_health)
     app.mount("/mcp", mcp_http_app, name="mcp")
 
     @app.get("/{ui_path:path}", include_in_schema=False)
@@ -947,6 +954,7 @@ def _add_project_routes(
     projects: ExternalProjectService,
     engineering_os: EngineeringOsService,
     project_manifests: ProjectContractManifestService,
+    project_health: ProjectHealthStateMachine,
 ) -> None:
     def project_error(exc: GovernanceError) -> HTTPException:
         status = (
@@ -995,6 +1003,29 @@ def _add_project_routes(
     async def get_external_project(project_id: str) -> ExternalProjectRecord:
         try:
             return projects.get_project(project_id)
+        except GovernanceError as exc:
+            raise project_error(exc) from exc
+
+    @app.get(
+        "/v1/projects/{project_id}/health",
+        response_model=ProjectHealthRecord,
+    )
+    async def project_health_state(project_id: str) -> ProjectHealthRecord:
+        try:
+            return project_health.get(project_id)
+        except GovernanceError as exc:
+            raise project_error(exc) from exc
+
+    @app.post(
+        "/v1/projects/{project_id}/health/transition",
+        response_model=ProjectHealthRecord,
+    )
+    async def transition_project_health(
+        project_id: str,
+        command: ProjectHealthTransitionRequest,
+    ) -> ProjectHealthRecord:
+        try:
+            return project_health.transition(project_id, command)
         except GovernanceError as exc:
             raise project_error(exc) from exc
 
