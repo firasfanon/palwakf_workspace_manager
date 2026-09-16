@@ -2,8 +2,12 @@ from __future__ import annotations
 
 import fnmatch
 import subprocess
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol
+from typing import Any, Protocol
+from urllib.parse import quote
+
+import httpx
 
 from palwakf_orchestrator.contracts import (
     DispatchPlan,
@@ -32,10 +36,156 @@ class SubprocessGitRunner:
         return completed.stdout.strip()
 
 
+class GitHubRealityReader(Protocol):
+    def get_json(self, path: str) -> Any: ...
+
+
+class HttpxGitHubRealityReader:
+    def __init__(self, repository: str, token: str | None = None) -> None:
+        headers = {
+            "Accept": "application/vnd.github+json",
+            "User-Agent": "PalWakf-Workspace-Manager",
+        }
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        self._client = httpx.Client(
+            base_url=f"https://api.github.com/repos/{repository}/",
+            headers=headers,
+            timeout=15,
+            follow_redirects=False,
+        )
+
+    def get_json(self, path: str) -> Any:
+        try:
+            response = self._client.get(path.lstrip("/"))
+            response.raise_for_status()
+            return response.json()
+        except (httpx.HTTPError, ValueError) as exc:
+            raise GovernanceError(f"GITHUB_REALITY_READ_FAILED:{type(exc).__name__}") from exc
+
+
+@dataclass(frozen=True)
+class GitHubRealitySnapshot:
+    repository: str
+    branch: str
+    local_head: str
+    remote_head: str
+    pull_request_number: int | None
+    pull_request_head: str | None
+    pull_request_state: str
+    remote_commit_object_verified: bool
+
+
+class GitHubRealityGate:
+    def __init__(
+        self,
+        workspace: Path,
+        repository: str,
+        github: GitHubRealityReader,
+        git: GitRunner | None = None,
+    ) -> None:
+        self._workspace = workspace.resolve()
+        self._repository = repository
+        self._github = github
+        self._git = git or SubprocessGitRunner()
+
+    def verify(
+        self,
+        *,
+        branch: str,
+        expected_local_head: str,
+        expected_remote_head: str | None = None,
+        expected_pr_head: str | None = None,
+        require_clean: bool = True,
+    ) -> GitHubRealitySnapshot:
+        local_expected = expected_local_head.lower()
+        remote_expected = (expected_remote_head or expected_local_head).lower()
+        pr_expected = (expected_pr_head or expected_remote_head or expected_local_head).lower()
+        actual_branch = self._git.run(self._workspace, "branch", "--show-current")
+        local_head = self._git.run(self._workspace, "rev-parse", "HEAD").lower()
+        remote_line = self._git.run(self._workspace, "ls-remote", "origin", f"refs/heads/{branch}")
+        remote_head = remote_line.split(maxsplit=1)[0].lower() if remote_line else ""
+        if actual_branch != branch:
+            raise GovernanceError(
+                f"GITHUB_REALITY_BRANCH_MISMATCH:expected={branch}:actual={actual_branch}"
+            )
+        if local_head != local_expected:
+            raise GovernanceError(
+                f"GITHUB_REALITY_LOCAL_HEAD_MISMATCH:expected={local_expected}:actual={local_head}"
+            )
+        if remote_head != remote_expected:
+            raise GovernanceError(
+                "GITHUB_REALITY_REMOTE_HEAD_MISMATCH:"
+                f"expected={remote_expected}:actual={remote_head or '<missing>'}"
+            )
+        if require_clean and self._git.run(self._workspace, "status", "--porcelain"):
+            raise GovernanceError("GITHUB_REALITY_WORKTREE_NOT_CLEAN")
+
+        owner = self._repository.split("/", maxsplit=1)[0]
+        head_query = quote(f"{owner}:{branch}", safe="")
+        pulls = self._github.get_json(f"pulls?state=open&head={head_query}&per_page=2")
+        if not isinstance(pulls, list):
+            raise GovernanceError("GITHUB_REALITY_PR_LIST_INVALID")
+        if len(pulls) > 1:
+            raise GovernanceError("GITHUB_REALITY_MULTIPLE_OPEN_PRS_FOR_BRANCH")
+
+        pr_number: int | None = None
+        pr_head: str | None = None
+        state = "NONE"
+        if pulls:
+            pull = pulls[0]
+            if not isinstance(pull, dict):
+                raise GovernanceError("GITHUB_REALITY_PR_INVALID")
+            state = str(pull.get("state") or "UNKNOWN").upper()
+            number = pull.get("number")
+            head = pull.get("head")
+            if not isinstance(number, int):
+                raise GovernanceError("GITHUB_REALITY_PR_NUMBER_MISSING")
+            if not isinstance(head, dict):
+                raise GovernanceError("GITHUB_REALITY_PR_HEAD_MISSING")
+            pr_number = number
+            pr_head = str(head.get("sha") or "").lower()
+            pr_branch = str(head.get("ref") or "")
+            if state != "OPEN":
+                raise GovernanceError(f"GITHUB_REALITY_PR_NOT_OPEN:state={state}")
+            if pr_branch != branch:
+                raise GovernanceError(
+                    f"GITHUB_REALITY_PR_BRANCH_MISMATCH:expected={branch}:actual={pr_branch}"
+                )
+            if pr_head != pr_expected:
+                raise GovernanceError(
+                    f"GITHUB_REALITY_PR_HEAD_MISMATCH:expected={pr_expected}:actual={pr_head}"
+                )
+
+        self._git.run(self._workspace, "fetch", "--no-tags", "origin", f"refs/heads/{branch}")
+        fetched_head = self._git.run(self._workspace, "rev-parse", "FETCH_HEAD").lower()
+        if fetched_head != remote_expected:
+            raise GovernanceError(
+                f"GITHUB_REALITY_FETCH_HEAD_MISMATCH:expected={remote_expected}:actual={fetched_head}"
+            )
+        self._git.run(self._workspace, "cat-file", "-e", "FETCH_HEAD^{commit}")
+        return GitHubRealitySnapshot(
+            repository=self._repository,
+            branch=branch,
+            local_head=local_head,
+            remote_head=remote_head,
+            pull_request_number=pr_number,
+            pull_request_head=pr_head,
+            pull_request_state=state,
+            remote_commit_object_verified=True,
+        )
+
+
 class GovernanceGate:
-    def __init__(self, workspace: Path, git: GitRunner | None = None) -> None:
+    def __init__(
+        self,
+        workspace: Path,
+        git: GitRunner | None = None,
+        github_reality: GitHubRealityGate | None = None,
+    ) -> None:
         self._workspace = workspace.resolve()
         self._git = git or SubprocessGitRunner()
+        self._github_reality = github_reality
 
     def verify_repository(self, request: DispatchRequest) -> RepositoryState:
         if not self._workspace.is_dir():
@@ -66,6 +216,8 @@ class GovernanceGate:
             )
         if status:
             raise GovernanceError("worktree is not clean")
+        if self._github_reality is not None and request.boundaries.workspace_write:
+            self._github_reality.verify(branch=request.branch, expected_local_head=local_head)
 
         return RepositoryState(
             repository=request.repository,
@@ -114,6 +266,14 @@ class GovernanceGate:
             raise GovernanceError(
                 "PROVIDER_REMOTE_MUTATION_NOT_ALLOWED:"
                 f"expected={before.remote_head}:actual={remote_head or '<missing>'}"
+            )
+        if self._github_reality is not None:
+            self._github_reality.verify(
+                branch=request.branch,
+                expected_local_head=before.local_head,
+                expected_remote_head=before.remote_head,
+                expected_pr_head=before.remote_head,
+                require_clean=False,
             )
 
         staged_before = self._git_lines("diff", "--cached", "--name-only")
@@ -188,6 +348,13 @@ class GovernanceGate:
                 "GOVERNED_WRITE_REMOTE_DRIFT_BEFORE_PUSH:"
                 f"expected={before.remote_head}:actual={remote_before_push or '<missing>'}"
             )
+        if self._github_reality is not None:
+            self._github_reality.verify(
+                branch=request.branch,
+                expected_local_head=candidate_sha,
+                expected_remote_head=before.remote_head,
+                expected_pr_head=before.remote_head,
+            )
 
         try:
             self._git.run(
@@ -207,6 +374,8 @@ class GovernanceGate:
                 "GOVERNED_WRITE_REMOTE_READBACK_MISMATCH:"
                 f"expected={candidate_sha}:actual={remote_after or '<missing>'}"
             )
+        if self._github_reality is not None:
+            self._github_reality.verify(branch=request.branch, expected_local_head=candidate_sha)
 
         if self._git.run(self._workspace, "status", "--porcelain"):
             raise GovernanceError("GOVERNED_WRITE_WORKTREE_NOT_CLEAN_AFTER_PUSH")
