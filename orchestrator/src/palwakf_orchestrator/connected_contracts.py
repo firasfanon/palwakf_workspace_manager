@@ -61,6 +61,8 @@ class ContinueTaskRequest(BaseModel):
 
     execution_host_id: str = Field(min_length=3, max_length=128)
     tool_executor_id: str = Field(min_length=3, max_length=128)
+    retry_override_reference: str | None = Field(default=None, max_length=500)
+    retry_override_authority_reference: str | None = Field(default=None, max_length=500)
 
 
 class ThreadBinding(BaseModel):

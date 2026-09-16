@@ -17,6 +17,10 @@ from palwakf_orchestrator.capability_router import (
 )
 from palwakf_orchestrator.contracts import DispatchRequest
 from palwakf_orchestrator.errors import GovernanceError
+from palwakf_orchestrator.failure_retry_guard import (
+    FailureRetryGuardStore,
+    build_state_fingerprint,
+)
 from palwakf_orchestrator.operator_contracts import (
     CreateOperatorTaskRequest,
     DispatchMode,
@@ -107,6 +111,7 @@ class OperatorService:
         registry: CapabilityRegistry | None = None,
         automatic_agents_available: bool = False,
         state_store: StateStore | None = None,
+        failure_retry_guard: FailureRetryGuardStore | None = None,
     ) -> None:
         self._workspace = workspace.resolve()
         self._orchestrator = orchestrator
@@ -115,6 +120,7 @@ class OperatorService:
         self._router = CapabilityRouter(self._registry)
         self._automatic_agents_available = automatic_agents_available
         self._state_store = state_store or MemoryStateStore()
+        self._failure_retry_guard = failure_retry_guard or FailureRetryGuardStore(self._state_store)
         self._tasks: dict[str, OperatorTaskRecord] = {}
         self._idempotency_tasks: dict[str, str] = {}
         self._manual_packages: dict[str, ManualDispatchPackage] = {}
@@ -521,13 +527,48 @@ class OperatorService:
             raise GovernanceError("GIT_DIFF_CHANGED_FILES_UNAVAILABLE")
         return [line for line in result.stdout.splitlines() if line]
 
-    def continue_task(self, task_id: str) -> OperatorTaskRecord:
+    def _retry_state_fingerprint(self, task: OperatorTaskRecord) -> str:
+        return build_state_fingerprint(
+            {
+                "project_id": task.project_id,
+                "repository": task.repository,
+                "branch": task.branch,
+                "expected_head": task.expected_head,
+                "blocker": task.blocker,
+                "automatic_failure_code": task.automatic_failure_code,
+                "selected_provider_id": task.selected_provider_id,
+                "execution_host_id": task.execution_host_id,
+                "tool_executor_id": task.tool_executor_id,
+                "scope_patterns": sorted(task.scope_patterns),
+            }
+        )
+
+    def continue_task(
+        self,
+        task_id: str,
+        *,
+        retry_override_reference: str | None = None,
+        retry_override_authority_reference: str | None = None,
+    ) -> OperatorTaskRecord:
         task = self.get_task(task_id)
         if task.status not in {
             OperatorTaskStatus.awaiting_approval,
             OperatorTaskStatus.failed,
         }:
             raise GovernanceError("task is not in a continuable state")
+        if (
+            task.status == OperatorTaskStatus.failed
+            and task.blocker
+            and self._failure_retry_guard.has_fingerprint(task.blocker, task.project_id)
+        ):
+            self._failure_retry_guard.require_retry_allowed(
+                fingerprint_id=task.blocker,
+                project_id=task.project_id,
+                task_id=task.task_id,
+                state_fingerprint=self._retry_state_fingerprint(task),
+                override_reference=retry_override_reference,
+                override_authority_reference=retry_override_authority_reference,
+            )
         return self._transition(
             task,
             OperatorTaskStatus.pending,
@@ -1046,6 +1087,34 @@ class OperatorService:
             task.completed_at = now
             if task.started_at:
                 task.executor_duration_ms = int((now - task.started_at).total_seconds() * 1000)
+        if (
+            status in {OperatorTaskStatus.failed, OperatorTaskStatus.timed_out}
+            and blocker
+            and self._failure_retry_guard.has_fingerprint(blocker, task.project_id)
+        ):
+            state_fingerprint = self._retry_state_fingerprint(task)
+            observation_seed = json.dumps(
+                {
+                    "task_id": task.task_id,
+                    "event_type": event_type,
+                    "blocker": blocker,
+                    "occurred_at": now.isoformat(),
+                    "state_fingerprint": state_fingerprint,
+                },
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+            observation_id = (
+                "OPFAIL-" + hashlib.sha256(observation_seed.encode("utf-8")).hexdigest()
+            )
+            self._failure_retry_guard.record_failure(
+                observation_id=observation_id,
+                fingerprint_id=blocker,
+                project_id=task.project_id,
+                task_id=task.task_id,
+                state_fingerprint=state_fingerprint,
+                evidence=(f"operator-event:{event_type}", f"task:{task.task_id}"),
+            )
         self._persist()
         return task
 
