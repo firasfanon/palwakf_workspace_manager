@@ -3,10 +3,14 @@ from __future__ import annotations
 import hashlib
 import json
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from palwakf_orchestrator.decision_registry import (
+    DecisionStatus,
+    DecisionSupersessionRegistryV1,
+)
 from palwakf_orchestrator.errors import GovernanceError
 from palwakf_orchestrator.intersystem_contracts import (
     WorkspaceAuthorityPackageV1,
@@ -20,6 +24,7 @@ class InstructionRecordV1(BaseModel):
     authority: str
     authority_rank: int = Field(ge=0)
     version: str
+    decision_id: str | None = None
     effective_at: datetime
 
     status: Literal[
@@ -124,11 +129,14 @@ class PreL5WorkspaceBootstrapEnvelopeV1(BaseModel):
     active_instruction_set_sha256: str = Field(
         pattern=r"^[0-9a-f]{64}$"
     )
+    decision_registry_sha256: str | None = Field(
+        default=None, pattern=r"^[0-9a-f]{64}$"
+    )
 
     execution_admission: Literal["READY"] = "READY"
 
     @model_validator(mode="after")
-    def bind_all_authority(self):
+    def bind_all_authority(self) -> Self:
         package = self.authority_package
         active = self.active_instruction_set
         knowledge = self.knowledge_gate
@@ -166,7 +174,7 @@ class PreL5WorkspaceBootstrapEnvelopeV1(BaseModel):
         return self
 
 
-def _canonical(value) -> str:
+def _canonical(value: Any) -> str:
     return json.dumps(
         value,
         ensure_ascii=False,
@@ -176,7 +184,7 @@ def _canonical(value) -> str:
     )
 
 
-def _sha256(value) -> str:
+def _sha256(value: Any) -> str:
     return hashlib.sha256(
         _canonical(value).encode("utf-8")
     ).hexdigest()
@@ -193,6 +201,7 @@ class ActiveInstructionResolverV1:
         state_package_id: str,
         authority_reference: str,
         records: list[InstructionRecordV1],
+        decision_registry: DecisionSupersessionRegistryV1 | None = None,
     ) -> ActiveGoverningInstructionSetV1:
 
         if not records:
@@ -241,6 +250,30 @@ class ActiveInstructionResolverV1:
                 raise GovernanceError(
                     "UNTRUSTED_ACTIVE_INSTRUCTION_SOURCE:"
                     + record.instruction_id
+                )
+
+            if decision_registry is not None:
+                if not record.decision_id:
+                    raise GovernanceError(
+                        "ACTIVE_INSTRUCTION_DECISION_BINDING_REQUIRED:"
+                        + record.instruction_id
+                    )
+                decision = decision_registry.get(record.decision_id)
+                if decision.status != DecisionStatus.current:
+                    exclusions.append(
+                        InstructionExclusionV1(
+                            instruction_id=record.instruction_id,
+                            reason=f"DECISION_{decision.status.value}_EXCLUDED",
+                        )
+                    )
+                    continue
+                decision_registry.bind_instruction(
+                    decision_id=record.decision_id,
+                    project_id=project_id,
+                    instruction_id=record.instruction_id,
+                    conflict_key=record.conflict_key,
+                    version=record.version,
+                    directive_fingerprint=record.directive_fingerprint,
                 )
 
             candidates.append(record)
@@ -365,6 +398,7 @@ def build_pre_l5_bootstrap_envelope(
     authority_package: WorkspaceAuthorityPackageV1,
     instruction_records: list[InstructionRecordV1],
     knowledge_gate: PreExecutionKnowledgeGateV1,
+    decision_registry: DecisionSupersessionRegistryV1 | None = None,
 ) -> PreL5WorkspaceBootstrapEnvelopeV1:
 
     active = ActiveInstructionResolverV1().resolve(
@@ -373,6 +407,7 @@ def build_pre_l5_bootstrap_envelope(
         state_package_id=authority_package.state_package_id,
         authority_reference=authority_package.authority_reference,
         records=instruction_records,
+        decision_registry=decision_registry,
     )
 
     package_payload = authority_package.model_dump(
@@ -388,5 +423,8 @@ def build_pre_l5_bootstrap_envelope(
         authority_package_sha256=_sha256(package_payload),
         active_instruction_set_sha256=_sha256(
             active_payload
+        ),
+        decision_registry_sha256=(
+            decision_registry.registry_sha256 if decision_registry is not None else None
         ),
     )
