@@ -8,14 +8,12 @@ from palwakf_orchestrator.intersystem_contracts import (
     WorkspaceAuthorityPackageV1,
 )
 from palwakf_orchestrator.pre_l5_instruction_resolver import (
-    ActiveGoverningInstructionSetV1,
     ActiveInstructionResolverV1,
     InstructionRecordV1,
     PreExecutionKnowledgeGateV1,
     PreL5WorkspaceBootstrapEnvelopeV1,
     build_pre_l5_bootstrap_envelope,
 )
-
 
 PROJECT = "PALWAKF_LOCAL_AGENTS"
 TASK = "TASK-PRE-L5"
@@ -40,12 +38,13 @@ def record(
     source="WORKSPACE_DRIVE_SOVEREIGN",
     authority_rank=100,
     effective_at="2026-09-13T00:00:00Z",
+    version="V1",
 ):
     return InstructionRecordV1(
         instruction_id=instruction_id,
         authority="GLOBAL_CROSS_PROJECT",
         authority_rank=authority_rank,
-        version="V1",
+        version=version,
         effective_at=effective_at,
         status=status,
         source_authority=source,
@@ -340,3 +339,76 @@ def test_empty_active_set_fails_closed():
                 )
             ]
         )
+
+def test_explicit_superseded_status_is_not_executable():
+    superseded = record(
+        "SUPERSEDED",
+        status="SUPERSEDED",
+    )
+    current = record(
+        "CURRENT",
+        conflict_key="CURRENT_POLICY",
+    )
+
+    resolved = resolve([superseded, current])
+    reasons = {
+        item.instruction_id: item.reason
+        for item in resolved.exclusions
+    }
+    assert reasons["SUPERSEDED"] == "STATUS_SUPERSEDED_EXCLUDED"
+
+
+def test_same_directive_newer_effective_at_wins_when_authority_equal():
+    older = record(
+        "OLDER",
+        directive="SAME",
+        authority_rank=100,
+        effective_at="2026-09-12T00:00:00Z",
+    )
+    newer = record(
+        "NEWER",
+        directive="SAME",
+        authority_rank=100,
+        effective_at="2026-09-13T00:00:00Z",
+    )
+
+    resolved = resolve([older, newer])
+    assert [item.instruction_id for item in resolved.active_instructions] == ["NEWER"]
+
+
+def test_same_directive_natural_version_precedence_v10_over_v9():
+    v9 = record(
+        "V9",
+        directive="SAME",
+        authority_rank=100,
+        effective_at="2026-09-13T00:00:00Z",
+        version="V9",
+    )
+    v10 = record(
+        "V10",
+        directive="SAME",
+        authority_rank=100,
+        effective_at="2026-09-13T00:00:00Z",
+        version="V10",
+    )
+
+    resolved = resolve([v9, v10])
+    assert [item.instruction_id for item in resolved.active_instructions] == ["V10"]
+
+
+def test_same_directive_higher_authority_wins_even_if_older():
+    lower_newer = record(
+        "LOWER-NEWER",
+        directive="SAME",
+        authority_rank=10,
+        effective_at="2026-09-14T00:00:00Z",
+    )
+    higher_older = record(
+        "HIGHER-OLDER",
+        directive="SAME",
+        authority_rank=100,
+        effective_at="2026-09-12T00:00:00Z",
+    )
+
+    resolved = resolve([lower_newer, higher_older])
+    assert [item.instruction_id for item in resolved.active_instructions] == ["HIGHER-OLDER"]

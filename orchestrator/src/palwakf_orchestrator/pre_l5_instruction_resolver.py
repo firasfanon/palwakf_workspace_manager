@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from datetime import datetime
 from typing import Any, Literal, Self
 
@@ -190,6 +191,19 @@ def _sha256(value: Any) -> str:
     ).hexdigest()
 
 
+def _version_sort_key(version: str) -> tuple[tuple[int, int, str], ...]:
+    chunks: list[tuple[int, int, str]] = []
+    for part in re.split(r"(\d+)", version.casefold()):
+        if not part:
+            continue
+        if part.isdigit():
+            normalized = part.lstrip("0") or "0"
+            chunks.append((1, len(normalized), normalized))
+        else:
+            chunks.append((0, 0, part))
+    return tuple(chunks)
+
+
 class ActiveInstructionResolverV1:
     resolver_id = "PALWAKF_ACTIVE_INSTRUCTION_RESOLVER_V1"
 
@@ -325,7 +339,7 @@ class ActiveInstructionResolverV1:
                 key=lambda item: (
                     item.authority_rank,
                     item.effective_at,
-                    item.version,
+                    _version_sort_key(item.version),
                     item.instruction_id,
                 ),
                 reverse=True,
