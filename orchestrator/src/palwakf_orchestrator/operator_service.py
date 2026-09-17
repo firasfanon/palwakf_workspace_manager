@@ -17,6 +17,12 @@ from palwakf_orchestrator.capability_router import (
 )
 from palwakf_orchestrator.contracts import DispatchRequest
 from palwakf_orchestrator.errors import GovernanceError
+from palwakf_orchestrator.evidence_acceptance_engine import (
+    AcceptanceEvidenceV1,
+    EvidenceKind,
+    EvidenceStatus,
+    evaluate_acceptance,
+)
 from palwakf_orchestrator.failure_retry_guard import (
     FailureRetryGuardStore,
     build_state_fingerprint,
@@ -615,18 +621,70 @@ class OperatorService:
         task = self.get_task(task_id)
         if task.status != OperatorTaskStatus.pending_verification:
             raise GovernanceError("executor completion or manual result is required first")
-        if task.after_head != request.verified_head:
+        verified_head = request.verified_head.lower()
+        if task.after_head != verified_head:
             raise GovernanceError("verification receipt HEAD does not match task result")
-        if request.ci_status != "success":
-            raise GovernanceError("independent CI verification has not succeeded")
         self._assert_secret_free(request.model_dump(mode="json"))
+
+        evidence: list[AcceptanceEvidenceV1] = []
+        if task.tests:
+            evidence.append(
+                AcceptanceEvidenceV1(
+                    kind=EvidenceKind.tests,
+                    status=EvidenceStatus.passed,
+                    reference=(
+                        "task-tests:"
+                        + hashlib.sha256("|".join(task.tests).encode("utf-8")).hexdigest()
+                    ),
+                    subject_head=verified_head,
+                )
+            )
+        evidence.append(
+            AcceptanceEvidenceV1(
+                kind=EvidenceKind.ci,
+                status=(
+                    EvidenceStatus.passed
+                    if request.ci_status == "success"
+                    else EvidenceStatus.failed
+                ),
+                reference=request.verification_receipt,
+                subject_head=verified_head,
+            )
+        )
+        if request.uat_evidence is not None:
+            if request.uat_evidence.kind != EvidenceKind.uat:
+                raise GovernanceError("VERIFICATION_UAT_EVIDENCE_KIND_INVALID")
+            evidence.append(request.uat_evidence)
+        if EvidenceKind.readback in task.acceptance_requirements:
+            self._verifier.verify(task.branch, verified_head)
+            evidence.append(
+                AcceptanceEvidenceV1(
+                    kind=EvidenceKind.readback,
+                    status=EvidenceStatus.passed,
+                    reference=f"repository-readback:{task.branch}@{verified_head}",
+                    subject_head=verified_head,
+                )
+            )
+
+        decision = evaluate_acceptance(
+            subject_head=verified_head,
+            required_kinds=tuple(task.acceptance_requirements),
+            evidence=tuple(evidence),
+        )
+        task.acceptance_decision = decision
+        if not decision.accepted:
+            missing = ",".join(kind.value for kind in decision.missing_kinds) or "NONE"
+            failed = ",".join(kind.value for kind in decision.failed_kinds) or "NONE"
+            self._persist()
+            raise GovernanceError(f"ACCEPTANCE_EVIDENCE_REJECTED:MISSING={missing}:FAILED={failed}")
+
         task.verification_receipt = request.verification_receipt
         execution_completed_at = task.completed_at
         verified = self._transition(
             task,
             OperatorTaskStatus.verified,
             "TASK_INDEPENDENTLY_VERIFIED",
-            "Independent verification receipt persisted",
+            "Independent verification and acceptance evidence passed",
             blocker=None,
         )
         if execution_completed_at:
