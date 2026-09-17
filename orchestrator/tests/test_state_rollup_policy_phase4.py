@@ -11,6 +11,7 @@ from palwakf_orchestrator.engineering_os_contracts import (
     EngineeringTaskStatus,
 )
 from palwakf_orchestrator.errors import GovernanceError
+from palwakf_orchestrator.independent_code_review_policy import MaterialCodeReviewReceiptV1
 from palwakf_orchestrator.operator_contracts import (
     DispatchMode,
     OperatorTaskRecord,
@@ -27,6 +28,22 @@ REPOSITORY = "firasfanon/palwakf_workspace_manager"
 HEAD_A = "a" * 40
 HEAD_B = "b" * 40
 NOW = datetime(2026, 8, 17, 1, 48, tzinfo=UTC)
+
+
+def material_review_receipt() -> MaterialCodeReviewReceiptV1:
+    return MaterialCodeReviewReceiptV1(
+        receipt_id="review-prel5-027",
+        project_id="PALWAKF_WORKSPACE_MANAGER",
+        repository=REPOSITORY,
+        task_id="WM-PHASE4-ENG-001",
+        subject_sha=HEAD_B,
+        coding_agent_id="coding_builder_agentic_v1",
+        evidence=(
+            "PREL5-024 coding evidence",
+            "PREL5-025 review evidence",
+            "PREL5-026 test evidence",
+        ),
+    )
 
 
 def engineering_record(**overrides: object) -> EngineeringTaskRecord:
@@ -169,6 +186,7 @@ def test_cpm09_verified_run_allows_explicit_review_only() -> None:
         parent,
         run,
         EngineeringTaskStatus.ready_for_review,
+        material_review_receipt=material_review_receipt(),
     )
     assert authorization.automatic is False
     assert authorization.requires_explicit_human_authorization is True
@@ -248,6 +266,7 @@ def test_cpm09_policy_evaluation_is_read_only() -> None:
         parent,
         run,
         EngineeringTaskStatus.ready_for_review,
+        material_review_receipt=material_review_receipt(),
     )
     assert parent.model_dump(mode="json") == parent_before
     assert run.model_dump(mode="json") == run_before
@@ -271,3 +290,63 @@ def test_cpm09_cross_layer_project_and_repository_drift_fail_closed() -> None:
                 repository="other/repository",
             ),
         )
+
+
+def test_prel5_027_material_code_requires_independent_review() -> None:
+    parent = engineering_record()
+    run = operator_record(OperatorTaskStatus.verified, after_head=HEAD_B)
+    with pytest.raises(
+        GovernanceError,
+        match="MATERIAL_CODE_INDEPENDENT_REVIEW_REQUIRED",
+    ):
+        authorize_explicit_rollup(
+            parent,
+            run,
+            EngineeringTaskStatus.ready_for_review,
+        )
+
+
+def test_prel5_027_same_agent_review_is_rejected() -> None:
+    with pytest.raises(ValueError, match="CODING_AGENT_MUST_DIFFER_FROM_FINAL_REVIEW_AGENT"):
+        MaterialCodeReviewReceiptV1(
+            receipt_id="review-same-agent",
+            project_id="PALWAKF_WORKSPACE_MANAGER",
+            repository=REPOSITORY,
+            task_id="WM-PHASE4-ENG-001",
+            subject_sha=HEAD_B,
+            coding_agent_id="qa_security_reviewer_agentic_v1",
+            evidence=("PREL5-024 coding", "PREL5-025 review", "PREL5-026 tests"),
+        )
+
+
+def test_prel5_027_stale_review_head_is_rejected() -> None:
+    parent = engineering_record()
+    run = operator_record(OperatorTaskStatus.verified, after_head=HEAD_B)
+    stale = material_review_receipt().model_copy(update={"subject_sha": HEAD_A})
+    with pytest.raises(GovernanceError, match="MATERIAL_CODE_REVIEW_STALE_HEAD"):
+        authorize_explicit_rollup(
+            parent,
+            run,
+            EngineeringTaskStatus.ready_for_review,
+            material_review_receipt=stale,
+        )
+
+
+def test_prel5_027_review_requires_025_and_026_evidence() -> None:
+    base = material_review_receipt().model_dump()
+    base["evidence"] = ("PREL5-024 coding", "PREL5-026 tests")
+    with pytest.raises(ValueError, match="PREL5_025_REVIEW_EVIDENCE_REQUIRED"):
+        MaterialCodeReviewReceiptV1.model_validate(base)
+    base["evidence"] = ("PREL5-024 coding", "PREL5-025 review")
+    with pytest.raises(ValueError, match="PREL5_026_TEST_EVIDENCE_REQUIRED"):
+        MaterialCodeReviewReceiptV1.model_validate(base)
+
+
+def test_prel5_027_positive_review_binding_reaches_review_ready_gate() -> None:
+    authorization = authorize_explicit_rollup(
+        engineering_record(),
+        operator_record(OperatorTaskStatus.verified, after_head=HEAD_B),
+        EngineeringTaskStatus.ready_for_review,
+        material_review_receipt=material_review_receipt(),
+    )
+    assert authorization.material_review_receipt_id == "review-prel5-027"
