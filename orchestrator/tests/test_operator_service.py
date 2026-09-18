@@ -3,6 +3,10 @@ from pathlib import Path
 import pytest
 
 from palwakf_orchestrator.errors import GovernanceError
+from palwakf_orchestrator.learning_closeout_gate import (
+    LearningDisposition,
+    build_learning_closeout_receipt,
+)
 from palwakf_orchestrator.operator_contracts import (
     CreateOperatorTaskRequest,
     ManualAcknowledgementRequest,
@@ -149,6 +153,14 @@ def test_manual_result_remains_pending_until_independent_verification(
             verification_receipt="github-actions-run-001",
             ci_status="success",
             verified_head=AFTER_HEAD,
+            learning_closeout_receipt=build_learning_closeout_receipt(
+                project_id=task.project_id,
+                task_id=task.task_id,
+                subject_head=AFTER_HEAD,
+                disposition=LearningDisposition.no_new_durable_learning,
+                rationale="No durable learning beyond existing governed controls.",
+                evidence=("review:no-new-durable-learning",),
+            ),
         ),
     )
     assert verified.status == OperatorTaskStatus.verified

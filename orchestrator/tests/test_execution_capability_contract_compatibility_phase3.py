@@ -19,6 +19,10 @@ from palwakf_orchestrator.execution_capability_compatibility import (
     build_execution_capability_compatibility_snapshot,
     current_advanced_contract_field_inventory,
 )
+from palwakf_orchestrator.learning_closeout_gate import (
+    LearningDisposition,
+    build_learning_closeout_receipt,
+)
 from palwakf_orchestrator.operator_contracts import (
     CreateOperatorTaskRequest,
     ManualAcknowledgementRequest,
@@ -334,6 +338,14 @@ def test_cpm13_manual_relay_still_requires_independent_verification(
             verification_receipt="phase3-independent-verification",
             ci_status="success",
             verified_head=AFTER_HEAD,
+            learning_closeout_receipt=build_learning_closeout_receipt(
+                project_id=task.project_id,
+                task_id=task.task_id,
+                subject_head=AFTER_HEAD,
+                disposition=LearningDisposition.no_new_durable_learning,
+                rationale="Compatibility proof produced no new durable learning.",
+                evidence=("phase3:learning-closeout",),
+            ),
         ),
     )
     assert verified.status == OperatorTaskStatus.verified

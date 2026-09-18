@@ -11,6 +11,7 @@ from palwakf_orchestrator.evidence_acceptance_engine import (
     AcceptanceEvidenceV1,
     EvidenceKind,
 )
+from palwakf_orchestrator.learning_closeout_gate import LearningCloseoutReceiptV1
 from palwakf_orchestrator.provider_contracts import ProviderMode
 
 
@@ -119,6 +120,7 @@ class OperatorTaskRecord(BaseModel):
     evidence: list[str] = Field(default_factory=list)
     verification_receipt: str | None = None
     acceptance_decision: AcceptanceDecisionV1 | None = None
+    learning_closeout_receipt: LearningCloseoutReceiptV1 | None = None
     client_id: str | None = None
     correlation_id: str | None = None
     execution_host_id: str | None = None
@@ -195,6 +197,7 @@ class VerificationRequest(BaseModel):
     ci_status: Literal["success", "failed", "pending"]
     verified_head: str = Field(pattern=r"^[0-9a-fA-F]{40}$")
     uat_evidence: AcceptanceEvidenceV1 | None = None
+    learning_closeout_receipt: LearningCloseoutReceiptV1 | None = None
 
 
 class RuntimeCapabilities(BaseModel):

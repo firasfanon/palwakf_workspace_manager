@@ -27,6 +27,7 @@ from palwakf_orchestrator.failure_retry_guard import (
     FailureRetryGuardStore,
     build_state_fingerprint,
 )
+from palwakf_orchestrator.learning_closeout_gate import require_material_learning_closeout
 from palwakf_orchestrator.operator_contracts import (
     CreateOperatorTaskRequest,
     DispatchMode,
@@ -677,6 +678,14 @@ class OperatorService:
             failed = ",".join(kind.value for kind in decision.failed_kinds) or "NONE"
             self._persist()
             raise GovernanceError(f"ACCEPTANCE_EVIDENCE_REJECTED:MISSING={missing}:FAILED={failed}")
+
+        if task.changed_files or request.learning_closeout_receipt is not None:
+            task.learning_closeout_receipt = require_material_learning_closeout(
+                request.learning_closeout_receipt,
+                project_id=task.project_id,
+                task_id=task.task_id,
+                subject_head=verified_head,
+            )
 
         task.verification_receipt = request.verification_receipt
         execution_completed_at = task.completed_at
