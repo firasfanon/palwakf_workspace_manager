@@ -11,6 +11,11 @@ from palwakf_orchestrator.engineering_os_contracts import (
     EngineeringTaskStatus,
 )
 from palwakf_orchestrator.errors import GovernanceError
+from palwakf_orchestrator.evidence_acceptance_engine import (
+    AcceptanceDecisionV1,
+    EvidenceKind,
+)
+from palwakf_orchestrator.execution_success_gate import SemanticObjectiveReceiptV1
 from palwakf_orchestrator.independent_code_review_policy import MaterialCodeReviewReceiptV1
 from palwakf_orchestrator.operator_contracts import (
     DispatchMode,
@@ -43,6 +48,29 @@ def material_review_receipt() -> MaterialCodeReviewReceiptV1:
             "PREL5-025 review evidence",
             "PREL5-026 test evidence",
         ),
+    )
+
+
+def semantic_objective_receipt() -> SemanticObjectiveReceiptV1:
+    return SemanticObjectiveReceiptV1(
+        project_id="PALWAKF_WORKSPACE_MANAGER",
+        repository=REPOSITORY,
+        task_id="WM-PHASE4-ENG-001",
+        subject_sha=HEAD_B,
+        objective_reference="semantic-objective-prel5-044",
+        evidence=("objective verified against requested change",),
+    )
+
+
+def accepted_decision() -> AcceptanceDecisionV1:
+    return AcceptanceDecisionV1(
+        subject_head=HEAD_B,
+        required_kinds=(EvidenceKind.tests, EvidenceKind.readback),
+        satisfied_kinds=(EvidenceKind.tests, EvidenceKind.readback),
+        missing_kinds=(),
+        failed_kinds=(),
+        accepted=True,
+        decision="ACCEPT",
     )
 
 
@@ -116,6 +144,7 @@ def operator_record(
         "tests": [],
         "evidence": ["phase4-run-evidence"],
         "verification_receipt": None,
+        "acceptance_decision": accepted_decision(),
         "client_id": None,
         "correlation_id": None,
         "execution_host_id": None,
@@ -187,6 +216,7 @@ def test_cpm09_verified_run_allows_explicit_review_only() -> None:
         run,
         EngineeringTaskStatus.ready_for_review,
         material_review_receipt=material_review_receipt(),
+        semantic_objective_receipt=semantic_objective_receipt(),
     )
     assert authorization.automatic is False
     assert authorization.requires_explicit_human_authorization is True
@@ -267,6 +297,7 @@ def test_cpm09_policy_evaluation_is_read_only() -> None:
         run,
         EngineeringTaskStatus.ready_for_review,
         material_review_receipt=material_review_receipt(),
+        semantic_objective_receipt=semantic_objective_receipt(),
     )
     assert parent.model_dump(mode="json") == parent_before
     assert run.model_dump(mode="json") == run_before
@@ -303,6 +334,7 @@ def test_prel5_027_material_code_requires_independent_review() -> None:
             parent,
             run,
             EngineeringTaskStatus.ready_for_review,
+            semantic_objective_receipt=semantic_objective_receipt(),
         )
 
 
@@ -329,6 +361,7 @@ def test_prel5_027_stale_review_head_is_rejected() -> None:
             run,
             EngineeringTaskStatus.ready_for_review,
             material_review_receipt=stale,
+            semantic_objective_receipt=semantic_objective_receipt(),
         )
 
 
@@ -348,5 +381,87 @@ def test_prel5_027_positive_review_binding_reaches_review_ready_gate() -> None:
         operator_record(OperatorTaskStatus.verified, after_head=HEAD_B),
         EngineeringTaskStatus.ready_for_review,
         material_review_receipt=material_review_receipt(),
+        semantic_objective_receipt=semantic_objective_receipt(),
     )
     assert authorization.material_review_receipt_id == "review-prel5-027"
+
+
+def test_prel5_044_missing_semantic_objective_fails_closed() -> None:
+    with pytest.raises(GovernanceError, match="SEMANTIC_OBJECTIVE_EVIDENCE_REQUIRED"):
+        authorize_explicit_rollup(
+            engineering_record(),
+            operator_record(OperatorTaskStatus.verified, after_head=HEAD_B),
+            EngineeringTaskStatus.ready_for_review,
+            material_review_receipt=material_review_receipt(),
+        )
+
+
+def test_prel5_044_missing_tests_evidence_fails_closed() -> None:
+    run = operator_record(
+        OperatorTaskStatus.verified,
+        after_head=HEAD_B,
+        acceptance_decision=accepted_decision().model_copy(
+            update={"satisfied_kinds": (EvidenceKind.readback,)}
+        ),
+    )
+    with pytest.raises(GovernanceError, match="EXECUTION_SUCCESS_TESTS_REQUIRED"):
+        authorize_explicit_rollup(
+            engineering_record(),
+            run,
+            EngineeringTaskStatus.ready_for_review,
+            material_review_receipt=material_review_receipt(),
+            semantic_objective_receipt=semantic_objective_receipt(),
+        )
+
+
+def test_prel5_044_scope_authority_violation_fails_closed() -> None:
+    run = operator_record(
+        OperatorTaskStatus.verified,
+        after_head=HEAD_B,
+        changed_files=["outside/forbidden.py"],
+    )
+    with pytest.raises(GovernanceError, match="EXECUTION_SUCCESS_SCOPE_VIOLATION"):
+        authorize_explicit_rollup(
+            engineering_record(),
+            run,
+            EngineeringTaskStatus.ready_for_review,
+            material_review_receipt=material_review_receipt(),
+            semantic_objective_receipt=semantic_objective_receipt(),
+        )
+
+
+def test_prel5_044_explicit_authorization_is_required_when_declared() -> None:
+    run = operator_record(
+        OperatorTaskStatus.verified,
+        after_head=HEAD_B,
+        requires_explicit_authorization=True,
+        authorized_at=None,
+    )
+    with pytest.raises(
+        GovernanceError,
+        match="EXECUTION_SUCCESS_EXPLICIT_AUTHORIZATION_REQUIRED",
+    ):
+        authorize_explicit_rollup(
+            engineering_record(),
+            run,
+            EngineeringTaskStatus.ready_for_review,
+            material_review_receipt=material_review_receipt(),
+            semantic_objective_receipt=semantic_objective_receipt(),
+        )
+
+
+def test_prel5_044_positive_five_part_gate_binds_success_receipt() -> None:
+    authorization = authorize_explicit_rollup(
+        engineering_record(),
+        operator_record(
+            OperatorTaskStatus.verified,
+            after_head=HEAD_B,
+            changed_files=["orchestrator/src/example.py"],
+        ),
+        EngineeringTaskStatus.ready_for_review,
+        material_review_receipt=material_review_receipt(),
+        semantic_objective_receipt=semantic_objective_receipt(),
+    )
+    assert authorization.material_review_receipt_id == "review-prel5-027"
+    assert authorization.execution_success_receipt_id is not None
+    assert authorization.execution_success_receipt_id.startswith("success-")
