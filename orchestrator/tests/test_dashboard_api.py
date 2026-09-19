@@ -67,6 +67,10 @@ async def test_dashboard_uses_authoritative_project_reality(tmp_path: Path) -> N
     assert body["projects"][0]["project_id"] == project_id
     assert body["projects"][0]["ci_status"] == "NOT_CONFIGURED"
     assert body["projects"][0]["deployment_status"] == "NOT_DISCOVERED"
+    assert body["decision_inbox"]["durability"] == "DURABLE_SOURCE_READ_ONLY_PROJECTION"
+    assert body["decision_inbox"]["canonical_state_created"] is False
+    assert body["decision_inbox"]["project_scope_enforced"] is True
+    assert "PROJECT_CHANGE_INBOX" in body["provenance"]
     assert "EXTERNAL_PROJECT_REGISTRY" in body["provenance"]
 
 

@@ -146,6 +146,52 @@ class DashboardAction(BaseModel):
     authority: str
 
 
+class PortfolioDecisionInboxItem(BaseModel):
+    item_id: str
+    kind: Literal[
+        "PENDING_APPROVAL",
+        "PENDING_DECISION",
+        "BLOCKER",
+        "CHANGE_REVIEW",
+        "CURRENT_DECISION",
+    ]
+    project_id: str | None
+    applies_to_projects: list[str]
+    source_kind: Literal[
+        "OPERATOR_TASK",
+        "ENGINEERING_TASK",
+        "DECISION_REGISTRY",
+        "LIFECYCLE_DECISION_REGISTRY",
+        "PROJECT_CHANGE_INBOX",
+        "PROJECT_REALITY",
+    ]
+    source_id: str
+    status: str
+    summary: str
+    requires_human_action: bool
+    subject_sha: str | None = Field(default=None, pattern=r"^[0-9a-f]{40}$")
+    lifecycle_stage: str | None = None
+    authority_reference: str | None = None
+    blocker: str | None = None
+    updated_at: datetime | None = None
+
+
+class PortfolioDecisionInboxSummary(BaseModel):
+    total: int
+    pending_approvals: int
+    pending_decisions: int
+    blockers: int
+    change_reviews: int
+    current_decisions: int
+    items: list[PortfolioDecisionInboxItem]
+    durability: Literal["DURABLE_SOURCE_READ_ONLY_PROJECTION"] = (
+        "DURABLE_SOURCE_READ_ONLY_PROJECTION"
+    )
+    canonical_state_created: Literal[False] = False
+    project_scope_enforced: Literal[True] = True
+    exact_head_policy: Literal["REQUIRED_WHERE_APPLICABLE"] = "REQUIRED_WHERE_APPLICABLE"
+
+
 class DashboardSummary(BaseModel):
     generated_at: datetime
     freshness: FreshnessState
@@ -159,6 +205,7 @@ class DashboardSummary(BaseModel):
     alert_count: int
     critical_alert_count: int
     projects: list[PortfolioProjectSummary]
+    decision_inbox: PortfolioDecisionInboxSummary
     connection: ConnectionReadinessSummary
     checkpoints: list[ResumeCheckpointSummary]
     actions: list[DashboardAction]
