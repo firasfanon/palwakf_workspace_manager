@@ -9,6 +9,10 @@ from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from palwakf_orchestrator.decision_registry import (
+    DecisionStatus,
+    DecisionSupersessionRegistryV1,
+)
 from palwakf_orchestrator.errors import GovernanceError
 from palwakf_orchestrator.persistence import StateStore
 
@@ -182,6 +186,31 @@ class KnowledgeProvenanceRegistryV1(BaseModel):
         )
 
 
+
+def require_governed_promotion_decision(
+    claim: KnowledgeClaimV1,
+    decision_registry: DecisionSupersessionRegistryV1 | None,
+) -> None:
+    if claim.promotion_status != PromotionStatus.accepted_project_knowledge:
+        return
+    if decision_registry is None:
+        raise GovernanceError("GOVERNED_KNOWLEDGE_PROMOTION_DECISION_REQUIRED")
+    reference = claim.promotion_reference or ""
+    if not reference.startswith("DECISION://"):
+        raise GovernanceError("KNOWLEDGE_PROMOTION_DECISION_REFERENCE_REQUIRED")
+    decision_id = reference.removeprefix("DECISION://")
+    decision = decision_registry.get(decision_id)
+    if decision.status != DecisionStatus.current:
+        raise GovernanceError("KNOWLEDGE_PROMOTION_DECISION_NOT_CURRENT")
+    projects = set(decision.applies_to_projects)
+    if "*" not in projects and claim.project_id not in projects:
+        raise GovernanceError("KNOWLEDGE_PROMOTION_DECISION_PROJECT_MISMATCH")
+    expected_key = f"KNOWLEDGE_PROMOTION::{claim.project_id}::{claim.claim_key}"
+    if decision.conflict_key != expected_key:
+        raise GovernanceError("KNOWLEDGE_PROMOTION_DECISION_KEY_MISMATCH")
+    if f"knowledge-claim:{claim.claim_id}" not in decision.evidence:
+        raise GovernanceError("KNOWLEDGE_PROMOTION_DECISION_CLAIM_EVIDENCE_REQUIRED")
+
 def _canonical(value: object) -> str:
     return json.dumps(
         value,
@@ -263,7 +292,10 @@ class KnowledgeProvenanceRegistryStore:
         source_revision: str,
         authority_reference: str,
         claims: tuple[KnowledgeClaimV1, ...],
+        decision_registry: DecisionSupersessionRegistryV1 | None = None,
     ) -> KnowledgeProvenanceRegistryV1:
+        for claim in claims:
+            require_governed_promotion_decision(claim, decision_registry)
         snapshot = build_knowledge_registry_snapshot(
             source_revision=source_revision,
             authority_reference=authority_reference,

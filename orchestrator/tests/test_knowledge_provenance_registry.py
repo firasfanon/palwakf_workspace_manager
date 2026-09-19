@@ -1,7 +1,14 @@
+import hashlib
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
+from palwakf_orchestrator.decision_registry import (
+    DecisionRecordV1,
+    DecisionStatus,
+    build_decision_registry_snapshot,
+)
 from palwakf_orchestrator.errors import GovernanceError
 from palwakf_orchestrator.knowledge_provenance_registry import (
     ClaimStatus,
@@ -59,6 +66,38 @@ def snapshot(*claims: KnowledgeClaimV1) -> KnowledgeProvenanceRegistryV1:
         authority_reference="WORKSPACE_DRIVE://KNOWLEDGE_V1",
         claims=tuple(claims),
     )
+
+
+
+def promotion_registry(
+    promoted_claim: KnowledgeClaimV1,
+    *,
+    evidence_claim_id: str | None = None,
+):
+    decision_id = "DEC-KNOWLEDGE-PROMOTE-1"
+    record = DecisionRecordV1(
+        decision_id=decision_id,
+        conflict_key=(
+            f"KNOWLEDGE_PROMOTION::{promoted_claim.project_id}::{promoted_claim.claim_key}"
+        ),
+        version="V1",
+        effective_at=datetime(2026, 9, 20, tzinfo=UTC),
+        status=DecisionStatus.current,
+        authority="WORKSPACE_CONTROL_PLANE",
+        source_revision="drive-decision-rev-1",
+        authority_reference="WORKSPACE_DRIVE://KNOWLEDGE_PROMOTION_V1",
+        evidence=(f"knowledge-claim:{evidence_claim_id or promoted_claim.claim_id}",),
+        applies_to_projects=(promoted_claim.project_id,),
+        directive_fingerprint=hashlib.sha256(
+            f"promote:{promoted_claim.claim_id}".encode()
+        ).hexdigest(),
+    )
+    return build_decision_registry_snapshot(
+        source_revision="drive-decision-rev-1",
+        authority_reference="WORKSPACE_DRIVE://KNOWLEDGE_PROMOTION_V1",
+        records=(record,),
+    )
+
 
 
 def test_claim_surface_exposes_provenance_confidence_conflicts_and_promotion() -> None:
@@ -174,3 +213,75 @@ def test_sqlite_restart_preserves_governed_projection(tmp_path: Path) -> None:
     assert restored.get("claim-a").statement == "Statement for claim-a"
     assert restored.source_authority == "WORKSPACE_DRIVE_SOVEREIGN"
     assert restored.canonical_promotion_allowed is False
+
+
+def test_prel5_045_accepted_knowledge_requires_governed_decision() -> None:
+    promoted = claim(
+        "claim-promoted",
+        promotion_status=PromotionStatus.accepted_project_knowledge,
+        promotion_reference="DECISION://DEC-KNOWLEDGE-PROMOTE-1",
+    )
+    store = KnowledgeProvenanceRegistryStore(MemoryStateStore())
+    with pytest.raises(
+        GovernanceError,
+        match="GOVERNED_KNOWLEDGE_PROMOTION_DECISION_REQUIRED",
+    ):
+        store.import_snapshot(
+            source_revision="drive-rev-promote",
+            authority_reference="WORKSPACE_DRIVE://KNOWLEDGE_V1",
+            claims=(promoted,),
+        )
+
+
+def test_prel5_045_governed_current_decision_allows_project_knowledge_promotion() -> None:
+    promoted = claim(
+        "claim-promoted",
+        promotion_status=PromotionStatus.accepted_project_knowledge,
+        promotion_reference="DECISION://DEC-KNOWLEDGE-PROMOTE-1",
+    )
+    store = KnowledgeProvenanceRegistryStore(MemoryStateStore())
+    snapshot_value = store.import_snapshot(
+        source_revision="drive-rev-promote",
+        authority_reference="WORKSPACE_DRIVE://KNOWLEDGE_V1",
+        claims=(promoted,),
+        decision_registry=promotion_registry(promoted),
+    )
+    assert snapshot_value.get("claim-promoted").promotion_status == (
+        PromotionStatus.accepted_project_knowledge
+    )
+    assert snapshot_value.canonical_promotion_allowed is False
+
+
+def test_prel5_045_promotion_decision_must_bind_exact_claim_evidence() -> None:
+    promoted = claim(
+        "claim-promoted",
+        promotion_status=PromotionStatus.accepted_project_knowledge,
+        promotion_reference="DECISION://DEC-KNOWLEDGE-PROMOTE-1",
+    )
+    store = KnowledgeProvenanceRegistryStore(MemoryStateStore())
+    with pytest.raises(
+        GovernanceError,
+        match="KNOWLEDGE_PROMOTION_DECISION_CLAIM_EVIDENCE_REQUIRED",
+    ):
+        store.import_snapshot(
+            source_revision="drive-rev-promote",
+            authority_reference="WORKSPACE_DRIVE://KNOWLEDGE_V1",
+            claims=(promoted,),
+            decision_registry=promotion_registry(
+                promoted,
+                evidence_claim_id="different-claim",
+            ),
+        )
+
+
+def test_prel5_045_candidate_remains_noncanonical_without_promotion_decision() -> None:
+    candidate = claim("claim-candidate", promotion_status=PromotionStatus.candidate)
+    store = KnowledgeProvenanceRegistryStore(MemoryStateStore())
+    snapshot_value = store.import_snapshot(
+        source_revision="drive-rev-candidate",
+        authority_reference="WORKSPACE_DRIVE://KNOWLEDGE_V1",
+        claims=(candidate,),
+    )
+    restored = snapshot_value.get("claim-candidate")
+    assert restored.promotion_status == PromotionStatus.candidate
+    assert snapshot_value.canonical_promotion_allowed is False
