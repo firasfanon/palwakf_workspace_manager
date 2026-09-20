@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -42,6 +43,8 @@ class ServiceLevelMeasurementV1(BaseModel):
     queue_capacity: int = Field(ge=1)
     worker_count: int = Field(ge=1)
     elapsed_ms: float = Field(gt=0)
+    memory_measurement_available: Literal[True]
+    memory_measurement_source: str = Field(min_length=1, max_length=120)
     memory_delta_bytes: int = Field(ge=0)
     overload_attempts: int = Field(ge=0)
     overload_rejections: int = Field(ge=0)
@@ -75,6 +78,8 @@ class ServiceLevelEvaluationV1(BaseModel):
     p95_latency_ms: float
     p99_latency_ms: float
     throughput_rps: float
+    memory_measurement_available: Literal[True]
+    memory_measurement_source: str
     memory_delta_bytes: int
     concurrency: int
     queue_capacity: int
@@ -167,6 +172,8 @@ def evaluate_service_level(
         "p95_latency_ms": p95,
         "p99_latency_ms": p99,
         "throughput_rps": throughput_rps,
+        "memory_measurement_available": measurement.memory_measurement_available,
+        "memory_measurement_source": measurement.memory_measurement_source,
         "memory_delta_bytes": measurement.memory_delta_bytes,
         "concurrency": measurement.concurrency,
         "queue_capacity": measurement.queue_capacity,
@@ -189,6 +196,8 @@ def evaluate_service_level(
         p95_latency_ms=p95,
         p99_latency_ms=p99,
         throughput_rps=throughput_rps,
+        memory_measurement_available=measurement.memory_measurement_available,
+        memory_measurement_source=measurement.memory_measurement_source,
         memory_delta_bytes=measurement.memory_delta_bytes,
         concurrency=measurement.concurrency,
         queue_capacity=measurement.queue_capacity,

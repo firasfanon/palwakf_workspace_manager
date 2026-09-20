@@ -60,6 +60,8 @@ def measurement(**updates: object) -> ServiceLevelMeasurementV1:
         "queue_capacity": 2,
         "worker_count": 1,
         "elapsed_ms": 100.0,
+        "memory_measurement_available": True,
+        "memory_measurement_source": "test-fixture",
         "memory_delta_bytes": 1024,
         "overload_attempts": 1,
         "overload_rejections": 1,
@@ -85,6 +87,8 @@ def test_passing_measurement_produces_hashed_slo_evidence() -> None:
     assert result.p95_latency_ms == 13.0
     assert result.p99_latency_ms == 13.0
     assert result.throughput_rps == 50.0
+    assert result.memory_measurement_available is True
+    assert result.memory_measurement_source == "test-fixture"
     assert result.memory_delta_bytes == 1024
     assert result.overload_rejection_ratio == 1.0
     assert len(result.evidence_sha256) == 64
@@ -165,6 +169,16 @@ def test_each_required_slo_gate_fails_closed(
 def test_measurement_rejects_inconsistent_counts() -> None:
     with pytest.raises(ValidationError, match="SLO_SAMPLE_COUNT_MISMATCH"):
         measurement(successes=4, failures=0)
+
+
+def test_measurement_fails_closed_when_memory_measurement_is_unavailable() -> None:
+    with pytest.raises(ValidationError):
+        measurement(memory_measurement_available=False)
+
+
+def test_measurement_requires_nonempty_memory_measurement_source() -> None:
+    with pytest.raises(ValidationError):
+        measurement(memory_measurement_source="")
 
 
 def test_evaluation_hash_tampering_is_rejected() -> None:
