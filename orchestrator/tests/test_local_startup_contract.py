@@ -30,6 +30,8 @@ def test_launcher_uses_existing_same_origin_local_session_contract() -> None:
     assert 'Write-Output "LOCAL_URL=$baseUrl/dashboard"' not in source
     assert "LOCAL_ENTRYPOINT_COMMAND=.\\Start-PalWakfWorkspaceManager.ps1" in source
     assert "DIRECT_DASHBOARD_REQUIRES_AUTHENTICATED_SESSION=TRUE" in source
+    assert "PROTECTED_DASHBOARD_URL=$baseUrl/dashboard" in source
+    assert "SESSION_DASHBOARD_URL=$baseUrl/dashboard" not in source
     assert "Set-Clipboard" not in source
     assert "TOKEN_COPIED_TO_CLIPBOARD" not in source
 

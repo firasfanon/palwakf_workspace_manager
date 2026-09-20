@@ -442,7 +442,7 @@ if ($canReuse) {
     Write-Output "SOURCE_HEAD=$currentHead"
     Write-Output "LOCAL_ENTRYPOINT_COMMAND=.\Start-PalWakfWorkspaceManager.ps1"
     Write-Output "DIRECT_DASHBOARD_REQUIRES_AUTHENTICATED_SESSION=TRUE"
-    Write-Output "SESSION_DASHBOARD_URL=$baseUrl/dashboard"
+    Write-Output "PROTECTED_DASHBOARD_URL=$baseUrl/dashboard"
     exit 0
 }
 
@@ -565,4 +565,4 @@ Write-Output "SOURCE_BRANCH=$currentBranch"
 Write-Output "SOURCE_HEAD=$currentHead"
 Write-Output "LOCAL_ENTRYPOINT_COMMAND=.\Start-PalWakfWorkspaceManager.ps1"
 Write-Output "DIRECT_DASHBOARD_REQUIRES_AUTHENTICATED_SESSION=TRUE"
-Write-Output "SESSION_DASHBOARD_URL=$baseUrl/dashboard"
+Write-Output "PROTECTED_DASHBOARD_URL=$baseUrl/dashboard"
