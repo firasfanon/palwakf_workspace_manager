@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Callable
 from datetime import UTC, datetime
-from typing import Any, Literal
+from typing import Any, Literal, TypeVar, cast
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
@@ -22,7 +23,10 @@ from palwakf_orchestrator.risk_adaptive_execution import (
 )
 
 STATE_KEY = "four_system_l4_operational_runs_v1"
-CONTRACT_ID = "PALWAKF_FOUR_SYSTEM_L4_OPERATIONAL_CONTRACT_V1"
+CONTRACT_ID: Literal["PALWAKF_FOUR_SYSTEM_L4_OPERATIONAL_CONTRACT_V1"] = (
+    "PALWAKF_FOUR_SYSTEM_L4_OPERATIONAL_CONTRACT_V1"
+)
+_T = TypeVar("_T")
 
 
 def _now() -> str:
@@ -328,7 +332,9 @@ class FourSystemL4OperationalService:
             "stage": record.stage,
             "checkpoint_chain_sha256": latest.chain_sha256,
             "authority_sha256": record.authority_sha256,
-            "agentic_result_sha256": record.agentic_envelope["result_sha256"],
+            "agentic_result_sha256": cast(dict[str, Any], record.agentic_envelope)[
+                "result_sha256"
+            ],
             "mind_review_sha256": record.mind_envelope["result_sha256"],
             "canonical_knowledge_promoted": False,
             "production_approved": False,
@@ -375,7 +381,9 @@ class FourSystemL4OperationalService:
                 raise GovernanceError("FOUR_SYSTEM_L4_DECISION_REPLAY_CONFLICT")
             return record
 
-        agentic_result = record.agentic_envelope["agentic_result"]
+        agentic_result = cast(dict[str, Any], record.agentic_envelope)[
+            "agentic_result"
+        ]
         execution = agentic_result["execution"]
         evaluation = agentic_result["evaluation"]
 
@@ -411,7 +419,7 @@ def mount_four_system_l4(
     app.state.four_system_l4_service = service
     app.state.risk_adaptive_method_pilot = method_pilot
 
-    def _guard(callable_obj):
+    def _guard(callable_obj: Callable[[], _T]) -> _T:
         try:
             return callable_obj()
         except GovernanceError as error:
@@ -422,7 +430,7 @@ def mount_four_system_l4(
 
     @app.post("/api/v1/four-system/l4/runs", response_model=L4OperationalRunRecord)
     def open_run(request: L4OpenRunRequest) -> L4OperationalRunRecord:
-        def action():
+        def action() -> L4OperationalRunRecord:
             view = execution_runs.get_operational_view(request.execution_run_id)
             package = build_workspace_authority_package(view)
             if request.requested_provider_id != "PALWAKF_NATIVE_AGENT":

@@ -1,11 +1,17 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Literal
+from typing import Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from palwakf_orchestrator.errors import GovernanceError
+from palwakf_orchestrator.intersystem_contracts import WorkspaceAuthorityPackageV1
+
+
+class AuthorityPackageRecord(Protocol):
+    @property
+    def authority_package(self) -> WorkspaceAuthorityPackageV1: ...
 
 
 class RiskLevel(StrEnum):
@@ -56,7 +62,11 @@ class RiskAdaptiveExecutionPilot:
             return RiskLevel.R2
         return RiskLevel.R3
 
-    def decide(self, record, request: MethodPilotRequest) -> MethodPilotDecision:
+    def decide(
+        self,
+        record: AuthorityPackageRecord,
+        request: MethodPilotRequest,
+    ) -> MethodPilotDecision:
         risk = self.classify(request.action)
         package = record.authority_package
         blockers: list[str] = []
@@ -106,7 +116,11 @@ class RiskAdaptiveExecutionPilot:
             visible_message="READY",
         )
 
-    def require_ready(self, record, request: MethodPilotRequest) -> MethodPilotDecision:
+    def require_ready(
+        self,
+        record: AuthorityPackageRecord,
+        request: MethodPilotRequest,
+    ) -> MethodPilotDecision:
         decision = self.decide(record, request)
         if not decision.ready:
             raise GovernanceError(f"METHOD_PILOT_BLOCKED:{decision.blockers[0]}")

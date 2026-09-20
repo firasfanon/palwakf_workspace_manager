@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -81,7 +81,7 @@ class PreL5CrossSystemContractV1(BaseModel):
     canonical_promotion_allowed: Literal[False] = False
 
     @model_validator(mode="after")
-    def validate_binding(self):
+    def validate_binding(self) -> Self:
         package = self.authority_package
 
         if package.project_id != self.project_id:
