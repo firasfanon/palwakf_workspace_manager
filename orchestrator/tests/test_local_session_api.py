@@ -79,3 +79,52 @@ async def test_local_session_issue_rejects_invalid_bearer(tmp_path: Path) -> Non
 
     assert response.status_code == 401
     assert response.json()["detail"] == "valid bearer authentication is required"
+
+
+
+@pytest.mark.asyncio
+async def test_direct_dashboard_browser_request_fails_closed_with_human_entrypoint(
+    tmp_path: Path,
+) -> None:
+    app = build_readonly_app(tmp_path)
+    async with AsyncClient(
+        transport=ASGITransport(app=app, client=("127.0.0.1", 43212)),
+        base_url="http://127.0.0.1",
+    ) as client:
+        response = await client.get(
+            "/dashboard",
+            headers={"Accept": "text/html,application/xhtml+xml"},
+        )
+
+    assert response.status_code == 401
+    assert response.headers["www-authenticate"] == "Bearer"
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["content-type"].startswith("text/html")
+    assert "PALWAKF_LOCAL_AUTHENTICATED_ENTRYPOINT_REQUIRED" in response.text
+    assert (
+        "\u064a\u0644\u0632\u0645 \u0628\u062f\u0621 \u062c\u0644\u0633\u0629 "
+        "\u0645\u062d\u0644\u064a\u0629 \u0622\u0645\u0646\u0629"
+        in response.text
+    )
+    assert (
+        "\u0647\u0630\u0647 \u0627\u0644\u0635\u0641\u062d\u0629 \u0645\u062d\u0645\u064a\u0629"
+        in response.text
+    )
+    assert ".\\Start-PalWakfWorkspaceManager.ps1" in response.text
+    assert '{"detail":"valid bearer authentication is required"}' not in response.text
+
+
+@pytest.mark.asyncio
+async def test_unauthenticated_dashboard_api_remains_json_bearer_challenge(
+    tmp_path: Path,
+) -> None:
+    app = build_readonly_app(tmp_path)
+    async with AsyncClient(
+        transport=ASGITransport(app=app, client=("127.0.0.1", 43213)),
+        base_url="http://127.0.0.1",
+    ) as client:
+        response = await client.get("/v1/dashboard/summary")
+
+    assert response.status_code == 401
+    assert response.headers["www-authenticate"] == "Bearer"
+    assert response.json()["detail"] == "valid bearer authentication is required"
