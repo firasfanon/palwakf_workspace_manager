@@ -27,6 +27,40 @@ const browser = await chromium.launch({
   headless: true,
   executablePath: browserExecutable,
 });
+
+const directContext = await browser.newContext({
+  viewport: { width: 1440, height: 1000 },
+  locale: "ar",
+});
+const directPage = await directContext.newPage();
+let directEntrypointStatus = 0;
+let directEntrypointGuidance = false;
+let directEntrypointRawAuthJson = false;
+try {
+  const directResponse = await directPage.goto(
+    "http://127.0.0.1:8421/dashboard",
+    { waitUntil: "domcontentloaded", timeout: 60_000 },
+  );
+  directEntrypointStatus = directResponse?.status() ?? 0;
+  const bodyText = await directPage.locator("body").innerText();
+  directEntrypointGuidance = bodyText.includes(
+    "PALWAKF_LOCAL_AUTHENTICATED_ENTRYPOINT_REQUIRED",
+  );
+  directEntrypointRawAuthJson = bodyText.includes(
+    '{"detail":"valid bearer authentication is required"}',
+  );
+  await directPage.screenshot({
+    path: path.join(artifactRoot, "direct-dashboard-auth-guidance.png"),
+    fullPage: true,
+  });
+} finally {
+  await directContext.close();
+}
+const directEntrypointPass =
+  directEntrypointStatus === 401 &&
+  directEntrypointGuidance &&
+  !directEntrypointRawAuthJson;
+
 const context = await browser.newContext({
   viewport: { width: 1440, height: 1000 },
   locale: "ar",
@@ -203,6 +237,7 @@ try {
   ).count();
   const result = {
     status:
+      directEntrypointPass &&
       !horizontalOverflow &&
       bodyHasContent &&
       overlay === 0 &&
@@ -210,6 +245,11 @@ try {
       requestFailures.length === 0
         ? "PASS"
         : "FAIL",
+    direct_entrypoint:
+      directEntrypointPass ? "PASS_FAIL_CLOSED_GUIDANCE" : "FAIL",
+    direct_entrypoint_status: directEntrypointStatus,
+    direct_entrypoint_guidance: directEntrypointGuidance,
+    direct_entrypoint_raw_auth_json: directEntrypointRawAuthJson,
     desktop: "PASS",
     narrow: horizontalOverflow ? "FAIL_HORIZONTAL_OVERFLOW" : "PASS",
     meaningful_content: bodyHasContent,

@@ -84,7 +84,9 @@ function Open-LocalSession([string]$Token) {
     }
     if (-not $NoOpen) {
         Start-Process "$baseUrl$($issued.launch_path)"
+        return "AUTO_OPENED_AUTHENTICATED_SESSION"
     }
+    return "ISSUED_NOT_OPENED_NOOPEN"
 }
 
 function Read-RuntimeRecord {
@@ -429,16 +431,18 @@ elseif (Test-Path -LiteralPath $runtimeFile) {
 
 if ($canReuse) {
     $null = Invoke-Authenticated "Post" "/v1/local-product/bootstrap" $storedToken
-    Open-LocalSession $storedToken
+    $sessionLaunchState = Open-LocalSession $storedToken
     $storedToken = $null
 
     Write-Output "PALWAKF_WORKSPACE_MANAGER=ALREADY_RUNNING"
     Write-Output "ORCHESTRATOR=CONNECTED"
     Write-Output "AUTHENTICATION=VERIFIED"
-    Write-Output "SESSION=AUTO_ISSUED"
+    Write-Output "SESSION_LAUNCH=$sessionLaunchState"
     Write-Output "SOURCE_BRANCH=$currentBranch"
     Write-Output "SOURCE_HEAD=$currentHead"
-    Write-Output "LOCAL_URL=$baseUrl/dashboard"
+    Write-Output "LOCAL_ENTRYPOINT_COMMAND=.\Start-PalWakfWorkspaceManager.ps1"
+    Write-Output "DIRECT_DASHBOARD_REQUIRES_AUTHENTICATED_SESSION=TRUE"
+    Write-Output "SESSION_DASHBOARD_URL=$baseUrl/dashboard"
     exit 0
 }
 
@@ -524,7 +528,7 @@ try {
         -BuildHead $buildHead `
         -StartedAt ([DateTimeOffset]::UtcNow.ToString("o"))
 
-    Open-LocalSession $token
+    $sessionLaunchState = Open-LocalSession $token
 }
 catch {
     if (-not $process.HasExited) {
@@ -555,8 +559,10 @@ finally {
 Write-Output "PALWAKF_WORKSPACE_MANAGER=STARTED"
 Write-Output "ORCHESTRATOR=CONNECTED"
 Write-Output "AUTHENTICATION=VERIFIED"
-Write-Output "SESSION=AUTO_ISSUED"
+Write-Output "SESSION_LAUNCH=$sessionLaunchState"
 Write-Output "WORKSPACE_MANAGER_PROJECT=REGISTERED"
 Write-Output "SOURCE_BRANCH=$currentBranch"
 Write-Output "SOURCE_HEAD=$currentHead"
-Write-Output "LOCAL_URL=$baseUrl/dashboard"
+Write-Output "LOCAL_ENTRYPOINT_COMMAND=.\Start-PalWakfWorkspaceManager.ps1"
+Write-Output "DIRECT_DASHBOARD_REQUIRES_AUTHENTICATED_SESSION=TRUE"
+Write-Output "SESSION_DASHBOARD_URL=$baseUrl/dashboard"

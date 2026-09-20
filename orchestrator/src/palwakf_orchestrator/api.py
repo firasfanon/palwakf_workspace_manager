@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from starlette.middleware.base import RequestResponseEndpoint
 
 from palwakf_orchestrator.auth import AuthRegistry, BoundedRateLimiter, JwtAuthConfig
@@ -297,6 +297,8 @@ def create_app(
                 principal = resolved_auth.require(request, scope)
             limiter.require(principal.client_id)
         except HTTPException as exc:
+            if exc.status_code == 401 and _is_local_ui_browser_request(request):
+                return _local_ui_auth_required_response(exc)
             return JSONResponse(
                 status_code=exc.status_code,
                 content={"detail": exc.detail},
@@ -525,6 +527,74 @@ def create_app(
         raise HTTPException(status_code=404, detail="local Flutter build is not available")
 
     return app
+
+
+_LOCAL_UI_PATH_PREFIXES = (
+    "/dashboard",
+    "/home",
+    "/projects",
+    "/tasks",
+    "/tools",
+    "/alerts",
+    "/evidence",
+    "/settings",
+)
+
+
+def _is_local_ui_browser_request(request: Request) -> bool:
+    if request.method not in {"GET", "HEAD"}:
+        return False
+    if "text/html" not in request.headers.get("Accept", "").lower():
+        return False
+    path = request.url.path
+    return path == "/" or any(
+        path == prefix or path.startswith(f"{prefix}/")
+        for prefix in _LOCAL_UI_PATH_PREFIXES
+    )
+
+
+def _local_ui_auth_required_response(exc: HTTPException) -> HTMLResponse:
+    headers = dict(exc.headers or {})
+    headers.update(
+        {
+            "Cache-Control": "no-store",
+            "Content-Language": "ar",
+            "Content-Security-Policy": (
+                "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; "
+                "form-action 'none'; frame-ancestors 'none'"
+            ),
+            "Referrer-Policy": "no-referrer",
+            "X-Content-Type-Options": "nosniff",
+        }
+    )
+    return HTMLResponse(
+        status_code=401,
+        headers=headers,
+        content="""<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PalWakf Workspace Manager ? ???? ????? ??????</title>
+  <style>
+    body{font-family:system-ui,sans-serif;max-width:760px;margin:64px auto;padding:24px;
+    line-height:1.8;background:#fafafa;color:#171717}
+    main{background:white;border:1px solid #ddd;border-radius:16px;padding:28px}
+    code{direction:ltr;display:inline-block;background:#f2f2f2;padding:3px 8px;border-radius:6px}
+  </style>
+</head>
+<body>
+  <main data-palwakf-entrypoint-state="authentication-required">
+    <h1>???? ??? ???? ????? ????</h1>
+    <p>?????? ????? ??? ??? ?????? ????? ??? ????? ??????? ???? ???? ????? ?????.</p>
+    <p>?? ???? ??????? ????:</p>
+    <p><code>.\\Start-PalWakfWorkspaceManager.ps1</code></p>
+    <p>????? ??????? ???? ???? ??????? ??????? ????????. ?? ????? ?? ??? ???? ??????.</p>
+    <p><strong>PALWAKF_LOCAL_AUTHENTICATED_ENTRYPOINT_REQUIRED</strong></p>
+  </main>
+</body>
+</html>""",
+    )
 
 
 def _scope_for(request: Request) -> ServiceScope:

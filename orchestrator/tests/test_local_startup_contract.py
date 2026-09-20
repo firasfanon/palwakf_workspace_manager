@@ -25,7 +25,11 @@ def test_launcher_uses_existing_same_origin_local_session_contract() -> None:
 
     assert '"/local/session/issue"' in source
     assert 'Start-Process "$baseUrl$($issued.launch_path)"' in source
-    assert "SESSION=AUTO_ISSUED" in source
+    assert "AUTO_OPENED_AUTHENTICATED_SESSION" in source
+    assert "ISSUED_NOT_OPENED_NOOPEN" in source
+    assert 'Write-Output "LOCAL_URL=$baseUrl/dashboard"' not in source
+    assert "LOCAL_ENTRYPOINT_COMMAND=.\\Start-PalWakfWorkspaceManager.ps1" in source
+    assert "DIRECT_DASHBOARD_REQUIRES_AUTHENTICATED_SESSION=TRUE" in source
     assert "Set-Clipboard" not in source
     assert "TOKEN_COPIED_TO_CLIPBOARD" not in source
 
