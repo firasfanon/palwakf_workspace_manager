@@ -1,11 +1,83 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
 import threading
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from time import perf_counter_ns
 from typing import Any, Protocol, cast
+
+from palwakf_orchestrator.errors import GovernanceError
+
+
+@dataclass(frozen=True)
+class SQLiteBackupReceiptV1:
+    backup_path: str
+    backup_sha256: str
+    state_sha256: str
+    size_bytes: int
+    created_at: str
+    duration_ms: int
+    integrity_check: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class SQLiteRestoreReceiptV1:
+    backup_path: str
+    backup_sha256: str
+    before_state_sha256: str
+    restored_state_sha256: str
+    restored_at: str
+    duration_ms: int
+    integrity_check: tuple[str, ...]
+
+
+def _canonical_state_sha256(state: dict[str, Any]) -> str:
+    canonical = json.dumps(
+        state,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
+
+
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _sqlite_integrity_check(path: Path) -> tuple[str, ...]:
+    try:
+        with sqlite3.connect(path, timeout=10) as connection:
+            rows = connection.execute("PRAGMA integrity_check").fetchall()
+    except sqlite3.Error as exc:
+        raise GovernanceError("SQLITE_INTEGRITY_CHECK_FAILED") from exc
+    result = tuple(str(row[0]) for row in rows)
+    if result != ("ok",):
+        raise GovernanceError("SQLITE_INTEGRITY_CHECK_NOT_OK")
+    return result
+
+
+def _load_state_from_sqlite(path: Path) -> dict[str, Any]:
+    try:
+        with sqlite3.connect(path, timeout=10) as connection:
+            connection.row_factory = sqlite3.Row
+            row = connection.execute(
+                "SELECT state_json FROM application_state WHERE singleton = 1"
+            ).fetchone()
+    except sqlite3.Error as exc:
+        raise GovernanceError("SQLITE_BACKUP_STATE_READ_FAILED") from exc
+    try:
+        return json.loads(row["state_json"]) if row else {}
+    except (json.JSONDecodeError, TypeError) as exc:
+        raise GovernanceError("SQLITE_BACKUP_STATE_JSON_INVALID") from exc
 
 
 class StateStore(Protocol):
@@ -168,10 +240,84 @@ class SQLiteStateStore:
             ).fetchone()
             return dict(row) if row else None
 
+    def verify_integrity(self) -> tuple[str, ...]:
+        with self._lock:
+            return _sqlite_integrity_check(self.path)
+
+    def create_backup(self, destination: Path) -> SQLiteBackupReceiptV1:
+        target_path = destination.resolve()
+        if target_path == self.path:
+            raise GovernanceError("SQLITE_BACKUP_TARGET_MUST_DIFFER_FROM_SOURCE")
+        if target_path.exists():
+            raise GovernanceError("SQLITE_BACKUP_TARGET_ALREADY_EXISTS")
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        started_ns = perf_counter_ns()
+        with self._lock:
+            state_sha256 = _canonical_state_sha256(self.load())
+            try:
+                with self._connect() as source, sqlite3.connect(target_path, timeout=10) as target:
+                    source.backup(target)
+                    target.commit()
+            except sqlite3.Error as exc:
+                target_path.unlink(missing_ok=True)
+                raise GovernanceError("SQLITE_BACKUP_FAILED") from exc
+            integrity = _sqlite_integrity_check(target_path)
+            backup_state_sha256 = _canonical_state_sha256(_load_state_from_sqlite(target_path))
+            if backup_state_sha256 != state_sha256:
+                target_path.unlink(missing_ok=True)
+                raise GovernanceError("SQLITE_BACKUP_STATE_HASH_MISMATCH")
+        return SQLiteBackupReceiptV1(
+            backup_path=str(target_path),
+            backup_sha256=_file_sha256(target_path),
+            state_sha256=state_sha256,
+            size_bytes=target_path.stat().st_size,
+            created_at=datetime.now(UTC).isoformat(),
+            duration_ms=max(0, (perf_counter_ns() - started_ns) // 1_000_000),
+            integrity_check=integrity,
+        )
+
+    def restore_backup(self, receipt: SQLiteBackupReceiptV1) -> SQLiteRestoreReceiptV1:
+        backup_path = Path(receipt.backup_path).resolve()
+        if backup_path == self.path:
+            raise GovernanceError("SQLITE_RESTORE_SOURCE_MUST_DIFFER_FROM_TARGET")
+        if not backup_path.is_file():
+            raise GovernanceError("SQLITE_BACKUP_NOT_FOUND")
+        if _file_sha256(backup_path) != receipt.backup_sha256:
+            raise GovernanceError("SQLITE_BACKUP_SHA256_MISMATCH")
+        backup_integrity = _sqlite_integrity_check(backup_path)
+        backup_state_sha256 = _canonical_state_sha256(_load_state_from_sqlite(backup_path))
+        if backup_state_sha256 != receipt.state_sha256:
+            raise GovernanceError("SQLITE_BACKUP_STATE_HASH_MISMATCH")
+
+        started_ns = perf_counter_ns()
+        with self._lock:
+            before_state_sha256 = _canonical_state_sha256(self.load())
+            try:
+                with sqlite3.connect(backup_path, timeout=10) as source, self._connect() as target:
+                    source.backup(target)
+                    target.commit()
+            except sqlite3.Error as exc:
+                raise GovernanceError("SQLITE_RESTORE_FAILED") from exc
+            restored_state_sha256 = _canonical_state_sha256(self.load())
+            if restored_state_sha256 != receipt.state_sha256:
+                raise GovernanceError("SQLITE_RESTORE_STATE_HASH_MISMATCH")
+            restored_integrity = _sqlite_integrity_check(self.path)
+
+        if restored_integrity != backup_integrity:
+            raise GovernanceError("SQLITE_RESTORE_INTEGRITY_MISMATCH")
+        return SQLiteRestoreReceiptV1(
+            backup_path=str(backup_path),
+            backup_sha256=receipt.backup_sha256,
+            before_state_sha256=before_state_sha256,
+            restored_state_sha256=restored_state_sha256,
+            restored_at=datetime.now(UTC).isoformat(),
+            duration_ms=max(0, (perf_counter_ns() - started_ns) // 1_000_000),
+            integrity_check=restored_integrity,
+        )
+
     def is_healthy(self) -> bool:
         try:
-            with self._connect() as connection:
-                connection.execute("SELECT 1").fetchone()
+            self.verify_integrity()
             return True
-        except sqlite3.Error:
+        except (sqlite3.Error, GovernanceError):
             return False

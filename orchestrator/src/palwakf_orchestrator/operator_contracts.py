@@ -6,6 +6,12 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from palwakf_orchestrator.evidence_acceptance_engine import (
+    AcceptanceDecisionV1,
+    AcceptanceEvidenceV1,
+    EvidenceKind,
+)
+from palwakf_orchestrator.learning_closeout_gate import LearningCloseoutReceiptV1
 from palwakf_orchestrator.provider_contracts import ProviderMode
 
 
@@ -70,6 +76,9 @@ class CreateOperatorTaskRequest(BaseModel):
         pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{1,127}$",
     )
     provider_mode: ProviderMode = ProviderMode.execution_relay
+    acceptance_requirements: list[EvidenceKind] = Field(
+        default_factory=lambda: [EvidenceKind.ci], min_length=1, max_length=4
+    )
 
 
 class OperatorTaskRecord(BaseModel):
@@ -92,6 +101,7 @@ class OperatorTaskRecord(BaseModel):
     scope_patterns: list[str] = Field(default_factory=list)
     relay_provider_id: str = "codex"
     provider_mode: ProviderMode = ProviderMode.execution_relay
+    acceptance_requirements: list[EvidenceKind] = Field(default_factory=lambda: [EvidenceKind.ci])
     selected_provider_id: str | None = None
     authorized_at: datetime | None = None
     authorized_by: str | None = None
@@ -109,6 +119,8 @@ class OperatorTaskRecord(BaseModel):
     tests: list[str] = Field(default_factory=list)
     evidence: list[str] = Field(default_factory=list)
     verification_receipt: str | None = None
+    acceptance_decision: AcceptanceDecisionV1 | None = None
+    learning_closeout_receipt: LearningCloseoutReceiptV1 | None = None
     client_id: str | None = None
     correlation_id: str | None = None
     execution_host_id: str | None = None
@@ -184,6 +196,8 @@ class VerificationRequest(BaseModel):
     verification_receipt: str = Field(min_length=8, max_length=512)
     ci_status: Literal["success", "failed", "pending"]
     verified_head: str = Field(pattern=r"^[0-9a-fA-F]{40}$")
+    uat_evidence: AcceptanceEvidenceV1 | None = None
+    learning_closeout_receipt: LearningCloseoutReceiptV1 | None = None
 
 
 class RuntimeCapabilities(BaseModel):

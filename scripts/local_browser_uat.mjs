@@ -50,16 +50,8 @@ async function enableSemantics() {
   const placeholder = page.locator("flt-semantics-placeholder");
   if (!(await placeholder.count())) return;
 
-  await placeholder.first().evaluate((element) => {
-    const rect = element.getBoundingClientRect();
-    element.dispatchEvent(
-      new MouseEvent("click", {
-        bubbles: true,
-        clientX: Math.floor(rect.left + rect.width / 2),
-        clientY: Math.floor(rect.top + rect.height / 2),
-      }),
-    );
-  });
+  await placeholder.first().focus();
+  await page.keyboard.press("Enter");
 
   const semantics = page.locator("flt-semantics");
   const deadline = Date.now() + 10_000;
@@ -103,19 +95,28 @@ try {
     path.join(artifactRoot, "semantics.json"),
     JSON.stringify(semantics, null, 2),
   );
-  await page.getByLabel("Orchestrator: CONNECTED", { exact: true }).waitFor({
+  await page.getByRole("button", { name: "ابدأ التنفيذ", exact: true }).waitFor({
     timeout: 30_000,
   });
-  await page
-    .getByLabel(/PalWakf Workspace Manager[\s\S]*firasfanon\/palwakf_workspace_manager/)
-    .waitFor();
+
+  await page.goto("http://127.0.0.1:8421/#/dashboard", {
+    waitUntil: "networkidle",
+    timeout: 60_000,
+  });
+  await enableSemantics();
+  await page.getByLabel("الخدمة متصلة", { exact: true }).waitFor({
+    timeout: 30_000,
+  });
   await page.screenshot({
     path: path.join(artifactRoot, "dashboard-desktop.png"),
     fullPage: true,
   });
 
-  await page.mouse.click(1390, 220);
-  await page.waitForURL("**/tasks", { timeout: 30_000 });
+  await page.goto("http://127.0.0.1:8421/#/tasks", {
+    waitUntil: "networkidle",
+    timeout: 60_000,
+  });
+  await enableSemantics();
   await page.screenshot({
     path: path.join(artifactRoot, "tasks-initial.png"),
     fullPage: true,
@@ -179,12 +180,12 @@ try {
   }
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("http://127.0.0.1:8421/dashboard", {
+  await page.goto("http://127.0.0.1:8421/#/home", {
     waitUntil: "networkidle",
     timeout: 60_000,
   });
   await enableSemantics();
-  await page.getByLabel("Orchestrator: CONNECTED", { exact: true }).waitFor({
+  await page.getByRole("button", { name: "ابدأ التنفيذ", exact: true }).waitFor({
     timeout: 30_000,
   });
   await page.screenshot({

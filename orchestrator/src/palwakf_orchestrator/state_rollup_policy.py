@@ -9,6 +9,11 @@ from palwakf_orchestrator.engineering_os_contracts import (
     EngineeringTaskStatus,
 )
 from palwakf_orchestrator.errors import GovernanceError
+from palwakf_orchestrator.execution_success_gate import (
+    SemanticObjectiveReceiptV1,
+    require_five_part_execution_success,
+)
+from palwakf_orchestrator.independent_code_review_policy import MaterialCodeReviewReceiptV1
 from palwakf_orchestrator.operator_contracts import (
     OperatorTaskRecord,
     OperatorTaskStatus,
@@ -50,6 +55,8 @@ class ExplicitRollupAuthorization(BaseModel):
     automatic: bool = False
     requires_explicit_human_authorization: bool = True
     reason: str
+    material_review_receipt_id: str | None = None
+    execution_success_receipt_id: str | None = None
 
 
 _TERMINAL_PARENT_STATUSES = frozenset(
@@ -174,11 +181,32 @@ def authorize_explicit_rollup(
     parent: EngineeringTaskRecord,
     run: OperatorTaskRecord,
     requested_parent_status: EngineeringTaskStatus,
+    *,
+    material_review_receipt: MaterialCodeReviewReceiptV1 | None = None,
+    semantic_objective_receipt: SemanticObjectiveReceiptV1 | None = None,
 ) -> ExplicitRollupAuthorization:
     decision = evaluate_state_rollup(parent, run)
 
     if requested_parent_status == EngineeringTaskStatus.integrated:
         raise GovernanceError("RUN_CANNOT_DIRECTLY_INTEGRATE_PARENT")
+
+    review_receipt_id: str | None = None
+    success_receipt_id: str | None = None
+    if (
+        requested_parent_status == EngineeringTaskStatus.ready_for_review
+        and parent.mutation_class == "source-write"
+    ):
+        subject_sha = (run.after_head or parent.latest_remote_task_sha or "").lower()
+        if len(subject_sha) != 40:
+            raise GovernanceError("MATERIAL_CODE_REVIEW_SUBJECT_HEAD_REQUIRED")
+        success = require_five_part_execution_success(
+            parent=parent,
+            run=run,
+            semantic_receipt=semantic_objective_receipt,
+            material_review_receipt=material_review_receipt,
+        )
+        review_receipt_id = success.independent_review_receipt_id
+        success_receipt_id = success.receipt_id
 
     if requested_parent_status not in decision.allowed_explicit_parent_targets:
         raise GovernanceError("EXPLICIT_ROLLUP_TARGET_NOT_ALLOWED_FOR_RUN_STATE")
@@ -195,6 +223,8 @@ def authorize_explicit_rollup(
             "Policy eligibility only; caller must persist a separately authorized "
             "EngineeringTask transition through an owning workflow."
         ),
+        material_review_receipt_id=review_receipt_id,
+        execution_success_receipt_id=success_receipt_id,
     )
 
 

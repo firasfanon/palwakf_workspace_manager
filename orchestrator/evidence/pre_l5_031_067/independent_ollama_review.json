@@ -1,0 +1,18 @@
+{
+  "schema": "PALWAKF_PREL5_031_067_INDEPENDENT_OLLAMA_REVIEW_V1",
+  "reviewed_at": "2026-09-15T15:44:55.4720581+03:00",
+  "mode": "READ_ONLY_INDEPENDENT_LOCAL_MODEL_REVIEW",
+  "model": "llama3.2:3b",
+  "num_ctx": 4096,
+  "temperature": 0.0,
+  "num_predict": 320,
+  "packet_sha256": "9E536EF0742C4BDE4C60A5FFAA3CCB6FC72E266B5893F84346504C789312F5FF",
+  "review_sha256": "E24A9AEEC84EC67B29807896A17117FB2BB8113FE90C88246903DC274D866799",
+  "review_decision": "PASS",
+  "required_fixes": [],
+  "execution_authority_granted": false,
+  "canonical_promotion_granted": false,
+  "authoritative_policy_review": "orchestrator/evidence/pre_l5_031_067/independent_policy_review.json",
+  "authoritative_policy_review_result": "25_OF_25_PASS",
+  "note": "Model review is advisory independent evidence only; deterministic policy gates and tests remain controlling."
+}

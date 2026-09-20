@@ -1,0 +1,728 @@
+{
+  "schema": "PALWAKF_EXTERNAL_SKILL_WORKSPACE_DECISION_V1",
+  "candidate_count": 20,
+  "bulk_install": false,
+  "external_skill_execution_authority": false,
+  "auto_canonical_promotion": false,
+  "decision_counts": {
+    "ADAPTATION_REQUIRED": 17,
+    "BOUNDED_PILOT_CANDIDATE": 3
+  },
+  "decisions": [
+    {
+      "repository": "supabase/agent-skills",
+      "commit_sha": "8331f910845103c08d51f6ca1d86ebb7d1f745e3",
+      "path": "skills/supabase/SKILL.md",
+      "priority": "P0",
+      "license": "MIT",
+      "content_sha256": "df6748d6360a2cfda72d2d607a6f2d2fde730a03247eafb457421089b93e2d78",
+      "bundle_manifest_sha256": "576ac03a6a6fcdabd75abf7eb5c1e46fd852dde686d8cb5cae53781ae5c4ff81",
+      "capability_flags": [
+        "DATABASE_MUTATION",
+        "NETWORK_ACCESS",
+        "SECRET_ACCESS"
+      ],
+      "mind_review": {
+        "skill_id": "supabase",
+        "decision": "REQUIRE_ADAPTATION",
+        "reasons": [
+          "SENSITIVE_CAPABILITY_REQUIRES_PALWAKF_ADAPTER"
+        ],
+        "reusable": true,
+        "canonical_write_allowed": false,
+        "auto_promotion": false,
+        "execution_authority_granted": false,
+        "promotion_recommendation": "WORKSPACE_GOVERNED_DECISION_REQUIRED"
+      },
+      "workspace_decision": {
+        "skill_id": "supabase",
+        "decision": "ADAPTATION_REQUIRED",
+        "stage": "HOLD",
+        "reasons": [
+          "PALWAKF_ADAPTER_REQUIRED_BEFORE_PILOT"
+        ],
+        "execution_authority_granted": false,
+        "canonical_promotion_granted": false,
+        "separate_execution_authorization_required": true
+      }
+    },
+    {
+      "repository": "supabase/agent-skills",
+      "commit_sha": "8331f910845103c08d51f6ca1d86ebb7d1f745e3",
+      "path": "skills/supabase-postgres-best-practices/SKILL.md",
+      "priority": "P0",
+      "license": "MIT",
+      "content_sha256": "4d7d1bd60f2ad7fd0d510269279519059dcc630d832f4c241d90735244c70525",
+      "bundle_manifest_sha256": "c77ff941aefe316fbd11e5c16f37050b54ff32e11d4ac91d2229b43c9f559c72",
+      "capability_flags": [
+        "DATABASE_MUTATION",
+        "PRODUCTION_DEPLOYMENT"
+      ],
+      "mind_review": {
+        "skill_id": "supabase-postgres-best-practices",
+        "decision": "REQUIRE_ADAPTATION",
+        "reasons": [
+          "SENSITIVE_CAPABILITY_REQUIRES_PALWAKF_ADAPTER"
+        ],
+        "reusable": true,
+        "canonical_write_allowed": false,
+        "auto_promotion": false,
+        "execution_authority_granted": false,
+        "promotion_recommendation": "WORKSPACE_GOVERNED_DECISION_REQUIRED"
+      },
+      "workspace_decision": {
+        "skill_id": "supabase-postgres-best-practices",
+        "decision": "ADAPTATION_REQUIRED",
+        "stage": "HOLD",
+        "reasons": [
+          "PALWAKF_ADAPTER_REQUIRED_BEFORE_PILOT"
+        ],
+        "execution_authority_granted": false,
+        "canonical_promotion_granted": false,
+        "separate_execution_authorization_required": true
+      }
+    },
+    {
+      "repository": "obra/superpowers",
+      "commit_sha": "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
+      "path": "skills/systematic-debugging/SKILL.md",
+      "priority": "P0_P1",
+      "license": "MIT",
+      "content_sha256": "808fc5717aa88ad65efff312b11c186294d3e6ee301afb584e2f86599b137787",
+      "bundle_manifest_sha256": "90a73bbbd9e2f8701d98f8f7bc2fbd8ce7335d15ab9eadbafe6b3936e821ac64",
+      "capability_flags": [
+        "PRODUCTION_DEPLOYMENT",
+        "SECRET_ACCESS"
+      ],
+      "mind_review": {
+        "skill_id": "systematic-debugging",
+        "decision": "REQUIRE_ADAPTATION",
+        "reasons": [
+          "SENSITIVE_CAPABILITY_REQUIRES_PALWAKF_ADAPTER"
+        ],
+        "reusable": true,
+        "canonical_write_allowed": false,
+        "auto_promotion": false,
+        "execution_authority_granted": false,
+        "promotion_recommendation": "WORKSPACE_GOVERNED_DECISION_REQUIRED"
+      },
+      "workspace_decision": {
+        "skill_id": "systematic-debugging",
+        "decision": "ADAPTATION_REQUIRED",
+        "stage": "HOLD",
+        "reasons": [
+          "PALWAKF_ADAPTER_REQUIRED_BEFORE_PILOT"
+        ],
+        "execution_authority_granted": false,
+        "canonical_promotion_granted": false,
+        "separate_execution_authorization_required": true
+      }
+    },
+    {
+      "repository": "obra/superpowers",
+      "commit_sha": "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
+      "path": "skills/test-driven-development/SKILL.md",
+      "priority": "P0_P1",
+      "license": "MIT",
+      "content_sha256": "bf1b8216e523851a411e91d429a7c1c2a173e79d88957bc78e348218d50edd54",
+      "bundle_manifest_sha256": "4cd62848679f95fa392d500f4f8e30c676473edf910e624d229abb42996f0549",
+      "capability_flags": [
+        "PRODUCTION_DEPLOYMENT"
+      ],
+      "mind_review": {
+        "skill_id": "test-driven-development",
+        "decision": "REQUIRE_ADAPTATION",
+        "reasons": [
+          "SENSITIVE_CAPABILITY_REQUIRES_PALWAKF_ADAPTER"
+        ],
+        "reusable": true,
+        "canonical_write_allowed": false,
+        "auto_promotion": false,
+        "execution_authority_granted": false,
+        "promotion_recommendation": "WORKSPACE_GOVERNED_DECISION_REQUIRED"
+      },
+      "workspace_decision": {
+        "skill_id": "test-driven-development",
+        "decision": "ADAPTATION_REQUIRED",
+        "stage": "HOLD",
+        "reasons": [
+          "PALWAKF_ADAPTER_REQUIRED_BEFORE_PILOT"
+        ],
+        "execution_authority_granted": false,
+        "canonical_promotion_granted": false,
+        "separate_execution_authorization_required": true
+      }
+    },
+    {
+      "repository": "obra/superpowers",
+      "commit_sha": "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
+      "path": "skills/verification-before-completion/SKILL.md",
+      "priority": "P0_P1",
+      "license": "MIT",
+      "content_sha256": "2befe7fc55bcadaa3d97dd9e8efeb633d2561c0ebe74c5a8b17c4d9e7e4520b3",
+      "bundle_manifest_sha256": "d99f1dc1dcff904fabd9eed1823fd4c872b280c0ddd9962a740625ae7966f159",
+      "capability_flags": [],
+      "mind_review": {
+        "skill_id": "verification-before-completion",
+        "decision": "RECOMMEND_PROJECT_PROVEN",
+        "reasons": [
+          "PROJECT_PROOF_CANDIDATE_ONLY"
+        ],
+        "reusable": true,
+        "canonical_write_allowed": false,
+        "auto_promotion": false,
+        "execution_authority_granted": false,
+        "promotion_recommendation": "WORKSPACE_GOVERNED_DECISION_REQUIRED"
+      },
+      "workspace_decision": {
+        "skill_id": "verification-before-completion",
+        "decision": "BOUNDED_PILOT_CANDIDATE",
+        "stage": "SANDBOX_ONLY",
+        "reasons": [
+          "ELIGIBLE_FOR_SEPARATELY_AUTHORIZED_BOUNDED_PILOT"
+        ],
+        "execution_authority_granted": false,
+        "canonical_promotion_granted": false,
+        "separate_execution_authorization_required": true
+      }
+    },
+    {
+      "repository": "obra/superpowers",
+      "commit_sha": "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
+      "path": "skills/requesting-code-review/SKILL.md",
+      "priority": "P0_P1",
+      "license": "MIT",
+      "content_sha256": "d71cc01ba56d2325cf8af5f7c11837819b63ecd57de0bfdb812f7f3ff7751df8",
+      "bundle_manifest_sha256": "11ef6581abb5ac379aed7c944378998a8b8770e42583a362beb2ae34193967f6",
+      "capability_flags": [
+        "PRODUCTION_DEPLOYMENT"
+      ],
+      "mind_review": {
+        "skill_id": "requesting-code-review",
+        "decision": "REQUIRE_ADAPTATION",
+        "reasons": [
+          "SENSITIVE_CAPABILITY_REQUIRES_PALWAKF_ADAPTER"
+        ],
+        "reusable": true,
+        "canonical_write_allowed": false,
+        "auto_promotion": false,
+        "execution_authority_granted": false,
+        "promotion_recommendation": "WORKSPACE_GOVERNED_DECISION_REQUIRED"
+      },
+      "workspace_decision": {
+        "skill_id": "requesting-code-review",
+        "decision": "ADAPTATION_REQUIRED",
+        "stage": "HOLD",
+        "reasons": [
+          "PALWAKF_ADAPTER_REQUIRED_BEFORE_PILOT"
+        ],
+        "execution_authority_granted": false,
+        "canonical_promotion_granted": false,
+        "separate_execution_authorization_required": true
+      }
+    },
+    {
+      "repository": "obra/superpowers",
+      "commit_sha": "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
+      "path": "skills/receiving-code-review/SKILL.md",
+      "priority": "P0_P1",
+      "license": "MIT",
+      "content_sha256": "091df1629510af1b92fc4abd6f96732ebedb4cb2c0f3457e8f2740b0504a2438",
+      "bundle_manifest_sha256": "b9553e541e4fd8a70cab56427c5eb2b3e52907299acd0124dfa2e0e8e9d083f0",
+      "capability_flags": [],
+      "mind_review": {
+        "skill_id": "receiving-code-review",
+        "decision": "RECOMMEND_PROJECT_PROVEN",
+        "reasons": [
+          "PROJECT_PROOF_CANDIDATE_ONLY"
+        ],
+        "reusable": true,
+        "canonical_write_allowed": false,
+        "auto_promotion": false,
+        "execution_authority_granted": false,
+        "promotion_recommendation": "WORKSPACE_GOVERNED_DECISION_REQUIRED"
+      },
+      "workspace_decision": {
+        "skill_id": "receiving-code-review",
+        "decision": "BOUNDED_PILOT_CANDIDATE",
+        "stage": "SANDBOX_ONLY",
+        "reasons": [
+          "ELIGIBLE_FOR_SEPARATELY_AUTHORIZED_BOUNDED_PILOT"
+        ],
+        "execution_authority_granted": false,
+        "canonical_promotion_granted": false,
+        "separate_execution_authorization_required": true
+      }
+    },
+    {
+      "repository": "obra/superpowers",
+      "commit_sha": "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
+      "path": "skills/writing-plans/SKILL.md",
+      "priority": "P0_P1",
+      "license": "MIT",
+      "content_sha256": "48508f44bbfd7d24b029fbf3a314f3cd14c9615599059366e922f47b8dc08cf2",
+      "bundle_manifest_sha256": "e557640f8425f8bf0ae847caf265ed65c68cf8c9df32e68c53de0ebc1eaf726b",
+      "capability_flags": [
+        "GIT_MUTATION"
+      ],
+      "mind_review": {
+        "skill_id": "writing-plans",
+        "decision": "REQUIRE_ADAPTATION",
+        "reasons": [
+          "SENSITIVE_CAPABILITY_REQUIRES_PALWAKF_ADAPTER"
+        ],
+        "reusable": true,
+        "canonical_write_allowed": false,
+        "auto_promotion": false,
+        "execution_authority_granted": false,
+        "promotion_recommendation": "WORKSPACE_GOVERNED_DECISION_REQUIRED"
+      },
+      "workspace_decision": {
+        "skill_id": "writing-plans",
+        "decision": "ADAPTATION_REQUIRED",
+        "stage": "HOLD",
+        "reasons": [
+          "PALWAKF_ADAPTER_REQUIRED_BEFORE_PILOT"
+        ],
+        "execution_authority_granted": false,
+        "canonical_promotion_granted": false,
+        "separate_execution_authorization_required": true
+      }
+    },
+    {
+      "repository": "obra/superpowers",
+      "commit_sha": "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
+      "path": "skills/executing-plans/SKILL.md",
+      "priority": "P0_P1",
+      "license": "MIT",
+      "content_sha256": "c4c3d8b628c51114cd165fb8246fe02744cd8be180032328391252e653028d9b",
+      "bundle_manifest_sha256": "0bdb048ed000a0d866cbc038942118fdd872c3593e344334a89de0a322a4258a",
+      "capability_flags": [],
+      "mind_review": {
+        "skill_id": "executing-plans",
+        "decision": "RECOMMEND_PROJECT_PROVEN",
+        "reasons": [
+          "PROJECT_PROOF_CANDIDATE_ONLY"
+        ],
+        "reusable": true,
+        "canonical_write_allowed": false,
+        "auto_promotion": false,
+        "execution_authority_granted": false,
+        "promotion_recommendation": "WORKSPACE_GOVERNED_DECISION_REQUIRED"
+      },
+      "workspace_decision": {
+        "skill_id": "executing-plans",
+        "decision": "BOUNDED_PILOT_CANDIDATE",
+        "stage": "SANDBOX_ONLY",
+        "reasons": [
+          "ELIGIBLE_FOR_SEPARATELY_AUTHORIZED_BOUNDED_PILOT"
+        ],
+        "execution_authority_granted": false,
+        "canonical_promotion_granted": false,
+        "separate_execution_authorization_required": true
+      }
+    },
+    {
+      "repository": "github/awesome-copilot",
+      "commit_sha": "1899b18da3fa5183652f86165917d553cba1850a",
+      "path": "skills/agent-skill-stack/SKILL.md",
+      "priority": "P0_P1",
+      "license": "MIT",
+      "content_sha256": "d75ed95177dab5ddb5ca96c87fed93842e7d3221b4b5c9f2d8ebb72d33cde5e2",
+      "bundle_manifest_sha256": "e6e96ebe81b05d0642799861906701e9c95e21aa3c30475e50f96d039b2827da",
+      "capability_flags": [
+        "PROCESS_EXECUTION",
+        "PRODUCTION_DEPLOYMENT",
+        "SECRET_ACCESS"
+      ],
+      "mind_review": {
+        "skill_id": "agent-skill-stack",
+        "decision": "REQUIRE_ADAPTATION",
+        "reasons": [
+          "SENSITIVE_CAPABILITY_REQUIRES_PALWAKF_ADAPTER"
+        ],
+        "reusable": true,
+        "canonical_write_allowed": false,
+        "auto_promotion": false,
+        "execution_authority_granted": false,
+        "promotion_recommendation": "WORKSPACE_GOVERNED_DECISION_REQUIRED"
+      },
+      "workspace_decision": {
+        "skill_id": "agent-skill-stack",
+        "decision": "ADAPTATION_REQUIRED",
+        "stage": "HOLD",
+        "reasons": [
+          "PALWAKF_ADAPTER_REQUIRED_BEFORE_PILOT"
+        ],
+        "execution_authority_granted": false,
+        "canonical_promotion_granted": false,
+        "separate_execution_authorization_required": true
+      }
+    },
+    {
+      "repository": "github/awesome-copilot",
+      "commit_sha": "1899b18da3fa5183652f86165917d553cba1850a",
+      "path": "skills/quality-playbook/SKILL.md",
+      "priority": "P0_P1",
+      "license": "MIT",
+      "content_sha256": "2b6f0e36e5427d81d94b2ac35ec6e657c57fb9434ba0d9a011b0e462b04ae729",
+      "bundle_manifest_sha256": "b14929d9e7dda65d81e2496d3a594fe0912dff514cb76192f342429ca5290d51",
+      "capability_flags": [
+        "GIT_MUTATION",
+        "NETWORK_ACCESS",
+        "PRODUCTION_DEPLOYMENT",
+        "SECRET_ACCESS"
+      ],
+      "mind_review": {
+        "skill_id": "quality-playbook",
+        "decision": "REQUIRE_ADAPTATION",
+        "reasons": [
+          "SENSITIVE_CAPABILITY_REQUIRES_PALWAKF_ADAPTER"
+        ],
+        "reusable": true,
+        "canonical_write_allowed": false,
+        "auto_promotion": false,
+        "execution_authority_granted": false,
+        "promotion_recommendation": "WORKSPACE_GOVERNED_DECISION_REQUIRED"
+      },
+      "workspace_decision": {
+        "skill_id": "quality-playbook",
+        "decision": "ADAPTATION_REQUIRED",
+        "stage": "HOLD",
+        "reasons": [
+          "PALWAKF_ADAPTER_REQUIRED_BEFORE_PILOT"
+        ],
+        "execution_authority_granted": false,
+        "canonical_promotion_granted": false,
+        "separate_execution_authorization_required": true
+      }
+    },
+    {
+      "repository": "github/awesome-copilot",
+      "commit_sha": "1899b18da3fa5183652f86165917d553cba1850a",
+      "path": "skills/secret-scanning/SKILL.md",
+      "priority": "P0_P1",
+      "license": "MIT",
+      "content_sha256": "ebbaf8a49777e8be6d8c220b91bbee935b2aaab81b3ee976562484a339d750db",
+      "bundle_manifest_sha256": "4ef7844d0ff73bfc50abf16fc290ef0f649cf7602093fe2f1c107f185b90088f",
+      "capability_flags": [
+        "GIT_MUTATION",
+        "PRODUCTION_DEPLOYMENT",
+        "SECRET_ACCESS"
+      ],
+      "mind_review": {
+        "skill_id": "secret-scanning",
+        "decision": "REQUIRE_ADAPTATION",
+        "reasons": [
+          "SENSITIVE_CAPABILITY_REQUIRES_PALWAKF_ADAPTER"
+        ],
+        "reusable": true,
+        "canonical_write_allowed": false,
+        "auto_promotion": false,
+        "execution_authority_granted": false,
+        "promotion_recommendation": "WORKSPACE_GOVERNED_DECISION_REQUIRED"
+      },
+      "workspace_decision": {
+        "skill_id": "secret-scanning",
+        "decision": "ADAPTATION_REQUIRED",
+        "stage": "HOLD",
+        "reasons": [
+          "PALWAKF_ADAPTER_REQUIRED_BEFORE_PILOT"
+        ],
+        "execution_authority_granted": false,
+        "canonical_promotion_granted": false,
+        "separate_execution_authorization_required": true
+      }
+    },
+    {
+      "repository": "github/awesome-copilot",
+      "commit_sha": "1899b18da3fa5183652f86165917d553cba1850a",
+      "path": "skills/dependabot/SKILL.md",
+      "priority": "P0_P1",
+      "license": "MIT",
+      "content_sha256": "2b5f3af7d8a5555d330d4d72ba9ad6140e85215d006dd9d7a92ee0dae76bbf82",
+      "bundle_manifest_sha256": "8606930e2301bf6a150095bcbe824c69be6b3c116044daea51e7535190237a88",
+      "capability_flags": [
+        "GIT_MUTATION",
+        "PRODUCTION_DEPLOYMENT",
+        "SECRET_ACCESS"
+      ],
+      "mind_review": {
+        "skill_id": "dependabot",
+        "decision": "REQUIRE_ADAPTATION",
+        "reasons": [
+          "SENSITIVE_CAPABILITY_REQUIRES_PALWAKF_ADAPTER"
+        ],
+        "reusable": true,
+        "canonical_write_allowed": false,
+        "auto_promotion": false,
+        "execution_authority_granted": false,
+        "promotion_recommendation": "WORKSPACE_GOVERNED_DECISION_REQUIRED"
+      },
+      "workspace_decision": {
+        "skill_id": "dependabot",
+        "decision": "ADAPTATION_REQUIRED",
+        "stage": "HOLD",
+        "reasons": [
+          "PALWAKF_ADAPTER_REQUIRED_BEFORE_PILOT"
+        ],
+        "execution_authority_granted": false,
+        "canonical_promotion_granted": false,
+        "separate_execution_authorization_required": true
+      }
+    },
+    {
+      "repository": "github/awesome-copilot",
+      "commit_sha": "1899b18da3fa5183652f86165917d553cba1850a",
+      "path": "skills/architecture-blueprint-generator/SKILL.md",
+      "priority": "P0_P1",
+      "license": "MIT",
+      "content_sha256": "a6a6f7a3b7a8210a9a391f2da3f3945bf86505341fd677eb2eb62e599520f512",
+      "bundle_manifest_sha256": "eb590fa9cf85821fd18bd70e9c943531a1fd227ce3ac9e7f9a5115d2396e26a4",
+      "capability_flags": [
+        "SECRET_ACCESS"
+      ],
+      "mind_review": {
+        "skill_id": "architecture-blueprint-generator",
+        "decision": "REQUIRE_ADAPTATION",
+        "reasons": [
+          "SENSITIVE_CAPABILITY_REQUIRES_PALWAKF_ADAPTER"
+        ],
+        "reusable": true,
+        "canonical_write_allowed": false,
+        "auto_promotion": false,
+        "execution_authority_granted": false,
+        "promotion_recommendation": "WORKSPACE_GOVERNED_DECISION_REQUIRED"
+      },
+      "workspace_decision": {
+        "skill_id": "architecture-blueprint-generator",
+        "decision": "ADAPTATION_REQUIRED",
+        "stage": "HOLD",
+        "reasons": [
+          "PALWAKF_ADAPTER_REQUIRED_BEFORE_PILOT"
+        ],
+        "execution_authority_granted": false,
+        "canonical_promotion_granted": false,
+        "separate_execution_authorization_required": true
+      }
+    },
+    {
+      "repository": "github/awesome-copilot",
+      "commit_sha": "1899b18da3fa5183652f86165917d553cba1850a",
+      "path": "skills/folder-structure-blueprint-generator/SKILL.md",
+      "priority": "P0_P1",
+      "license": "MIT",
+      "content_sha256": "6e0c362502ea65b3c929fb02baecaf6da2420352c4aa27eebbd2b89643198be3",
+      "bundle_manifest_sha256": "58bfdb7d53f01a43304d213e3c55a2d38d485257219c7ab4aec73718c8041dca",
+      "capability_flags": [
+        "PRODUCTION_DEPLOYMENT",
+        "SECRET_ACCESS"
+      ],
+      "mind_review": {
+        "skill_id": "folder-structure-blueprint-generator",
+        "decision": "REQUIRE_ADAPTATION",
+        "reasons": [
+          "SENSITIVE_CAPABILITY_REQUIRES_PALWAKF_ADAPTER"
+        ],
+        "reusable": true,
+        "canonical_write_allowed": false,
+        "auto_promotion": false,
+        "execution_authority_granted": false,
+        "promotion_recommendation": "WORKSPACE_GOVERNED_DECISION_REQUIRED"
+      },
+      "workspace_decision": {
+        "skill_id": "folder-structure-blueprint-generator",
+        "decision": "ADAPTATION_REQUIRED",
+        "stage": "HOLD",
+        "reasons": [
+          "PALWAKF_ADAPTER_REQUIRED_BEFORE_PILOT"
+        ],
+        "execution_authority_granted": false,
+        "canonical_promotion_granted": false,
+        "separate_execution_authorization_required": true
+      }
+    },
+    {
+      "repository": "github/awesome-copilot",
+      "commit_sha": "1899b18da3fa5183652f86165917d553cba1850a",
+      "path": "skills/acquire-codebase-knowledge/SKILL.md",
+      "priority": "P0_P1",
+      "license": "MIT",
+      "content_sha256": "7ca01711e1615171b26ce9e2729bedf041348d7fd0f24bc04e0d400dc93e41b9",
+      "bundle_manifest_sha256": "37f52913c94d5e86fad07d64f8e371bd9a784f8f253488e371a48ececca32bcf",
+      "capability_flags": [
+        "NETWORK_ACCESS",
+        "PROCESS_EXECUTION",
+        "PRODUCTION_DEPLOYMENT",
+        "SECRET_ACCESS"
+      ],
+      "mind_review": {
+        "skill_id": "acquire-codebase-knowledge",
+        "decision": "REQUIRE_ADAPTATION",
+        "reasons": [
+          "SENSITIVE_CAPABILITY_REQUIRES_PALWAKF_ADAPTER"
+        ],
+        "reusable": true,
+        "canonical_write_allowed": false,
+        "auto_promotion": false,
+        "execution_authority_granted": false,
+        "promotion_recommendation": "WORKSPACE_GOVERNED_DECISION_REQUIRED"
+      },
+      "workspace_decision": {
+        "skill_id": "acquire-codebase-knowledge",
+        "decision": "ADAPTATION_REQUIRED",
+        "stage": "HOLD",
+        "reasons": [
+          "PALWAKF_ADAPTER_REQUIRED_BEFORE_PILOT"
+        ],
+        "execution_authority_granted": false,
+        "canonical_promotion_granted": false,
+        "separate_execution_authorization_required": true
+      }
+    },
+    {
+      "repository": "anthropics/skills",
+      "commit_sha": "34040c9c568585f6929bedeaad110ad08f079624",
+      "path": "skills/skill-creator/SKILL.md",
+      "priority": "SELECTIVE_ADAPT",
+      "license": "Apache-2.0",
+      "content_sha256": "e030e7685e26283b4a76f5202aa3ae8516fb41dde799be5ae8ea6393ec009fe9",
+      "bundle_manifest_sha256": "1a2e2293bc896e5c0c87d24a59a985fe768b4c651abd21ca03e34504f87e394a",
+      "capability_flags": [
+        "NETWORK_ACCESS",
+        "PROCESS_EXECUTION",
+        "PRODUCTION_DEPLOYMENT",
+        "SECRET_ACCESS"
+      ],
+      "mind_review": {
+        "skill_id": "skill-creator",
+        "decision": "REQUIRE_ADAPTATION",
+        "reasons": [
+          "SENSITIVE_CAPABILITY_REQUIRES_PALWAKF_ADAPTER"
+        ],
+        "reusable": true,
+        "canonical_write_allowed": false,
+        "auto_promotion": false,
+        "execution_authority_granted": false,
+        "promotion_recommendation": "WORKSPACE_GOVERNED_DECISION_REQUIRED"
+      },
+      "workspace_decision": {
+        "skill_id": "skill-creator",
+        "decision": "ADAPTATION_REQUIRED",
+        "stage": "HOLD",
+        "reasons": [
+          "PALWAKF_ADAPTER_REQUIRED_BEFORE_PILOT"
+        ],
+        "execution_authority_granted": false,
+        "canonical_promotion_granted": false,
+        "separate_execution_authorization_required": true
+      }
+    },
+    {
+      "repository": "anthropics/skills",
+      "commit_sha": "34040c9c568585f6929bedeaad110ad08f079624",
+      "path": "skills/webapp-testing/SKILL.md",
+      "priority": "SELECTIVE_ADAPT",
+      "license": "Apache-2.0",
+      "content_sha256": "8bc27790f6e6dfc2bfa6692326d4518baacf6a31dcc646d963c729adad2f7e34",
+      "bundle_manifest_sha256": "59a2390fdf576b5fa2c559b04e45c426d5fb395b80a813fb3f56edde6d432588",
+      "capability_flags": [
+        "PROCESS_EXECUTION"
+      ],
+      "mind_review": {
+        "skill_id": "webapp-testing",
+        "decision": "REQUIRE_ADAPTATION",
+        "reasons": [
+          "SENSITIVE_CAPABILITY_REQUIRES_PALWAKF_ADAPTER"
+        ],
+        "reusable": true,
+        "canonical_write_allowed": false,
+        "auto_promotion": false,
+        "execution_authority_granted": false,
+        "promotion_recommendation": "WORKSPACE_GOVERNED_DECISION_REQUIRED"
+      },
+      "workspace_decision": {
+        "skill_id": "webapp-testing",
+        "decision": "ADAPTATION_REQUIRED",
+        "stage": "HOLD",
+        "reasons": [
+          "PALWAKF_ADAPTER_REQUIRED_BEFORE_PILOT"
+        ],
+        "execution_authority_granted": false,
+        "canonical_promotion_granted": false,
+        "separate_execution_authorization_required": true
+      }
+    },
+    {
+      "repository": "anthropics/skills",
+      "commit_sha": "34040c9c568585f6929bedeaad110ad08f079624",
+      "path": "skills/frontend-design/SKILL.md",
+      "priority": "SELECTIVE_ADAPT",
+      "license": "Apache-2.0",
+      "content_sha256": "b8009ae690dfa69edc7f08bb8715f32db8817112cfa4388741dbaf876c237df8",
+      "bundle_manifest_sha256": "9785e423c680da8d2a9243d140a137c9a086f022e9303d55f2b5c591f0dde6d0",
+      "capability_flags": [
+        "PRODUCTION_DEPLOYMENT"
+      ],
+      "mind_review": {
+        "skill_id": "frontend-design",
+        "decision": "REQUIRE_ADAPTATION",
+        "reasons": [
+          "SENSITIVE_CAPABILITY_REQUIRES_PALWAKF_ADAPTER"
+        ],
+        "reusable": true,
+        "canonical_write_allowed": false,
+        "auto_promotion": false,
+        "execution_authority_granted": false,
+        "promotion_recommendation": "WORKSPACE_GOVERNED_DECISION_REQUIRED"
+      },
+      "workspace_decision": {
+        "skill_id": "frontend-design",
+        "decision": "ADAPTATION_REQUIRED",
+        "stage": "HOLD",
+        "reasons": [
+          "PALWAKF_ADAPTER_REQUIRED_BEFORE_PILOT"
+        ],
+        "execution_authority_granted": false,
+        "canonical_promotion_granted": false,
+        "separate_execution_authorization_required": true
+      }
+    },
+    {
+      "repository": "anthropics/skills",
+      "commit_sha": "34040c9c568585f6929bedeaad110ad08f079624",
+      "path": "skills/mcp-builder/SKILL.md",
+      "priority": "SELECTIVE_ADAPT",
+      "license": "Apache-2.0",
+      "content_sha256": "57231330040e18e033dad8b2fdc0340a6185034c32b42b7d3448f444a6af6cf2",
+      "bundle_manifest_sha256": "8eba00144ff41930d05189747aee6c1cbe07388829f5d3ce76aa6d9ea2059f64",
+      "capability_flags": [
+        "NETWORK_ACCESS",
+        "SECRET_ACCESS"
+      ],
+      "mind_review": {
+        "skill_id": "mcp-builder",
+        "decision": "REQUIRE_ADAPTATION",
+        "reasons": [
+          "SENSITIVE_CAPABILITY_REQUIRES_PALWAKF_ADAPTER"
+        ],
+        "reusable": true,
+        "canonical_write_allowed": false,
+        "auto_promotion": false,
+        "execution_authority_granted": false,
+        "promotion_recommendation": "WORKSPACE_GOVERNED_DECISION_REQUIRED"
+      },
+      "workspace_decision": {
+        "skill_id": "mcp-builder",
+        "decision": "ADAPTATION_REQUIRED",
+        "stage": "HOLD",
+        "reasons": [
+          "PALWAKF_ADAPTER_REQUIRED_BEFORE_PILOT"
+        ],
+        "execution_authority_granted": false,
+        "canonical_promotion_granted": false,
+        "separate_execution_authorization_required": true
+      }
+    }
+  ]
+}

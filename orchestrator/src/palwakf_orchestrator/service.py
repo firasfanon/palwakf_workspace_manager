@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from uuid import uuid4
 
 from palwakf_orchestrator.config import Settings
@@ -13,7 +14,11 @@ from palwakf_orchestrator.contracts import (
 )
 from palwakf_orchestrator.errors import GatewayError
 from palwakf_orchestrator.gateways import CodexMcpGateway, CodexSdkGateway, ExecutorGateway
-from palwakf_orchestrator.governance import GovernanceGate
+from palwakf_orchestrator.governance import (
+    GitHubRealityGate,
+    GovernanceGate,
+    HttpxGitHubRealityReader,
+)
 from palwakf_orchestrator.planner import AgentsPlanner, Planner
 
 
@@ -28,7 +33,21 @@ class OrchestratorService:
         provider_gateways: dict[tuple[str, Transport], ExecutorGateway] | None = None,
     ) -> None:
         self._settings = settings
-        self._gate = gate or GovernanceGate(settings.workspace_root)
+        if gate is not None:
+            self._gate = gate
+        else:
+            github_reality = GitHubRealityGate(
+                settings.workspace_root,
+                settings.repository,
+                HttpxGitHubRealityReader(
+                    settings.repository,
+                    os.environ.get("GITHUB_TOKEN"),
+                ),
+            )
+            self._gate = GovernanceGate(
+                settings.workspace_root,
+                github_reality=github_reality,
+            )
         self._planner = planner or AgentsPlanner(settings)
         self._gateways = gateways or {
             Transport.sdk: CodexSdkGateway(settings),

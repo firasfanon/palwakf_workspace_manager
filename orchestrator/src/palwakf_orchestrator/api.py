@@ -68,6 +68,14 @@ from palwakf_orchestrator.external_execution_contracts import (
 from palwakf_orchestrator.external_execution_workspace import (
     ExternalExecutionWorkspaceService,
 )
+from palwakf_orchestrator.external_skill_admission import (
+    EffectiveSkillAuthority,
+    SkillAdmissionCandidate,
+    SkillAdmissionStage,
+    SkillAuthorityEvaluationRequest,
+)
+from palwakf_orchestrator.external_skill_admission_service import ExternalSkillAdmissionService
+from palwakf_orchestrator.four_system_l4 import mount_four_system_l4
 from palwakf_orchestrator.intersystem_contracts import (
     WorkspaceAuthorityPackageV1,
     build_workspace_authority_package,
@@ -103,6 +111,16 @@ from palwakf_orchestrator.project_contracts import (
     ProjectAdapterKind,
     ProjectIntakeRequest,
 )
+from palwakf_orchestrator.project_health import (
+    ProjectHealthRecord,
+    ProjectHealthStateMachine,
+    ProjectHealthTransitionRequest,
+)
+from palwakf_orchestrator.project_manifest_service import (
+    ProjectContractManifestRegistryV1,
+    ProjectContractManifestService,
+    ProjectContractManifestV1,
+)
 from palwakf_orchestrator.project_reality import (
     GitHubRepositoryRealityAdapter,
     HttpxGitHubReadClient,
@@ -132,6 +150,7 @@ def create_app(
     resolved_service = service or OrchestratorService(resolved_settings)
     resolved_store = state_store or SQLiteStateStore(resolved_settings.resolved_state_db_path)
     engineering_os = engineering_os_service or EngineeringOsService(resolved_store)
+    external_skill_admission = ExternalSkillAdmissionService(resolved_store)
     jwt_config = (
         JwtAuthConfig(
             issuer=resolved_settings.oauth_authorization_server,
@@ -189,6 +208,8 @@ def create_app(
         },
         resolved_store,
     )
+    project_manifests = ProjectContractManifestService()
+    project_health = ProjectHealthStateMachine(resolved_projects, resolved_store)
     local_sessions = local_session_manager or LocalSessionManager()
     local_product = local_product_service
     if local_product is None and (resolved_settings.workspace_root / ".git").is_dir():
@@ -237,12 +258,19 @@ def create_app(
     )
     app.state.connected_service = connected
     app.state.project_service = resolved_projects
+    app.state.project_contract_manifest_service = project_manifests
+    app.state.project_health_state_machine = project_health
     app.state.dashboard_service = dashboard
     app.state.local_product_service = local_product
     app.state.engineering_os_service = engineering_os
     app.state.execution_run_adapter = execution_runs
     app.state.external_execution_workspace_service = external_execution
     app.state.direct_execution_service = direct_execution
+    mount_four_system_l4(
+        app,
+        state_store=resolved_store,
+        execution_runs=execution_runs,
+    )
     app.add_middleware(
         CORSMiddleware,
         allow_origin_regex=r"^https?://(127\.0\.0\.1|localhost)(:\d+)?$",
@@ -478,11 +506,11 @@ def create_app(
         except GovernanceError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
 
-    _add_engineering_os_routes(app, engineering_os)
+    _add_engineering_os_routes(app, engineering_os, external_skill_admission)
     _add_execution_run_routes(app, execution_runs, external_execution)
     _add_direct_execution_routes(app, direct_execution)
     _add_legacy_routes(app, resolved_operator, connected)
-    _add_project_routes(app, resolved_projects, engineering_os)
+    _add_project_routes(app, resolved_projects, engineering_os, project_manifests, project_health)
     app.mount("/mcp", mcp_http_app, name="mcp")
 
     @app.get("/{ui_path:path}", include_in_schema=False)
@@ -519,7 +547,12 @@ def _scope_for(request: Request) -> ServiceScope:
 def _add_engineering_os_routes(
     app: FastAPI,
     engineering_os: EngineeringOsService,
+    external_skill_admission: ExternalSkillAdmissionService | None = None,
 ) -> None:
+    skill_admission = external_skill_admission or ExternalSkillAdmissionService(
+        engineering_os.state_store
+    )
+
     def engineering_error(exc: GovernanceError) -> HTTPException:
         status = 404 if str(exc) == "ENGINEERING_TASK_NOT_FOUND" else 409
         return HTTPException(status_code=status, detail=str(exc))
@@ -570,6 +603,41 @@ def _add_engineering_os_routes(
     ) -> ExtensionRecord:
         try:
             return engineering_os.register_extension(command)
+        except GovernanceError as exc:
+            raise engineering_error(exc) from exc
+
+    @app.get("/v1/skills/admissions", response_model=list[SkillAdmissionCandidate])
+    async def list_skill_admissions() -> list[SkillAdmissionCandidate]:
+        return skill_admission.list()
+
+    @app.post("/v1/skills/admissions", response_model=SkillAdmissionCandidate)
+    async def register_skill_admission(
+        command: SkillAdmissionCandidate,
+    ) -> SkillAdmissionCandidate:
+        try:
+            return skill_admission.register(command)
+        except GovernanceError as exc:
+            raise engineering_error(exc) from exc
+
+    @app.post(
+        "/v1/skills/admissions/{skill_id}/transition/{stage}",
+        response_model=SkillAdmissionCandidate,
+    )
+    async def transition_skill_admission(
+        skill_id: str,
+        stage: SkillAdmissionStage,
+    ) -> SkillAdmissionCandidate:
+        try:
+            return skill_admission.transition(skill_id, stage)
+        except GovernanceError as exc:
+            raise engineering_error(exc) from exc
+
+    @app.post("/v1/skills/authority/evaluate", response_model=EffectiveSkillAuthority)
+    async def evaluate_skill_authority(
+        command: SkillAuthorityEvaluationRequest,
+    ) -> EffectiveSkillAuthority:
+        try:
+            return command.evaluate()
         except GovernanceError as exc:
             raise engineering_error(exc) from exc
 
@@ -885,6 +953,8 @@ def _add_project_routes(
     app: FastAPI,
     projects: ExternalProjectService,
     engineering_os: EngineeringOsService,
+    project_manifests: ProjectContractManifestService,
+    project_health: ProjectHealthStateMachine,
 ) -> None:
     def project_error(exc: GovernanceError) -> HTTPException:
         status = (
@@ -895,10 +965,28 @@ def _add_project_routes(
                 "PROJECT_REALITY_NOT_PROBED",
                 "PROJECT_REPOSITORY_NOT_FOUND",
                 "PROJECT_CANDIDATE_NOT_FOUND",
+                "PROJECT_CONTRACT_MANIFEST_NOT_FOUND",
             }
             else 409
         )
         return HTTPException(status_code=status, detail=str(exc))
+
+    @app.get(
+        "/v1/project-contract-manifests",
+        response_model=ProjectContractManifestRegistryV1,
+    )
+    async def project_contract_manifest_registry() -> ProjectContractManifestRegistryV1:
+        return project_manifests.registry()
+
+    @app.get(
+        "/v1/project-contract-manifests/{project_id}",
+        response_model=ProjectContractManifestV1,
+    )
+    async def project_contract_manifest(project_id: str) -> ProjectContractManifestV1:
+        try:
+            return project_manifests.get_manifest(project_id)
+        except GovernanceError as exc:
+            raise project_error(exc) from exc
 
     @app.post("/v1/projects/intake", response_model=ExternalProjectRecord)
     async def project_intake(command: ProjectIntakeRequest) -> ExternalProjectRecord:
@@ -915,6 +1003,29 @@ def _add_project_routes(
     async def get_external_project(project_id: str) -> ExternalProjectRecord:
         try:
             return projects.get_project(project_id)
+        except GovernanceError as exc:
+            raise project_error(exc) from exc
+
+    @app.get(
+        "/v1/projects/{project_id}/health",
+        response_model=ProjectHealthRecord,
+    )
+    async def project_health_state(project_id: str) -> ProjectHealthRecord:
+        try:
+            return project_health.get(project_id)
+        except GovernanceError as exc:
+            raise project_error(exc) from exc
+
+    @app.post(
+        "/v1/projects/{project_id}/health/transition",
+        response_model=ProjectHealthRecord,
+    )
+    async def transition_project_health(
+        project_id: str,
+        command: ProjectHealthTransitionRequest,
+    ) -> ProjectHealthRecord:
+        try:
+            return project_health.transition(project_id, command)
         except GovernanceError as exc:
             raise project_error(exc) from exc
 
@@ -985,6 +1096,7 @@ def _add_project_routes(
             return engineering_os.create_task(prepared)
         except GovernanceError as exc:
             raise project_error(exc) from exc
+
 
 def _add_direct_execution_routes(
     app: FastAPI,

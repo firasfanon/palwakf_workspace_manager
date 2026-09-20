@@ -218,7 +218,11 @@ class ConnectedApplicationService:
             execution_host_id=command.execution_host_id,
             tool_executor_id=command.tool_executor_id,
         )
-        task = self.operator.continue_task(task.task_id)
+        task = self.operator.continue_task(
+            task.task_id,
+            retry_override_reference=command.retry_override_reference,
+            retry_override_authority_reference=(command.retry_override_authority_reference),
+        )
         if self._queue.full():
             raise GovernanceError("bounded dispatch queue is full")
         task = self.operator.queue_task(task.task_id)

@@ -13,6 +13,10 @@ from palwakf_orchestrator.engineering_os_service import EngineeringOsService
 from palwakf_orchestrator.errors import GovernanceError
 from palwakf_orchestrator.execution_run_adapter import ExecutionRunAdapter
 from palwakf_orchestrator.execution_run_contracts import CreateExecutionRunRequest
+from palwakf_orchestrator.learning_closeout_gate import (
+    LearningDisposition,
+    build_learning_closeout_receipt,
+)
 from palwakf_orchestrator.operator_contracts import (
     CreateOperatorTaskRequest,
     ManualAcknowledgementRequest,
@@ -181,6 +185,14 @@ def test_phase6_real_execution_run_inherits_parent_authority_and_relay_provider(
             verification_receipt="phase6-independent-verification",
             ci_status="success",
             verified_head=AFTER,
+            learning_closeout_receipt=build_learning_closeout_receipt(
+                project_id=task.project_id,
+                task_id=task.task_id,
+                subject_head=AFTER,
+                disposition=LearningDisposition.no_new_durable_learning,
+                rationale="Governed vertical-slice proof produced no new durable learning.",
+                evidence=("phase6:learning-closeout",),
+            ),
         ),
     )
     verified = adapter.get_operational_view(task.task_id)

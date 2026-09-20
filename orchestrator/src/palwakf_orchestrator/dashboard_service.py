@@ -32,6 +32,7 @@ from palwakf_orchestrator.local_product import LocalProductService
 from palwakf_orchestrator.operator_contracts import OperatorTaskRecord, OperatorTaskStatus
 from palwakf_orchestrator.operator_service import OperatorService
 from palwakf_orchestrator.persistence import StateStore
+from palwakf_orchestrator.portfolio_decision_inbox import PortfolioDecisionInboxProjection
 from palwakf_orchestrator.project_contracts import ExternalProjectRealityReport
 from palwakf_orchestrator.project_service import ExternalProjectService
 
@@ -70,6 +71,7 @@ class DashboardAggregationService:
         self._projects = projects
         self._connected = connected
         self._store = store
+        self._decision_inbox = PortfolioDecisionInboxProjection(store)
         self._workspace_root = workspace_root.resolve()
         self._stale_after = timedelta(seconds=stale_seconds)
         self._now = now or (lambda: datetime.now(UTC))
@@ -103,6 +105,11 @@ class DashboardAggregationService:
             last_successful_executor_execution_at=(metrics.last_successful_executor_execution_at),
             last_successful_codex_execution_at=metrics.last_successful_codex_execution_at,
         )
+        decision_inbox = self._decision_inbox.build(
+            operator_tasks=operator_tasks,
+            engineering_tasks=engineering_tasks,
+            projects=project_summaries,
+        )
         managed_workspace = (
             self._local_product.status() if self._local_product is not None else None
         )
@@ -128,6 +135,7 @@ class DashboardAggregationService:
             alert_count=len(alerts),
             critical_alert_count=sum(item.severity == "critical" for item in alerts),
             projects=project_summaries,
+            decision_inbox=decision_inbox,
             connection=connection,
             checkpoints=self._checkpoints(operator_tasks, engineering_tasks),
             actions=self._actions(project_summaries, alerts, task_summary),
@@ -135,6 +143,9 @@ class DashboardAggregationService:
             provenance=[
                 "OPERATOR_TASK_STORE",
                 "ENGINEERING_OS_TASK_STORE",
+                "DECISION_SUPERSESSION_REGISTRY",
+                "LIFECYCLE_DECISION_REGISTRY",
+                "PROJECT_CHANGE_INBOX",
                 "EXTERNAL_PROJECT_REGISTRY",
                 "TOOL_HEALTH_STORE",
                 "CONNECTED_SERVICE_READINESS",

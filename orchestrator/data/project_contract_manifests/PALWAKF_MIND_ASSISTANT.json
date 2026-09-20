@@ -1,0 +1,27 @@
+{
+  "manifest_version": "PROJECT_CONTRACT_MANIFEST_V1",
+  "project_id": "PALWAKF_MIND_ASSISTANT",
+  "institutional_name": "PalWakf Mind Assistant",
+  "system_role": "KNOWLEDGE_PLANE",
+  "system_kind": "REPOSITORY_PROJECT",
+  "repository_full_name": "firasfanon/palwakf_mind_assistant",
+  "host_project_id": null,
+  "separate_repository": true,
+  "implementation_placement": "SEPARATE_REPOSITORY",
+  "current_state_document_id": "1kb5As0ySDatQXC25LjCiNdAkqTi8Jy2Y8T56niK_qYo",
+  "architecture_version": "ENGINEERING_OS_SYSTEM_DESIGN_SPEC_V1",
+  "truth_authorities": {
+    "code": "REMOTE_GITHUB",
+    "sovereign": "WORKSPACE_DRIVE",
+    "operational_runtime": "OPERATIONAL_STATE_STORE",
+    "chat_history": "NOT_SYSTEM_OF_RECORD"
+  },
+  "mutation_authority": {
+    "source_mutation_requires_task_authorization": true,
+    "main_merge_requires_explicit_authorization": true,
+    "baseline_promotion_requires_explicit_authorization": true,
+    "production_requires_explicit_authorization": true,
+    "shared_db_mutation_requires_explicit_authorization": true,
+    "authority_expansion_forbidden": true
+  }
+}
