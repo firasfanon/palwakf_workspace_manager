@@ -3,9 +3,7 @@ import hashlib
 import pytest
 from pydantic import ValidationError
 
-from palwakf_orchestrator.intersystem_contracts import (
-    WorkspaceAuthorityPackageV1,
-)
+from palwakf_orchestrator.intersystem_contracts import WorkspaceAuthorityPackageV1
 from palwakf_orchestrator.pre_l5_cross_system_contract import (
     PreL5CrossSystemContractV1,
     PreL5FailureFingerprintBindingV1,
@@ -16,7 +14,6 @@ from palwakf_orchestrator.pre_l5_instruction_resolver import (
     PreExecutionKnowledgeGateV1,
     build_pre_l5_bootstrap_envelope,
 )
-
 
 PROJECT = "PALWAKF_LOCAL_AGENTS"
 TASK = "TASK-CROSS-SYSTEM"

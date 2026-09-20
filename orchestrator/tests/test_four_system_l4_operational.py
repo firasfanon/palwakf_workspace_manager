@@ -185,7 +185,10 @@ def test_l4_agentic_wire_payload_with_contract_id_reaches_service():
     service = FourSystemL4OperationalService(store)
     opened = service.open_authority_run(package=package(), correlation_id="corr-1")
     payload = agentic_envelope(opened.workspace_run_id).model_dump(mode="json")
-    recorded = service.record_agentic(opened.workspace_run_id, L4AgenticResultEnvelope.model_validate(payload))
+    recorded = service.record_agentic(
+        opened.workspace_run_id,
+        L4AgenticResultEnvelope.model_validate(payload),
+    )
     assert recorded.stage == "AGENTIC_COMPLETED"
     assert recorded.agentic_envelope["contract_id"] == CONTRACT_ID
 
@@ -196,7 +199,10 @@ def test_l4_mind_wire_payload_with_contract_id_reaches_service():
     opened = service.open_authority_run(package=package(), correlation_id="corr-1")
     service.record_agentic(opened.workspace_run_id, agentic_envelope(opened.workspace_run_id))
     payload = mind_envelope(opened.workspace_run_id).model_dump(mode="json")
-    recorded = service.record_mind(opened.workspace_run_id, L4MindReviewEnvelope.model_validate(payload))
+    recorded = service.record_mind(
+        opened.workspace_run_id,
+        L4MindReviewEnvelope.model_validate(payload),
+    )
     assert recorded.stage == "MIND_REVIEW_COMPLETED"
     assert recorded.mind_envelope["contract_id"] == CONTRACT_ID
 
