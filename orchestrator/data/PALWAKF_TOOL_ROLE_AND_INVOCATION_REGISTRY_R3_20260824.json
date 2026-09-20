@@ -71,6 +71,9 @@
       "claude-code",
       "kimi",
       "local-agent"
+    ],
+    "governed.local_execution_channel": [
+      "remote-desktop-commander"
     ]
   },
   "adapters": {
@@ -302,6 +305,26 @@
       },
       "evidence_contract": [
         "provider_certification_evidence_required"
+      ]
+    },
+    "remote-desktop-commander": {
+      "lifecycle": "available",
+      "permission_status": "approval_required",
+      "write_capable": true,
+      "read_only_fallback": true,
+      "provider_kind": "governed_local_execution_channel",
+      "provider_certification_status": "TRIAL_AUTHORIZED",
+      "supported_provider_modes": [],
+      "evidence_contract": [
+        "rdc_preflight_receipt",
+        "device_identity",
+        "local_user",
+        "tool_config_fingerprint",
+        "target_repository",
+        "task_branch",
+        "expected_head",
+        "task_scope",
+        "postflight_remote_readback"
       ]
     }
   }
