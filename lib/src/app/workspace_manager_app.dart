@@ -13,6 +13,7 @@ import '../features/engineering_os/presentation/extensions_center_page.dart';
 import '../features/engineering_os/presentation/task_board_page.dart';
 import '../features/orchestrator/presentation/orchestrator_workspace_page.dart';
 import '../features/orchestrator/presentation/tool_health_page.dart';
+import '../features/portfolio_intelligence/presentation/portfolio_command_center_page.dart';
 import '../features/projects/presentation/external_projects_page.dart';
 import '../features/projects/presentation/project_reality_page.dart';
 import '../features/workspace_catalog/presentation/workspace_catalog_page.dart';
@@ -52,6 +53,10 @@ final workspaceRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/dashboard',
+            builder: (context, state) => const PortfolioCommandCenterPage(),
+          ),
+          GoRoute(
+            path: '/advanced/operations-dashboard',
             builder: (context, state) => const WorkspaceDashboardPage(),
           ),
           GoRoute(

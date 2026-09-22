@@ -6,6 +6,7 @@ import '../core/presentation/preview_mode_ui.dart';
 import '../features/dashboard/application/dashboard_controller.dart';
 import '../features/orchestrator/application/orchestrator_controller.dart';
 import '../features/orchestrator/presentation/service_auth_dialog.dart';
+import '../features/portfolio_intelligence/application/portfolio_intelligence_controller.dart';
 import '../features/projects/application/external_projects_controller.dart';
 
 class WorkspaceApplicationShell extends ConsumerWidget {
@@ -287,6 +288,7 @@ class WorkspaceApplicationShell extends ConsumerWidget {
       ref.read(dashboardControllerProvider.notifier).load(),
       ref.read(orchestratorControllerProvider.notifier).load(),
       ref.read(externalProjectsControllerProvider.notifier).load(),
+      ref.read(portfolioIntelligenceControllerProvider.notifier).load(),
     ]);
   }
 }

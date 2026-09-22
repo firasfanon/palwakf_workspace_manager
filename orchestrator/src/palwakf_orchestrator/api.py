@@ -101,6 +101,18 @@ from palwakf_orchestrator.operator_contracts import (
 )
 from palwakf_orchestrator.operator_service import OperatorService
 from palwakf_orchestrator.persistence import SQLiteStateStore, StateStore
+from palwakf_orchestrator.portfolio_intelligence import PortfolioIntelligenceService
+from palwakf_orchestrator.portfolio_intelligence_contracts import (
+    ChangeItem,
+    CriticalPathView,
+    DependencyView,
+    PortfolioCommandCenterSnapshot,
+    PortfolioDecision,
+    PortfolioRecommendation,
+    PortfolioRisk,
+    ProjectForecast,
+    RegistryEntity,
+)
 from palwakf_orchestrator.project_contracts import (
     CandidateWorkItem,
     CreateProjectEngineeringTaskRequest,
@@ -231,6 +243,10 @@ def create_app(
         local_product=local_product,
         engineering_os=engineering_os,
     )
+    portfolio_intelligence = PortfolioIntelligenceService(
+        dashboard,
+        resolved_store,
+    )
     limiter = BoundedRateLimiter(resolved_settings.requests_per_minute)
     mcp_http_app = create_mcp_server(
         connected,
@@ -261,6 +277,7 @@ def create_app(
     app.state.project_contract_manifest_service = project_manifests
     app.state.project_health_state_machine = project_health
     app.state.dashboard_service = dashboard
+    app.state.portfolio_intelligence_service = portfolio_intelligence
     app.state.local_product_service = local_product
     app.state.engineering_os_service = engineering_os
     app.state.execution_run_adapter = execution_runs
@@ -412,6 +429,73 @@ def create_app(
     ) -> list[EvidenceIndexItem]:
         return dashboard.evidence(limit)
 
+    @app.get(
+        "/v1/portfolio/overview",
+        response_model=PortfolioCommandCenterSnapshot,
+    )
+    async def portfolio_overview() -> PortfolioCommandCenterSnapshot:
+        return portfolio_intelligence.snapshot()
+
+    @app.get(
+        "/v1/portfolio/recommendations",
+        response_model=list[PortfolioRecommendation],
+    )
+    async def portfolio_recommendations() -> list[PortfolioRecommendation]:
+        return portfolio_intelligence.recommendations()
+
+    @app.get(
+        "/v1/portfolio/critical-path",
+        response_model=CriticalPathView,
+    )
+    async def portfolio_critical_path() -> CriticalPathView:
+        return portfolio_intelligence.critical_path()
+
+    @app.get(
+        "/v1/portfolio/forecast",
+        response_model=list[ProjectForecast],
+    )
+    async def portfolio_forecast() -> list[ProjectForecast]:
+        return portfolio_intelligence.forecasts()
+
+    @app.get(
+        "/v1/portfolio/capabilities",
+        response_model=list[RegistryEntity],
+    )
+    async def portfolio_capabilities() -> list[RegistryEntity]:
+        return portfolio_intelligence.capabilities()
+
+    @app.get("/v1/portfolio/skills", response_model=list[RegistryEntity])
+    async def portfolio_skills() -> list[RegistryEntity]:
+        return portfolio_intelligence.skills()
+
+    @app.get("/v1/portfolio/tools", response_model=list[RegistryEntity])
+    async def portfolio_tools() -> list[RegistryEntity]:
+        return portfolio_intelligence.tools()
+
+    @app.get("/v1/portfolio/agents", response_model=list[RegistryEntity])
+    async def portfolio_agents() -> list[RegistryEntity]:
+        return portfolio_intelligence.agents()
+
+    @app.get("/v1/portfolio/providers", response_model=list[RegistryEntity])
+    async def portfolio_providers() -> list[RegistryEntity]:
+        return portfolio_intelligence.providers()
+
+    @app.get("/v1/portfolio/dependencies", response_model=list[DependencyView])
+    async def portfolio_dependencies() -> list[DependencyView]:
+        return portfolio_intelligence.dependencies()
+
+    @app.get("/v1/portfolio/blockers", response_model=list[PortfolioRisk])
+    async def portfolio_blockers() -> list[PortfolioRisk]:
+        return portfolio_intelligence.risks()
+
+    @app.get("/v1/portfolio/decisions", response_model=list[PortfolioDecision])
+    async def portfolio_decisions() -> list[PortfolioDecision]:
+        return portfolio_intelligence.decisions()
+
+    @app.get("/v1/portfolio/history", response_model=list[ChangeItem])
+    async def portfolio_history() -> list[ChangeItem]:
+        return portfolio_intelligence.history()
+
     @app.post("/v1/connected/tasks/dispatch", response_model=ConnectedTaskReceipt)
     async def connected_dispatch(
         command: ConnectedDispatchRequest,
@@ -548,8 +632,7 @@ def _is_local_ui_browser_request(request: Request) -> bool:
         return False
     path = request.url.path
     return path == "/" or any(
-        path == prefix or path.startswith(f"{prefix}/")
-        for prefix in _LOCAL_UI_PATH_PREFIXES
+        path == prefix or path.startswith(f"{prefix}/") for prefix in _LOCAL_UI_PATH_PREFIXES
     )
 
 
