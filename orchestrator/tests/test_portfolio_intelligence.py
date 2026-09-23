@@ -55,6 +55,8 @@ async def _register_project(client: AsyncClient) -> str:
     probe = await client.post(f"/v1/projects/{project_id}/probe", headers=AUTH)
     assert probe.status_code == 200
     return str(project_id)
+
+
 @pytest.mark.asyncio
 async def test_portfolio_overview_is_read_only_truth_projection(tmp_path: Path) -> None:
     app = build_portfolio_app(tmp_path)
@@ -68,18 +70,30 @@ async def test_portfolio_overview_is_read_only_truth_projection(tmp_path: Path) 
     assert response.status_code == 200
     body = response.json()
     assert body["schema_version"] == "PALWAKF_PORTFOLIO_INTELLIGENCE_V1"
-    assert body["projects"][0]["project_id"] == project_id
-    assert body["projects"][0]["scope_progress_percent"] is None
-    assert (
-        body["projects"][0]["scope_progress_basis"]
-        == "UNAVAILABLE_NO_CANONICAL_SCOPE_PROFILE_IN_RUNTIME"
-    )
-    assert body["projects"][0]["forecast"]["p50"] is None
-    assert body["projects"][0]["forecast"]["p80"] is None
-    assert (
-        body["projects"][0]["forecast"]["basis"]
-        == "NO_FABRICATED_ETA_WITHOUT_HISTORICAL_CYCLE_TIME"
-    )
+
+    projects = {item["project_id"]: item for item in body["projects"]}
+    assert {
+        "PALWAKF_WORKSPACE_MANAGER",
+        "PALWAKF_MIND_ASSISTANT",
+        "PALWAKF_AGENTIC_AI",
+        "PALWAKF_INTEGRATION_ORCHESTRATOR_ENGINEERING_OS",
+    }.issubset(projects)
+    assert project_id in projects
+
+    external = projects[project_id]
+    assert external["scope_progress_percent"] is None
+    assert external["scope_progress_basis"] == "UNAVAILABLE_NO_CANONICAL_SCOPE_PROFILE_IN_RUNTIME"
+    assert external["forecast"]["p50"] is None
+    assert external["forecast"]["p80"] is None
+    assert external["forecast"]["basis"] == "NO_FABRICATED_ETA_WITHOUT_HISTORICAL_CYCLE_TIME"
+
+    system_os = projects["PALWAKF_INTEGRATION_ORCHESTRATOR_ENGINEERING_OS"]
+    assert system_os["truth_state"] == "UNKNOWN"
+    assert system_os["current_status"] == "CONTRACT_REGISTERED_RUNTIME_NOT_OBSERVED"
+    assert system_os["repository_full_name"] == "firasfanon/palwakf_workspace_manager"
+    assert system_os["scope_progress_percent"] is None
+    assert system_os["forecast"]["p50"] is None
+
     assert "UNKNOWN_IS_NOT_FALSE" in body["authority_notes"]
     assert "NO_SECOND_SOVEREIGN_STATE_STORE" in body["provenance"]
 
@@ -97,6 +111,9 @@ async def test_portfolio_source_failure_semantics_do_not_fabricate_drive_state(
         response = await client.get("/v1/portfolio/overview", headers=AUTH)
 
     sources = {item["source_id"]: item for item in response.json()["source_health"]}
+    manifests = sources["PROJECT_CONTRACT_MANIFEST_REGISTRY"]
+    assert manifests["state"] == "HEALTHY"
+    assert manifests["authority"] == "PROJECT_CONTRACT_MANIFEST_REGISTRY_V1"
     drive = sources["WORKSPACE_DRIVE_SOVEREIGN"]
     assert drive["state"] == "UNKNOWN"
     assert drive["freshness"] == "NO_LIVE_RUNTIME_ADAPTER"
@@ -119,6 +136,8 @@ async def test_portfolio_dependency_absence_is_explicit_unavailable(
     assert body["status"] == "UNAVAILABLE"
     assert body["project_ids"] == []
     assert "لا يتم اختلاق" in body["reason_ar"]
+
+
 @pytest.mark.asyncio
 async def test_portfolio_routes_require_authenticated_read_scope(tmp_path: Path) -> None:
     app = build_portfolio_app(tmp_path)
@@ -196,6 +215,8 @@ def test_dependency_path_is_deterministic_and_cycle_fails_closed() -> None:
     )
     assert path == []
     assert cycle is True
+
+
 @pytest.mark.asyncio
 async def test_portfolio_recommendations_never_grant_authority(tmp_path: Path) -> None:
     app = build_portfolio_app(tmp_path)

@@ -368,7 +368,7 @@ def create_app(
     @app.get("/local/session/{nonce}", include_in_schema=False)
     async def redeem_local_session(nonce: str, request: Request) -> Response:
         session_id = local_sessions.redeem_launch(nonce, request)
-        response = RedirectResponse(url="/dashboard", status_code=303)
+        response = RedirectResponse(url="/#/dashboard", status_code=303)
         response.set_cookie(
             LOCAL_SESSION_COOKIE,
             session_id,

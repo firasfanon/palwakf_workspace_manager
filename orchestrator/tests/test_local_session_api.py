@@ -46,7 +46,7 @@ async def test_read_scope_can_issue_readonly_local_session(tmp_path: Path) -> No
         redeem = await client.get(launch_path)
 
         assert redeem.status_code == 303
-        assert redeem.headers["location"] == "/dashboard"
+        assert redeem.headers["location"] == "/#/dashboard"
         cookie = redeem.headers["set-cookie"]
         assert "palwakf_local_session=" in cookie
         assert "HttpOnly" in cookie

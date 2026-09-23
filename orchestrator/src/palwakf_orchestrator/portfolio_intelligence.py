@@ -27,6 +27,10 @@ from palwakf_orchestrator.portfolio_intelligence_contracts import (
     SourceHealthState,
     TruthState,
 )
+from palwakf_orchestrator.project_manifest_service import (
+    ProjectContractManifestService,
+    ProjectContractManifestV1,
+)
 from palwakf_orchestrator.typed_dependency_graph import (
     DependencyEdgeStatus,
     TypedDependencyGraphStore,
@@ -44,6 +48,7 @@ class PortfolioIntelligenceService:
         self._dashboard = dashboard
         self._state_store = state_store
         self._dependency_graph = TypedDependencyGraphStore(state_store)
+        self._project_manifests = ProjectContractManifestService()
 
     def snapshot(self) -> PortfolioCommandCenterSnapshot:
         summary = self._dashboard.summary()
@@ -55,7 +60,7 @@ class PortfolioIntelligenceService:
         source_health = self._source_health(summary, evidence)
         truth_confidence = self._truth_confidence(source_health)
         truth_state = self._truth_state(source_health, truth_confidence)
-        projects = [self._project(item) for item in summary.projects]
+        projects = self._projects(summary)
         recommendations = self._recommendations(summary, projects)
         capabilities, skills, tools, agents, providers = self._registries(summary)
 
@@ -206,9 +211,15 @@ class PortfolioIntelligenceService:
             if workspace is not None
             else SourceHealthState.unknown
         )
-        registry_state = (
-            SourceHealthState.healthy if summary.portfolio_total > 0 else SourceHealthState.unknown
-        )
+        manifests = self._project_manifests.list_manifests()
+        manifest_count = len(manifests)
+        repository_manifest_count = sum(manifest.separate_repository for manifest in manifests)
+        if summary.portfolio_total >= repository_manifest_count:
+            registry_state = SourceHealthState.healthy
+        elif summary.portfolio_total > 0:
+            registry_state = SourceHealthState.degraded
+        else:
+            registry_state = SourceHealthState.unknown
         evidence_state = SourceHealthState.healthy if evidence else SourceHealthState.unknown
 
         return [
@@ -243,11 +254,23 @@ class PortfolioIntelligenceService:
                 observed_at=workspace.refreshed_at if workspace is not None else None,
             ),
             SourceHealthItem(
+                source_id="PROJECT_CONTRACT_MANIFEST_REGISTRY",
+                label_ar="سجل عقود المشاريع الأساسية",
+                state=SourceHealthState.healthy,
+                freshness="SOURCE_CONTROLLED",
+                detail_ar=f"السجل المحكوم يحتوي {manifest_count} عقود مشاريع أساسية.",
+                authority="PROJECT_CONTRACT_MANIFEST_REGISTRY_V1",
+                observed_at=summary.generated_at,
+            ),
+            SourceHealthItem(
                 source_id="PROJECT_REALITY_REGISTRY",
                 label_ar="سجل واقع المشاريع",
                 state=registry_state,
                 freshness=summary.freshness.value,
-                detail_ar=f"عدد المشاريع المرصودة: {summary.portfolio_total}.",
+                detail_ar=(
+                    f"مشاريع runtime المرصودة: {summary.portfolio_total}; "
+                    f"عقود المشاريع ذات المستودعات الأساسية: {repository_manifest_count}."
+                ),
                 authority="WORKSPACE_PROJECT_REALITY_PROJECTION",
                 observed_at=summary.generated_at,
             ),
@@ -322,12 +345,13 @@ class PortfolioIntelligenceService:
             SourceHealthState.unavailable: 0,
         }
         weights = {
-            "WORKSPACE_RUNTIME": 25,
-            "GITHUB_CODE_TRUTH": 20,
-            "PROJECT_REALITY_REGISTRY": 20,
-            "DECISION_AND_CHANGE_REGISTRIES": 15,
+            "WORKSPACE_RUNTIME": 20,
+            "GITHUB_CODE_TRUTH": 15,
+            "PROJECT_CONTRACT_MANIFEST_REGISTRY": 15,
+            "PROJECT_REALITY_REGISTRY": 15,
+            "DECISION_AND_CHANGE_REGISTRIES": 10,
             "EVIDENCE_INDEX": 10,
-            "WORKSPACE_DRIVE_SOVEREIGN": 10,
+            "WORKSPACE_DRIVE_SOVEREIGN": 15,
         }
         total = sum(scores[item.state] * weights.get(item.source_id, 0) for item in source_health)
         return round(total / max(sum(weights.values()), 1))
@@ -339,7 +363,7 @@ class PortfolioIntelligenceService:
     ) -> TruthState:
         if any(item.state == SourceHealthState.unavailable for item in source_health):
             return TruthState.degraded if confidence >= 40 else TruthState.unknown
-        if confidence >= 75:
+        if confidence >= 85:
             return TruthState.verified
         if confidence >= 40:
             return TruthState.degraded
@@ -352,6 +376,78 @@ class PortfolioIntelligenceService:
         ]
         values.append("أي مصدر UNKNOWN لا يُعامل كدليل على عدم وجود الكيان.")
         return values
+
+    def _projects(self, summary: DashboardSummary) -> list[ProjectIntelligence]:
+        runtime_by_id = {item.project_id: item for item in summary.projects}
+        manifest_projects: list[ProjectIntelligence] = []
+        manifest_ids: set[str] = set()
+        for manifest in self._project_manifests.list_manifests():
+            manifest_ids.add(manifest.project_id)
+            runtime = runtime_by_id.get(manifest.project_id)
+            if runtime is not None:
+                manifest_projects.append(self._project(runtime))
+            else:
+                manifest_projects.append(self._manifest_project(manifest))
+
+        external_runtime = [
+            self._project(item) for item in summary.projects if item.project_id not in manifest_ids
+        ]
+        return [*manifest_projects, *external_runtime]
+
+    @staticmethod
+    def _manifest_project(manifest: ProjectContractManifestV1) -> ProjectIntelligence:
+        factors = [
+            ScoreFactor(
+                factor="SOURCE_OBSERVABILITY",
+                value=100,
+                weight=50,
+                explanation_ar="المشروع مسجل تعاقديًا لكن لا توجد قراءة runtime حالية.",
+            ),
+            ScoreFactor(
+                factor="GOVERNANCE_REGISTRATION",
+                value=0,
+                weight=50,
+                explanation_ar="Project Contract Manifest محكوم ومتحقق.",
+            ),
+        ]
+        forecast = ProjectForecast(
+            project_id=manifest.project_id,
+            status="UNAVAILABLE",
+            p50=None,
+            p80=None,
+            confidence=0.2,
+            conditions_ar=["تحديث واقع المشروع من مصدر تشغيل/كود موثوق قبل أي ETA."],
+            basis="NO_FABRICATED_ETA_WITHOUT_RUNTIME_AND_CYCLE_TIME",
+        )
+        return ProjectIntelligence(
+            project_id=manifest.project_id,
+            display_name=manifest.institutional_name,
+            repository_full_name=manifest.repository_full_name,
+            truth_state=TruthState.unknown,
+            current_status="CONTRACT_REGISTERED_RUNTIME_NOT_OBSERVED",
+            readiness="UNKNOWN",
+            maturity_state="CONTRACT_REGISTERED",
+            scope_progress_percent=None,
+            scope_progress_basis="UNAVAILABLE_NO_CURRENT_RUNTIME_OBSERVATION",
+            priority_score=50,
+            priority_factors=factors,
+            next_action_ar=("تحديث واقع المشروع وربطه بقراءة GitHub/runtime قبل أي توصية تطوير."),
+            blockers=[],
+            observed_branch=None,
+            observed_head=None,
+            ci_status="UNKNOWN",
+            deployment_status="UNKNOWN",
+            drift_status="UNKNOWN",
+            evidence_count=1,
+            task_count=0,
+            tool_gap_count=0,
+            last_verified_at=None,
+            forecast=forecast,
+            evidence_refs=[
+                f"PROJECT_CONTRACT_MANIFEST:{manifest.project_id}",
+                f"WORKSPACE_DRIVE_CURRENT_STATE:{manifest.current_state_document_id}",
+            ],
+        )
 
     def _project(self, item: PortfolioProjectSummary) -> ProjectIntelligence:
         factors = [
@@ -483,6 +579,8 @@ class PortfolioIntelligenceService:
             risk = "استمرار الوضع الحالي دون معالجة قد يبقي عدم اليقين أو الدين التشغيلي."
             if project.blockers:
                 recommendation_type = "REVIEW_NOW"
+            elif project.truth_state == TruthState.unknown:
+                recommendation_type = "REFRESH_REALITY"
             elif project.drift_status.upper() not in {"ALIGNED", "UNCHANGED", "UNKNOWN"}:
                 recommendation_type = "RECONCILE_NOW"
             elif project.tool_gap_count:
@@ -753,6 +851,7 @@ class PortfolioIntelligenceService:
     ) -> list[PortfolioKpi]:
         total_evidence = sum(project.evidence_count for project in projects)
         capability_gaps = sum(project.tool_gap_count for project in projects)
+        attention_count = sum(project.readiness != "READY" for project in projects)
         active_tasks = (
             summary.tasks.running + summary.tasks.queued + summary.tasks.pending_verification
         )
@@ -761,25 +860,30 @@ class PortfolioIntelligenceService:
                 kpi_id="truth_confidence",
                 label_ar="ثقة الحقيقة",
                 value=f"{truth_confidence}%",
-                status="VERIFIED" if truth_confidence >= 75 else "DEGRADED",
+                status="VERIFIED" if truth_confidence >= 85 else "DEGRADED",
                 confidence=1.0,
                 explanation_ar="مؤشر شفاف مشتق من Source Health الموزون، وليس نسبة إنجاز.",
             ),
             PortfolioKpi(
                 kpi_id="projects",
                 label_ar="المشاريع المرصودة",
-                value=str(summary.portfolio_total),
+                value=str(len(projects)),
                 status="CURRENT",
                 confidence=0.9,
-                explanation_ar="عدد المشاريع في Workspace project reality projection.",
+                explanation_ar=(
+                    "Project Contract Manifest Registry الأساسي + "
+                    "أي مشاريع runtime/external مرصودة."
+                ),
             ),
             PortfolioKpi(
                 kpi_id="attention",
                 label_ar="تحتاج انتباهًا",
-                value=str(summary.portfolio_attention_required),
-                status="ATTENTION" if summary.portfolio_attention_required else "CLEAR",
+                value=str(attention_count),
+                status="ATTENTION" if attention_count else "CLEAR",
                 confidence=0.9,
-                explanation_ar="مشاريع readiness فيها ليست READY.",
+                explanation_ar=(
+                    "مشاريع readiness فيها ليست READY، بما فيها مشاريع مسجلة بلا runtime readback."
+                ),
             ),
             PortfolioKpi(
                 kpi_id="human_decisions",
