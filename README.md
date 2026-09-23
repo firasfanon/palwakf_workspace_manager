@@ -82,7 +82,10 @@ remote HEAD before every dispatch. See `orchestrator/README.md`.
 
 ## Main Dashboard and Operations Shell V1
 
-The operational root is `/dashboard`. The responsive Arabic RTL shell exposes:
+The logical application route is `/dashboard`. The current Flutter Web
+browser entrypoint uses the hash URL `/#/dashboard` so the authenticated
+local-session redirect preserves the intended route. The responsive Arabic RTL
+shell exposes:
 
 ```text
 /dashboard
@@ -106,6 +109,20 @@ GET /v1/dashboard/summary
 GET /v1/dashboard/activity?limit=30
 GET /v1/alerts
 GET /v1/evidence?limit=50
+
+GET /v1/portfolio/overview
+GET /v1/portfolio/recommendations
+GET /v1/portfolio/critical-path
+GET /v1/portfolio/forecast
+GET /v1/portfolio/capabilities
+GET /v1/portfolio/skills
+GET /v1/portfolio/tools
+GET /v1/portfolio/agents
+GET /v1/portfolio/providers
+GET /v1/portfolio/dependencies
+GET /v1/portfolio/blockers
+GET /v1/portfolio/decisions
+GET /v1/portfolio/history
 ```
 
 The same reads are available to authenticated MCP clients. No public
@@ -177,8 +194,8 @@ Stop it with:
 
 The start command builds Flutter Web, starts the loopback Orchestrator, creates
 an automatic HttpOnly local session, registers Workspace Manager as the primary
-managed project, waits for readiness, and opens `/dashboard`. Starting it again
-reuses the healthy process instead of creating a duplicate.
+managed project, waits for readiness, and opens `/#/dashboard`. Starting it
+again reuses the healthy process instead of creating a duplicate.
 
 The Dashboard reads local/remote/PR HEAD, worktree, PR, CI, Preview, runtime
 capability, task, checkpoint, and repository-writer state from authoritative
