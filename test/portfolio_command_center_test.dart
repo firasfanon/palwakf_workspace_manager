@@ -224,12 +224,24 @@ void main() {
 
     expect(
       find.byKey(
-        const ValueKey<String>('project-PALWAKF_WORKSPACE_MANAGER'),
+        const ValueKey<String>('portfolio-projects-table'),
       ),
       findsOneWidget,
     );
     expect(find.text('PalWakf Workspace Manager'), findsWidgets);
     expect(find.text('Workspace Drive السيادي'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('header-hero-tile')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('portfolio-executive-timeline')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('executive-summary-strip')),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 

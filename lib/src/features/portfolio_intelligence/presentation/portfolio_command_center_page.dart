@@ -73,7 +73,7 @@ class _PortfolioCommandCenterPageState
       data: _commandCenterTheme(),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final desktop = constraints.maxWidth >= 1080;
+          final desktop = constraints.maxWidth >= 1180;
           return Material(
             color: _ccBg,
             child: Row(
@@ -129,7 +129,7 @@ class _PortfolioCommandCenterPageState
                               child: Center(
                                 child: ConstrainedBox(
                                   constraints:
-                                      const BoxConstraints(maxWidth: 1780),
+                                      const BoxConstraints(maxWidth: 1920),
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.stretch,
@@ -145,15 +145,11 @@ class _PortfolioCommandCenterPageState
                                         projects: visibleProjects,
                                       ),
                                       const SizedBox(height: 10),
-                                      _RegistrySection(
-                                        capabilities: snapshot.capabilities,
-                                        skills: snapshot.skills,
-                                        tools: snapshot.tools,
-                                        agents: snapshot.agents,
-                                        providers: snapshot.providers,
+                                      _ExecutiveLowerDeck(
+                                        snapshot: snapshot,
                                       ),
                                       const SizedBox(height: 10),
-                                      _CommandCenterBottom(
+                                      _ExecutiveSummaryStrip(
                                         snapshot: snapshot,
                                       ),
                                       const SizedBox(height: 10),
@@ -217,23 +213,98 @@ class _VisualSidebar extends StatelessWidget {
   const _VisualSidebar();
 
   static const _items = <(String, String, IconData)>[
-    ('الرئيسية', '/home', Icons.home_rounded),
-    ('مركز القيادة', '/dashboard', Icons.space_dashboard_rounded),
-    ('المشاريع', '/projects', Icons.folder_copy_rounded),
-    ('أعمالي', '/work', Icons.checklist_rounded),
-    ('التشغيل', '/operations', Icons.settings_suggest_rounded),
-    ('الأدوات', '/tools', Icons.build_circle_rounded),
-    ('التنبيهات والمخاطر', '/alerts', Icons.warning_amber_rounded),
-    ('الأدلة والمعرفة', '/evidence', Icons.fact_check_rounded),
-    ('التوسعات', '/extensions', Icons.extension_rounded),
-    ('الاتصالات', '/settings/connections', Icons.cable_rounded),
-    ('الإدارة المتقدمة', '/advanced', Icons.admin_panel_settings_rounded),
+    (
+      '\u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629',
+      '/dashboard',
+      Icons.home_rounded
+    ),
+    (
+      '\u0627\u0644\u0645\u0634\u0627\u0631\u064a\u0639',
+      '/projects',
+      Icons.folder_copy_rounded
+    ),
+    (
+      '\u0627\u0644\u0645\u062e\u0637\u0637 \u0627\u0644\u0632\u0645\u0646\u064a',
+      '',
+      Icons.calendar_month_rounded
+    ),
+    (
+      '\u0627\u0644\u0645\u062d\u0641\u0638\u0629 \u0648\u0627\u0644\u0628\u0631\u0627\u0645\u062c',
+      '',
+      Icons.hub_rounded
+    ),
+    (
+      '\u0627\u0644\u0627\u0639\u062a\u0645\u0627\u062f\u0627\u062a \u0648\u0627\u0644\u062a\u0643\u0627\u0645\u0644',
+      '',
+      Icons.account_tree_rounded
+    ),
+    (
+      '\u0627\u0644\u0645\u0647\u0627\u0631\u0627\u062a \u0648\u0627\u0644\u0642\u062f\u0631\u0627\u062a',
+      '',
+      Icons.psychology_rounded
+    ),
+    (
+      '\u0627\u0644\u0623\u062f\u0648\u0627\u062a',
+      '/tools',
+      Icons.build_circle_rounded
+    ),
+    ('\u0627\u0644\u0648\u0643\u0644\u0627\u0621', '', Icons.smart_toy_rounded),
+    (
+      '\u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0648\u0627\u0644\u0645\u0639\u0631\u0641\u0629',
+      '/evidence',
+      Icons.layers_rounded
+    ),
+    (
+      '\u0627\u0644\u0628\u062d\u062b \u0648\u0627\u0644\u0630\u0643\u0627\u0621',
+      '',
+      Icons.manage_search_rounded
+    ),
+    (
+      '\u0627\u0644\u0623\u0648\u0642\u0627\u0641 \u0648\u0627\u0644\u0623\u0646\u0638\u0645\u0629',
+      '',
+      Icons.account_balance_rounded
+    ),
+    (
+      '\u0627\u0644\u062d\u062c \u0648\u0627\u0644\u0639\u0645\u0631\u0629',
+      '',
+      Icons.mosque_rounded
+    ),
+    (
+      '\u0627\u0644\u062e\u0631\u0627\u0626\u0637 \u0627\u0644\u0645\u0643\u0627\u0646\u064a\u0629 GIS',
+      '',
+      Icons.location_on_rounded
+    ),
+    (
+      '\u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631 \u0648\u0627\u0644\u062a\u062d\u0644\u064a\u0644\u0627\u062a',
+      '',
+      Icons.analytics_rounded
+    ),
+    (
+      '\u0627\u0644\u062a\u0648\u0635\u064a\u0627\u062a \u0627\u0644\u0630\u0643\u064a\u0629',
+      '',
+      Icons.auto_awesome_rounded
+    ),
+    (
+      '\u0627\u0644\u0645\u062e\u0627\u0637\u0631 \u0648\u0627\u0644\u0645\u0639\u0648\u0642\u0627\u062a',
+      '/alerts',
+      Icons.warning_amber_rounded
+    ),
+    (
+      '\u0633\u062c\u0644 \u0627\u0644\u0623\u062d\u062f\u0627\u062b',
+      '',
+      Icons.history_rounded
+    ),
+    (
+      '\u0625\u0639\u062f\u0627\u062f\u0627\u062a \u0627\u0644\u0646\u0638\u0627\u0645',
+      '/settings/connections',
+      Icons.settings_rounded
+    ),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 205,
+      width: 190,
       decoration: const BoxDecoration(
         color: Color(0xFF020D17),
         border: Border(right: BorderSide(color: _ccBorder)),
@@ -304,7 +375,7 @@ class _VisualSidebar extends StatelessWidget {
                   separatorBuilder: (_, __) => const SizedBox(height: 3),
                   itemBuilder: (context, index) {
                     final item = _items[index];
-                    final selected = item.$2 == '/dashboard';
+                    final selected = index == 0;
                     return Material(
                       color: selected
                           ? _ccBlue.withValues(alpha: .20)
@@ -312,7 +383,8 @@ class _VisualSidebar extends StatelessWidget {
                       borderRadius: BorderRadius.circular(9),
                       child: InkWell(
                         borderRadius: BorderRadius.circular(9),
-                        onTap: () => context.go(item.$2),
+                        onTap:
+                            item.$2.isEmpty ? null : () => context.go(item.$2),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 10,
@@ -447,7 +519,7 @@ class _VisualCommandHeader extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             _StateChip(
-              label: 'التصميم التنفيذي',
+              label: 'التصميم المعتمد',
               state: 'VERIFIED',
             ),
           ],
@@ -466,7 +538,7 @@ class _VisualCommandHeader extends StatelessWidget {
           fillColor: _ccPanelHigh,
           prefixIcon:
               const Icon(Icons.search_rounded, color: _ccMuted, size: 19),
-          hintText: 'ابحث في المشاريع والقدرات...',
+          hintText: 'ابحث في المشاريع والبيانات والأدوات والقدرات...',
           hintStyle: const TextStyle(color: _ccMuted, fontSize: 11),
           suffixIcon: query.isEmpty
               ? const Center(
@@ -507,6 +579,18 @@ class _VisualCommandHeader extends StatelessWidget {
             color: _ccCyan,
           ),
         ),
+        const Icon(
+          Icons.light_mode_outlined,
+          color: _ccMuted,
+          size: 21,
+        ),
+        const SizedBox(width: 12),
+        const Icon(
+          Icons.mail_outline_rounded,
+          color: _ccMuted,
+          size: 21,
+        ),
+        const SizedBox(width: 12),
         Stack(
           clipBehavior: Clip.none,
           children: <Widget>[
@@ -605,14 +689,659 @@ class _VisualCommandHeader extends StatelessWidget {
               ],
             )
           : Row(
+              textDirection: TextDirection.ltr,
               children: <Widget>[
                 Expanded(flex: 5, child: title),
                 const SizedBox(width: 16),
                 Expanded(flex: 5, child: search),
                 const SizedBox(width: 16),
                 actions,
+                const SizedBox(width: 12),
+                _HeaderHeroTile(snapshot: snapshot),
               ],
             ),
+    );
+  }
+}
+
+// FINAL_LITERAL_RTL_VISUAL_FIDELITY_V3
+
+class _HeaderHeroTile extends StatelessWidget {
+  const _HeaderHeroTile({required this.snapshot});
+
+  final PortfolioCommandCenterSnapshot snapshot;
+
+  @override
+  Widget build(BuildContext context) {
+    final healthy = snapshot.sourceHealth
+        .where((item) => item.state.toUpperCase() == 'HEALTHY')
+        .length;
+
+    return Container(
+      key: const ValueKey<String>('header-hero-tile'),
+      width: 158,
+      height: 72,
+      padding: const EdgeInsets.all(9),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        gradient: LinearGradient(
+          colors: <Color>[
+            _ccBlue.withValues(alpha: .22),
+            _ccPanelHigh,
+            _ccTeal.withValues(alpha: .12),
+          ],
+        ),
+        border: Border.all(
+          color: _ccCyan.withValues(alpha: .30),
+        ),
+      ),
+      child: Row(
+        children: <Widget>[
+          Container(
+            width: 43,
+            height: 54,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              gradient: const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: <Color>[
+                  Color(0xFF155CA8),
+                  Color(0xFF073558),
+                ],
+              ),
+            ),
+            child: const Icon(
+              Icons.mosque_rounded,
+              color: Color(0xFFE8C66B),
+              size: 27,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  _formatDateTime(snapshot.generatedAt),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _ccText,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  snapshot.truthState,
+                  style: TextStyle(
+                    color: _statusColor(context, snapshot.truthState),
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                Text(
+                  '$healthy/${snapshot.sourceHealth.length} sources',
+                  style: const TextStyle(
+                    color: _ccMuted,
+                    fontSize: 8,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExecutiveLowerDeck extends StatelessWidget {
+  const _ExecutiveLowerDeck({required this.snapshot});
+
+  final PortfolioCommandCenterSnapshot snapshot;
+
+  @override
+  Widget build(BuildContext context) {
+    final capabilities = <RegistryEntity>[
+      ...snapshot.capabilities,
+      ...snapshot.skills,
+    ];
+
+    final timeline = _ExecutiveTimelinePanel(snapshot: snapshot);
+
+    final skills = _ExecutiveRegistryPanel(
+      title:
+          '\u0627\u0644\u0642\u062f\u0631\u0627\u062a \u0648\u0627\u0644\u0645\u0647\u0627\u0631\u0627\u062a',
+      icon: Icons.psychology_rounded,
+      items: capabilities,
+    );
+
+    final tools = _ExecutiveRegistryPanel(
+      title:
+          '\u0627\u0644\u0623\u062f\u0648\u0627\u062a \u0627\u0644\u0645\u062a\u0635\u0644\u0629',
+      icon: Icons.build_circle_rounded,
+      items: snapshot.tools,
+    );
+
+    final agents = _ExecutiveRegistryPanel(
+      title: '??????? ???????? ?????? ?????????',
+      icon: Icons.smart_toy_rounded,
+      items: <RegistryEntity>[
+        ...snapshot.providers,
+        ...snapshot.agents,
+      ],
+    );
+
+    final activity = _ExecutiveActivityPanel(snapshot: snapshot);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 1050) {
+          return Column(
+            children: <Widget>[
+              timeline,
+              const SizedBox(height: 10),
+              skills,
+              const SizedBox(height: 10),
+              tools,
+              const SizedBox(height: 10),
+              agents,
+              const SizedBox(height: 10),
+              activity,
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Expanded(flex: 34, child: timeline),
+            const SizedBox(width: 8),
+            Expanded(flex: 18, child: skills),
+            const SizedBox(width: 8),
+            Expanded(flex: 16, child: tools),
+            const SizedBox(width: 8),
+            Expanded(flex: 16, child: agents),
+            const SizedBox(width: 8),
+            Expanded(flex: 24, child: activity),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _ExecutiveTimelinePanel extends StatelessWidget {
+  const _ExecutiveTimelinePanel({required this.snapshot});
+
+  final PortfolioCommandCenterSnapshot snapshot;
+
+  @override
+  Widget build(BuildContext context) {
+    return _Section(
+      title:
+          '\u0627\u0644\u0645\u062e\u0637\u0637 \u0627\u0644\u0632\u0645\u0646\u064a \u0644\u0644\u0645\u062d\u0641\u0638\u0629',
+      subtitle:
+          '\u064a\u0639\u0631\u0636 \u0641\u0642\u0637 \u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u062a\u0642\u062f\u0645 \u0627\u0644\u0645\u062b\u0628\u062a\u0629\u061b \u0644\u0627 \u062a\u064f\u062e\u062a\u0644\u0642 \u062a\u0648\u0627\u0631\u064a\u062e \u0623\u0648 \u0646\u0633\u0628.',
+      child: Container(
+        key: const ValueKey<String>('portfolio-executive-timeline'),
+        child: Column(
+          children: <Widget>[
+            const Padding(
+              padding: EdgeInsetsDirectional.only(start: 146, end: 68),
+              child: Row(
+                textDirection: TextDirection.ltr,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  Text('0%', style: TextStyle(color: _ccMuted, fontSize: 7)),
+                  Text('25%', style: TextStyle(color: _ccMuted, fontSize: 7)),
+                  Text('50%', style: TextStyle(color: _ccMuted, fontSize: 7)),
+                  Text('75%', style: TextStyle(color: _ccMuted, fontSize: 7)),
+                  Text('100%', style: TextStyle(color: _ccMuted, fontSize: 7)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 5),
+            ...snapshot.projects.take(8).map((project) {
+              final progress = project.scopeProgressPercent;
+              final color = _statusColor(context, project.readiness);
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 7),
+                child: Row(
+                  children: <Widget>[
+                    SizedBox(
+                      width: 138,
+                      child: Text(
+                        project.displayName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: _ccText,
+                          fontSize: 8,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 7),
+                    Expanded(
+                      child: progress == null
+                          ? Container(
+                              height: 18,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: _ccPanelHigh,
+                                borderRadius: BorderRadius.circular(5),
+                                border: Border.all(
+                                  color: _ccBorder,
+                                ),
+                              ),
+                              child: const Text(
+                                '\u063a\u064a\u0631 \u0645\u062a\u0627\u062d',
+                                style: TextStyle(
+                                  color: _ccMuted,
+                                  fontSize: 7,
+                                ),
+                              ),
+                            )
+                          : ClipRRect(
+                              borderRadius: BorderRadius.circular(5),
+                              child: LinearProgressIndicator(
+                                minHeight: 18,
+                                value: progress.clamp(0, 100).toDouble() / 100,
+                                backgroundColor: _ccPanelHigh,
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(color),
+                              ),
+                            ),
+                    ),
+                    const SizedBox(width: 7),
+                    SizedBox(
+                      width: 58,
+                      child: Text(
+                        project.readiness,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.end,
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 7,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ExecutiveRegistryPanel extends StatelessWidget {
+  const _ExecutiveRegistryPanel({
+    required this.title,
+    required this.icon,
+    required this.items,
+  });
+
+  final String title;
+  final IconData icon;
+  final List<RegistryEntity> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return _Panel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Icon(icon, color: _ccCyan, size: 17),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _ccText,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              Text(
+                '${items.length}',
+                style: const TextStyle(
+                  color: _ccCyan,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 14),
+          if (items.isEmpty)
+            const _EmptyState(message: 'No observed entries.')
+          else
+            ...items.take(7).map(
+                  (item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      children: <Widget>[
+                        Container(
+                          width: 7,
+                          height: 7,
+                          decoration: BoxDecoration(
+                            color: _statusColor(context, item.status),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            item.nameAr,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: _ccText,
+                              fontSize: 8,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        SizedBox(
+                          width: 58,
+                          child: Text(
+                            item.status,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.end,
+                            style: TextStyle(
+                              color: _statusColor(context, item.status),
+                              fontSize: 7,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExecutiveActivityPanel extends StatelessWidget {
+  const _ExecutiveActivityPanel({required this.snapshot});
+
+  final PortfolioCommandCenterSnapshot snapshot;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasContent =
+        snapshot.recentChanges.isNotEmpty || snapshot.decisions.isNotEmpty;
+
+    return _Panel(
+      child: Column(
+        key: const ValueKey<String>('executive-activity-panel'),
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          const Row(
+            children: <Widget>[
+              Icon(
+                Icons.history_rounded,
+                color: _ccCyan,
+                size: 17,
+              ),
+              SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  '\u0622\u062e\u0631 \u0627\u0644\u0623\u0646\u0634\u0637\u0629 \u0648\u0627\u0644\u0642\u0631\u0627\u0631\u0627\u062a',
+                  style: TextStyle(
+                    color: _ccText,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 14),
+          if (!hasContent)
+            const _EmptyState(
+              message:
+                  '\u0644\u0627 \u062a\u0648\u062c\u062f \u0623\u0646\u0634\u0637\u0629 \u0623\u0648 \u0642\u0631\u0627\u0631\u0627\u062a \u0645\u0631\u0635\u0648\u062f\u0629.',
+            )
+          else ...<Widget>[
+            ...snapshot.recentChanges.take(5).map(
+                  (item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      children: <Widget>[
+                        const Icon(
+                          Icons.check_circle_rounded,
+                          color: _ccTeal,
+                          size: 12,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            item.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: _ccText,
+                              fontSize: 8,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          _formatDateTime(item.occurredAt),
+                          style: const TextStyle(
+                            color: _ccMuted,
+                            fontSize: 7,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            if (snapshot.recentChanges.isNotEmpty &&
+                snapshot.decisions.isNotEmpty)
+              const Divider(height: 12),
+            ...snapshot.decisions.take(3).map(
+                  (item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      children: <Widget>[
+                        const Icon(
+                          Icons.gavel_rounded,
+                          color: _ccOrange,
+                          size: 12,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            item.summaryAr,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: _ccText,
+                              fontSize: 8,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        _StateChip(
+                          label: item.status,
+                          state: item.status,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ExecutiveSummaryStrip extends StatelessWidget {
+  const _ExecutiveSummaryStrip({required this.snapshot});
+
+  final PortfolioCommandCenterSnapshot snapshot;
+
+  @override
+  Widget build(BuildContext context) {
+    final healthy = snapshot.sourceHealth
+        .where((item) => item.state.toUpperCase() == 'HEALTHY')
+        .length;
+
+    final metrics = <(IconData, String, String, Color)>[
+      (
+        Icons.folder_copy_rounded,
+        '${snapshot.projects.length}',
+        '\u0627\u0644\u0645\u0634\u0627\u0631\u064a\u0639',
+        _ccPurple,
+      ),
+      (
+        Icons.psychology_rounded,
+        '${snapshot.capabilities.length + snapshot.skills.length}',
+        '\u0627\u0644\u0642\u062f\u0631\u0627\u062a \u0648\u0627\u0644\u0645\u0647\u0627\u0631\u0627\u062a',
+        _ccBlue,
+      ),
+      (
+        Icons.build_circle_rounded,
+        '${snapshot.tools.length}',
+        '\u0627\u0644\u0623\u062f\u0648\u0627\u062a \u0627\u0644\u0645\u062a\u0635\u0644\u0629',
+        _ccTeal,
+      ),
+      (
+        Icons.smart_toy_rounded,
+        '${snapshot.agents.length}',
+        '\u0627\u0644\u0648\u0643\u0644\u0627\u0621',
+        _ccCyan,
+      ),
+      (
+        Icons.warning_amber_rounded,
+        '${snapshot.risks.length}',
+        '\u0627\u0644\u0645\u062e\u0627\u0637\u0631 \u0627\u0644\u0645\u0641\u062a\u0648\u062d\u0629',
+        _ccRed,
+      ),
+      (
+        Icons.gavel_rounded,
+        '${snapshot.decisions.length}',
+        '\u0627\u0644\u0642\u0631\u0627\u0631\u0627\u062a \u0627\u0644\u0645\u0637\u0644\u0648\u0628\u0629',
+        _ccOrange,
+      ),
+      (
+        Icons.fact_check_rounded,
+        '${snapshot.evidenceRefs.length}',
+        '\u0645\u0631\u0627\u062c\u0639 \u0627\u0644\u0623\u062f\u0644\u0629',
+        _ccBlue,
+      ),
+      (
+        Icons.health_and_safety_rounded,
+        '$healthy/${snapshot.sourceHealth.length}',
+        '\u0645\u0635\u0627\u062f\u0631 \u0635\u062d\u064a\u0629',
+        _ccGreen,
+      ),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final columns = width >= 1200
+            ? 8
+            : width >= 700
+                ? 4
+                : 2;
+
+        final itemWidth = (width - (columns - 1) * 8) / columns;
+
+        return Container(
+          key: const ValueKey<String>('executive-summary-strip'),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: metrics
+                .map(
+                  (metric) => SizedBox(
+                    width: itemWidth,
+                    child: Container(
+                      height: 66,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _ccPanel,
+                        borderRadius: BorderRadius.circular(9),
+                        border: Border.all(
+                          color: metric.$4.withValues(alpha: .36),
+                        ),
+                        gradient: LinearGradient(
+                          colors: <Color>[
+                            metric.$4.withValues(alpha: .14),
+                            _ccPanel,
+                          ],
+                        ),
+                      ),
+                      child: Row(
+                        children: <Widget>[
+                          Icon(
+                            metric.$1,
+                            color: metric.$4,
+                            size: 22,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                Text(
+                                  metric.$2,
+                                  style: const TextStyle(
+                                    color: _ccText,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                                Text(
+                                  metric.$3,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: _ccMuted,
+                                    fontSize: 7,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                )
+                .toList(growable: false),
+          ),
+        );
+      },
     );
   }
 }
@@ -870,7 +1599,7 @@ class _StrategicNetworkPanel extends StatelessWidget {
       title: 'الخريطة الاستراتيجية للمشاريع والقدرات',
       subtitle: 'ترابط مرئي من العناصر المرصودة فعليًا، دون اختلاق عقد.',
       child: SizedBox(
-        height: 405,
+        height: 335,
         child: nodes.isEmpty
             ? const _EmptyState(message: 'لا توجد عقد مرصودة لرسم الخريطة.')
             : LayoutBuilder(
@@ -997,47 +1726,6 @@ class _NetworkNode extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _CommandCenterBottom extends StatelessWidget {
-  const _CommandCenterBottom({required this.snapshot});
-
-  final PortfolioCommandCenterSnapshot snapshot;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final activity = _ActivityEvidenceSection(snapshot: snapshot);
-        final decisions = _DecisionsPanel(decisions: snapshot.decisions);
-        final critical = _CriticalPathPanel(
-          criticalPath: snapshot.criticalPath,
-          dependencies: snapshot.dependencies,
-        );
-        if (constraints.maxWidth < 980) {
-          return Column(
-            children: <Widget>[
-              activity,
-              const SizedBox(height: 10),
-              decisions,
-              const SizedBox(height: 10),
-              critical,
-            ],
-          );
-        }
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Expanded(flex: 48, child: activity),
-            const SizedBox(width: 10),
-            Expanded(flex: 24, child: decisions),
-            const SizedBox(width: 10),
-            Expanded(flex: 28, child: critical),
-          ],
-        );
-      },
     );
   }
 }
@@ -1179,32 +1867,36 @@ class _SourceHealthSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _Section(
-      title: 'حالة مصادر البيانات والأنظمة',
+      title:
+          '\u062d\u0627\u0644\u0629 \u0645\u0635\u0627\u062f\u0631 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0648\u0627\u0644\u0623\u0646\u0638\u0645\u0629',
       subtitle:
-          'الحالة الحية للمصادر؛ UNKNOWN يبقى صريحًا ولا يُحوّل إلى غياب.',
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final width = constraints.maxWidth;
-          final columns = width >= 1280
-              ? 3
-              : width >= 720
-                  ? 2
-                  : 1;
-          final cardWidth = (width - (columns - 1) * 12) / columns;
-          return Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: items
-                .map(
-                  (item) => SizedBox(
-                    width: cardWidth,
-                    child: _SourceCard(item: item),
-                  ),
-                )
-                .toList(growable: false),
-          );
-        },
-      ),
+          '\u0627\u0644\u062d\u0627\u0644\u0629 \u0627\u0644\u062d\u064a\u0629 \u0644\u0644\u0645\u0635\u0627\u062f\u0631\u061b UNKNOWN \u064a\u0628\u0642\u0649 \u0635\u0631\u064a\u062d\u064b\u0627 \u0648\u0644\u0627 \u064a\u064f\u062d\u0648\u0651\u0644 \u0625\u0644\u0649 \u063a\u064a\u0627\u0628.',
+      child: items.isEmpty
+          ? const _EmptyState(
+              message: 'No source-health entries are available.')
+          : LayoutBuilder(
+              builder: (context, constraints) {
+                final width = constraints.maxWidth;
+                final columns = width >= 900
+                    ? math.max(1, math.min(6, items.length))
+                    : width >= 560
+                        ? math.max(1, math.min(3, items.length))
+                        : 1;
+                final cardWidth = (width - (columns - 1) * 8) / columns;
+                return Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: items
+                      .map(
+                        (item) => SizedBox(
+                          width: cardWidth,
+                          child: _SourceCard(item: item),
+                        ),
+                      )
+                      .toList(growable: false),
+                );
+              },
+            ),
     );
   }
 }
@@ -1219,34 +1911,81 @@ class _SourceCard extends StatelessWidget {
     final color = _statusColor(context, item.state);
     return Container(
       key: ValueKey<String>('source-${item.sourceId}'),
-      padding: const EdgeInsets.all(14),
+      constraints: const BoxConstraints(minHeight: 88),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(9),
+        color: _ccPanelHigh,
         border: Border.all(color: color.withValues(alpha: .42)),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: color.withValues(alpha: .05),
+            blurRadius: 12,
+          ),
+        ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Row(
             children: <Widget>[
-              Icon(Icons.sensors, size: 18, color: color),
-              const SizedBox(width: 8),
+              Icon(Icons.sensors_rounded, size: 16, color: color),
+              const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   item.labelAr,
-                  style: const TextStyle(fontWeight: FontWeight.w800),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
-              _StateChip(label: item.state, state: item.state),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(item.detailAr, maxLines: 3, overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
+          Row(
+            children: <Widget>[
+              Container(
+                width: 7,
+                height: 7,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                  boxShadow: <BoxShadow>[
+                    BoxShadow(
+                      color: color.withValues(alpha: .45),
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 5),
+              Expanded(
+                child: Text(
+                  item.state,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
           Text(
-            '${item.freshness} · ${item.authority}',
-            style: Theme.of(context).textTheme.labelSmall,
+            item.freshness,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: _ccMuted,
+              fontSize: 8,
+            ),
           ),
         ],
       ),
@@ -1300,41 +2039,74 @@ class _KpiCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final color = _statusColor(context, item.status);
     return Container(
       key: ValueKey<String>('kpi-${item.kpiId}'),
-      padding: const EdgeInsets.all(14),
+      constraints: const BoxConstraints(minHeight: 104),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(10),
+        gradient: LinearGradient(
+          colors: <Color>[
+            color.withValues(alpha: .19),
+            _ccPanelHigh,
+          ],
+        ),
+        border: Border.all(color: color.withValues(alpha: .42)),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Row(
             children: <Widget>[
-              Expanded(child: Text(item.labelAr)),
-              _StateChip(label: item.status, state: item.status),
+              Icon(
+                Icons.insights_rounded,
+                color: color,
+                size: 17,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  item.labelAr,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 7),
           Text(
             item.value,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: const TextStyle(
+              color: _ccText,
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              height: 1,
+            ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 5),
           Text(
             item.explanationAr,
-            maxLines: 3,
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodySmall,
+            style: const TextStyle(
+              color: _ccMuted,
+              fontSize: 8,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
-            'ثقة ${(item.confidence * 100).round()}%',
-            style: Theme.of(context).textTheme.labelSmall,
+            '${(item.confidence * 100).round()}% confidence',
+            style: TextStyle(
+              color: color,
+              fontSize: 8,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),
@@ -1350,93 +2122,103 @@ class _ProjectsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _Section(
-      title: 'أهم المشاريع الاستراتيجية',
-      subtitle: 'الحالة والجاهزية والأولوية والإجراء التالي من الواقع المرصود.',
+      title:
+          '\u0623\u0647\u0645 \u0627\u0644\u0645\u0634\u0627\u0631\u064a\u0639 \u0627\u0644\u0627\u0633\u062a\u0631\u0627\u062a\u064a\u062c\u064a\u0629',
+      subtitle:
+          '\u0627\u0644\u062d\u0627\u0644\u0629 \u0648\u0627\u0644\u062c\u0627\u0647\u0632\u064a\u0629 \u0648\u0627\u0644\u0623\u0648\u0644\u0648\u064a\u0629 \u0648\u0627\u0644\u062a\u0642\u062f\u0645 \u0648\u0627\u0644\u0645\u0639\u064a\u0642\u0627\u062a \u0645\u0646 \u0627\u0644\u0648\u0627\u0642\u0639 \u0627\u0644\u0645\u0631\u0635\u0648\u062f.',
       child: LayoutBuilder(
         builder: (context, constraints) {
-          if (constraints.maxWidth < 860) {
+          if (constraints.maxWidth < 420) {
             return Column(
               children: projects
                   .map(
                     (project) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.only(bottom: 8),
                       child: _ProjectCard(project: project),
                     ),
                   )
                   .toList(growable: false),
             );
           }
+
           return ClipRRect(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(8),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: DataTable(
                 key: const ValueKey<String>('portfolio-projects-table'),
-                headingRowHeight: 44,
-                dataRowMinHeight: 62,
-                dataRowMaxHeight: 84,
+                horizontalMargin: 8,
+                columnSpacing: 12,
+                headingRowHeight: 38,
+                dataRowMinHeight: 44,
+                dataRowMaxHeight: 52,
                 columns: const <DataColumn>[
-                  DataColumn(label: Text('المشروع')),
-                  DataColumn(label: Text('الحقيقة')),
-                  DataColumn(label: Text('الجاهزية')),
-                  DataColumn(label: Text('الأولوية')),
-                  DataColumn(label: Text('CI')),
-                  DataColumn(label: Text('الانحراف')),
-                  DataColumn(label: Text('التقدم')),
-                  DataColumn(label: Text('الإجراء التالي')),
+                  DataColumn(
+                      label:
+                          Text('\u0627\u0644\u0645\u0634\u0631\u0648\u0639')),
+                  DataColumn(
+                      label: Text('\u0627\u0644\u062d\u0627\u0644\u0629')),
+                  DataColumn(
+                      label: Text(
+                          '\u0627\u0644\u062c\u0627\u0647\u0632\u064a\u0629')),
+                  DataColumn(
+                      label: Text('\u0627\u0644\u062a\u0642\u062f\u0645')),
+                  DataColumn(
+                      label: Text(
+                          '\u0627\u0644\u0623\u0648\u0644\u0648\u064a\u0629')),
+                  DataColumn(
+                      label: Text(
+                          '\u0627\u0644\u0645\u0639\u064a\u0642\u0627\u062a')),
+                  DataColumn(
+                      label: Text(
+                          '\u0627\u0644\u0625\u062c\u0631\u0627\u0621 \u0627\u0644\u062a\u0627\u0644\u064a')),
                 ],
-                rows: projects.map((project) {
+                rows: projects.take(8).map((project) {
                   return DataRow(
                     cells: <DataCell>[
                       DataCell(
                         SizedBox(
-                          width: 210,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Text(
-                                project.displayName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w800),
-                              ),
-                              Text(
-                                project.projectId,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.labelSmall,
-                              ),
-                            ],
+                          width: 135,
+                          child: Text(
+                            project.displayName,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
                       ),
-                      DataCell(_StateChip(
-                        label: project.truthState,
-                        state: project.truthState,
-                      )),
-                      DataCell(_StateChip(
-                        label: project.readiness,
-                        state: project.readiness,
-                      )),
-                      DataCell(Text('${project.priorityScore}/100')),
-                      DataCell(Text(project.ciStatus)),
-                      DataCell(Text(project.driftStatus)),
                       DataCell(
-                        Text(
-                          project.scopeProgressPercent == null
-                              ? 'غير متاح'
-                              : '${project.scopeProgressPercent!.round()}%',
+                        _StateChip(
+                          label: project.truthState,
+                          state: project.truthState,
                         ),
                       ),
                       DataCell(
+                        _StateChip(
+                          label: project.readiness,
+                          state: project.readiness,
+                        ),
+                      ),
+                      DataCell(
+                        Text(
+                          project.scopeProgressPercent == null
+                              ? '\u063a\u064a\u0631 \u0645\u062a\u0627\u062d'
+                              : '${project.scopeProgressPercent!.round()}%',
+                        ),
+                      ),
+                      DataCell(Text('${project.priorityScore}/100')),
+                      DataCell(Text('${project.blockers.length}')),
+                      DataCell(
                         SizedBox(
-                          width: 300,
+                          width: 165,
                           child: Text(
                             project.nextActionAr,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 8),
                           ),
                         ),
                       ),
@@ -1520,7 +2302,7 @@ class _RecommendationsPanel extends StatelessWidget {
           ? const _EmptyState(
               message: 'لا توجد توصية تشغيلية ذات أولوية حاليًا.')
           : Column(
-              children: recommendations.take(8).map((item) {
+              children: recommendations.take(4).map((item) {
                 return ListTile(
                   key: ValueKey<String>(item.recommendationId),
                   contentPadding: EdgeInsets.zero,
@@ -1543,239 +2325,6 @@ class _RecommendationsPanel extends StatelessWidget {
   }
 }
 
-class _CriticalPathPanel extends StatelessWidget {
-  const _CriticalPathPanel({
-    required this.criticalPath,
-    required this.dependencies,
-  });
-
-  final CriticalPathView criticalPath;
-  final List<DependencyView> dependencies;
-
-  @override
-  Widget build(BuildContext context) {
-    return _Section(
-      title: 'المسار الحرج والتبعيات',
-      subtitle: criticalPath.reasonAr,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              _StateChip(
-                label: criticalPath.status,
-                state: criticalPath.status,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  criticalPath.mostBlockingProjectId == null
-                      ? 'لا يوجد Most Blocking Project مثبت.'
-                      : 'الأكثر حجبًا: ${criticalPath.mostBlockingProjectId}',
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          if (criticalPath.projectIds.isNotEmpty)
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: criticalPath.projectIds
-                  .map((id) => Chip(label: Text(id)))
-                  .toList(growable: false),
-            )
-          else
-            const _EmptyState(
-              message:
-                  'لا يتم اختلاق dependency graph عند غياب المصدر المعتمد.',
-            ),
-          if (dependencies.isNotEmpty) ...<Widget>[
-            const Divider(height: 24),
-            ...dependencies.take(6).map(
-                  (edge) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Text(
-                      '${edge.producerProjectId} → ${edge.consumerProjectId} '
-                      '· ${edge.kind} · ${edge.contractId}',
-                    ),
-                  ),
-                ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _RegistrySection extends StatelessWidget {
-  const _RegistrySection({
-    required this.capabilities,
-    required this.skills,
-    required this.tools,
-    required this.agents,
-    required this.providers,
-  });
-
-  final List<RegistryEntity> capabilities;
-  final List<RegistryEntity> skills;
-  final List<RegistryEntity> tools;
-  final List<RegistryEntity> agents;
-  final List<RegistryEntity> providers;
-
-  @override
-  Widget build(BuildContext context) {
-    final groups = <(String, IconData, List<RegistryEntity>)>[
-      ('القدرات', Icons.account_tree_outlined, capabilities),
-      ('المهارات', Icons.psychology_outlined, skills),
-      ('الأدوات', Icons.build_outlined, tools),
-      ('الوكلاء', Icons.smart_toy_outlined, agents),
-      ('المزودون', Icons.cloud_outlined, providers),
-    ];
-    return _Section(
-      title: 'القدرات · المهارات · الأدوات · الوكلاء · المزودون',
-      subtitle:
-          'Capability ≠ Authority، وحالة UNKNOWN لا تُحوّل إلى حقيقة مفترضة.',
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final width = constraints.maxWidth;
-          final columns = width >= 1280
-              ? 3
-              : width >= 720
-                  ? 2
-                  : 1;
-          final itemWidth = (width - (columns - 1) * 12) / columns;
-          return Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: groups
-                .map(
-                  (group) => SizedBox(
-                    width: itemWidth,
-                    child: _RegistryPanel(
-                      title: group.$1,
-                      icon: group.$2,
-                      items: group.$3,
-                    ),
-                  ),
-                )
-                .toList(growable: false),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _RegistryPanel extends StatelessWidget {
-  const _RegistryPanel({
-    required this.title,
-    required this.icon,
-    required this.items,
-  });
-
-  final String title;
-  final IconData icon;
-  final List<RegistryEntity> items;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Icon(icon, size: 19),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w900),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text('${items.length}'),
-            ],
-          ),
-          const Divider(height: 20),
-          if (items.isEmpty)
-            const Text('لا توجد عناصر مرصودة.')
-          else
-            ...items.take(6).map(
-                  (item) => Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Row(
-                          children: <Widget>[
-                            Expanded(
-                              child: Text(
-                                item.nameAr,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w700),
-                              ),
-                            ),
-                            _StateChip(label: item.status, state: item.status),
-                          ],
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          item.descriptionAr,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DecisionsPanel extends StatelessWidget {
-  const _DecisionsPanel({required this.decisions});
-
-  final List<PortfolioDecision> decisions;
-
-  @override
-  Widget build(BuildContext context) {
-    return _Section(
-      title: 'القرارات المطلوبة',
-      subtitle: 'الفصل بين القرار البشري والعمل الهندسي محفوظ.',
-      child: decisions.isEmpty
-          ? const _EmptyState(message: 'لا توجد قرارات في صندوق القرار الحالي.')
-          : Column(
-              children: decisions.take(8).map((item) {
-                return ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(
-                    item.requiresHumanAction
-                        ? Icons.how_to_reg_outlined
-                        : Icons.rule_outlined,
-                  ),
-                  title: Text(item.summaryAr),
-                  subtitle: Text('${item.kind} · ${item.decisionId}'),
-                  trailing: _StateChip(label: item.status, state: item.status),
-                );
-              }).toList(growable: false),
-            ),
-    );
-  }
-}
-
 class _RisksPanel extends StatelessWidget {
   const _RisksPanel({required this.risks});
 
@@ -1789,7 +2338,7 @@ class _RisksPanel extends StatelessWidget {
       child: risks.isEmpty
           ? const _EmptyState(message: 'لا توجد مخاطر تشغيلية مرصودة حاليًا.')
           : Column(
-              children: risks.take(8).map((item) {
+              children: risks.take(5).map((item) {
                 return ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: Icon(
@@ -1803,61 +2352,6 @@ class _RisksPanel extends StatelessWidget {
                 );
               }).toList(growable: false),
             ),
-    );
-  }
-}
-
-class _ActivityEvidenceSection extends StatelessWidget {
-  const _ActivityEvidenceSection({required this.snapshot});
-
-  final PortfolioCommandCenterSnapshot snapshot;
-
-  @override
-  Widget build(BuildContext context) {
-    return _ResponsivePair(
-      first: _Section(
-        title: 'ما الذي تغير مؤخرًا؟',
-        subtitle: 'Activity projection مع provenance لكل حدث.',
-        child: snapshot.recentChanges.isEmpty
-            ? const _EmptyState(message: 'لا توجد تغييرات مرصودة.')
-            : Column(
-                children: snapshot.recentChanges.take(10).map((item) {
-                  return ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    leading: const Icon(Icons.history, size: 18),
-                    title: Text(item.title),
-                    subtitle: Text(item.detail),
-                    trailing: Text(
-                      _formatDateTime(item.occurredAt),
-                      style: Theme.of(context).textTheme.labelSmall,
-                    ),
-                  );
-                }).toList(growable: false),
-              ),
-      ),
-      second: _Section(
-        title: 'Evidence Drill-down',
-        subtitle: 'مراجع آمنة فقط؛ لا أسرار ولا مسارات مطلقة.',
-        child: snapshot.evidenceRefs.isEmpty
-            ? const _EmptyState(
-                message: 'لا توجد مراجع أدلة آمنة في هذه اللقطة.')
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: snapshot.evidenceRefs
-                    .take(12)
-                    .map(
-                      (ref) => Padding(
-                        padding: const EdgeInsets.only(bottom: 7),
-                        child: SelectableText(
-                          ref,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ),
-                    )
-                    .toList(growable: false),
-              ),
-      ),
     );
   }
 }
@@ -1882,39 +2376,6 @@ class _AuthorityFooter extends StatelessWidget {
             )
             .toList(growable: false),
       ),
-    );
-  }
-}
-
-class _ResponsivePair extends StatelessWidget {
-  const _ResponsivePair({required this.first, required this.second});
-
-  final Widget first;
-  final Widget second;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth < 920) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              first,
-              const SizedBox(height: 16),
-              second,
-            ],
-          );
-        }
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Expanded(child: first),
-            const SizedBox(width: 16),
-            Expanded(child: second),
-          ],
-        );
-      },
     );
   }
 }
@@ -1967,10 +2428,10 @@ class _Panel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: _ccPanel,
-        borderRadius: BorderRadius.circular(13),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: _ccBorder),
         boxShadow: <BoxShadow>[
           BoxShadow(
