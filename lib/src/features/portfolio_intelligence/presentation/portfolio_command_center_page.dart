@@ -77,7 +77,7 @@ class _PortfolioCommandCenterPageState
           return Material(
             color: _ccBg,
             child: Row(
-              textDirection: TextDirection.ltr,
+              textDirection: TextDirection.rtl,
               children: <Widget>[
                 if (desktop) const _VisualSidebar(),
                 Expanded(
@@ -304,10 +304,11 @@ class _VisualSidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      key: const ValueKey<String>('portfolio-rtl-sidebar'),
       width: 190,
       decoration: const BoxDecoration(
         color: Color(0xFF020D17),
-        border: Border(right: BorderSide(color: _ccBorder)),
+        border: Border(left: BorderSide(color: _ccBorder)),
       ),
       child: Directionality(
         textDirection: TextDirection.rtl,
@@ -393,8 +394,11 @@ class _VisualSidebar extends StatelessWidget {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(9),
                             border: selected
-                                ? Border.all(
-                                    color: _ccCyan.withValues(alpha: .38),
+                                ? BorderDirectional(
+                                    start: BorderSide(
+                                      color: _ccCyan.withValues(alpha: .72),
+                                      width: 2,
+                                    ),
                                   )
                                 : null,
                           ),
@@ -409,9 +413,10 @@ class _VisualSidebar extends StatelessWidget {
                               Expanded(
                                 child: Text(
                                   item.$1,
+                                  textAlign: TextAlign.right,
                                   style: TextStyle(
                                     color: selected ? _ccText : _ccMuted,
-                                    fontSize: 12,
+                                    fontSize: 11,
                                     fontWeight: selected
                                         ? FontWeight.w800
                                         : FontWeight.w600,
@@ -427,9 +432,9 @@ class _VisualSidebar extends StatelessWidget {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.all(11),
+                padding: const EdgeInsets.all(8),
                 child: Container(
-                  padding: const EdgeInsets.all(11),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: <Color>[
@@ -437,7 +442,7 @@ class _VisualSidebar extends StatelessWidget {
                         _ccBlue.withValues(alpha: .12),
                       ],
                     ),
-                    borderRadius: BorderRadius.circular(13),
+                    borderRadius: BorderRadius.circular(10),
                     border: Border.all(
                       color: _ccPurple.withValues(alpha: .28),
                     ),
@@ -448,9 +453,9 @@ class _VisualSidebar extends StatelessWidget {
                       Icon(
                         Icons.mosque_rounded,
                         color: Color(0xFFE8B957),
-                        size: 28,
+                        size: 22,
                       ),
-                      SizedBox(height: 7),
+                      SizedBox(height: 4),
                       Text(
                         'وقفٌ يصنع أثرًا أبقى',
                         style: TextStyle(
@@ -706,6 +711,7 @@ class _VisualCommandHeader extends StatelessWidget {
 
 // FINAL_LITERAL_RTL_VISUAL_FIDELITY_V3
 // FINAL_LITERAL_RTL_VISUAL_FIDELITY_V4
+// FINAL_LITERAL_RTL_VISUAL_FIDELITY_V5
 
 class _HeaderHeroTile extends StatelessWidget {
   const _HeaderHeroTile({required this.snapshot});
@@ -718,31 +724,38 @@ class _HeaderHeroTile extends StatelessWidget {
         .where((item) => item.state.toUpperCase() == 'HEALTHY')
         .length;
 
+    final truthColor = _statusColor(
+      context,
+      snapshot.truthState,
+    );
+
     return Container(
       key: const ValueKey<String>('header-hero-tile'),
-      width: 190,
-      height: 76,
-      padding: const EdgeInsets.all(9),
+      width: 220,
+      height: 82,
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(11),
         gradient: LinearGradient(
+          begin: AlignmentDirectional.topStart,
+          end: AlignmentDirectional.bottomEnd,
           colors: <Color>[
-            _ccBlue.withValues(alpha: .22),
+            _ccBlue.withValues(alpha: .30),
             _ccPanelHigh,
-            _ccTeal.withValues(alpha: .12),
+            _ccTeal.withValues(alpha: .16),
           ],
         ),
         border: Border.all(
-          color: _ccCyan.withValues(alpha: .30),
+          color: _ccCyan.withValues(alpha: .34),
         ),
       ),
       child: Row(
         children: <Widget>[
           Container(
-            width: 43,
-            height: 54,
+            width: 52,
+            height: 64,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(9),
               gradient: const LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -751,40 +764,70 @@ class _HeaderHeroTile extends StatelessWidget {
                   Color(0xFF073558),
                 ],
               ),
+              border: Border.all(
+                color: Color(0x335DEBFF),
+              ),
             ),
             child: const Icon(
-              Icons.mosque_rounded,
+              Icons.account_balance_rounded,
               color: Color(0xFFE8C66B),
-              size: 27,
+              size: 30,
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 9),
           Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
+                const Text(
+                  '\u0622\u062e\u0631 \u0644\u0642\u0637\u0629 \u0645\u0648\u062b\u0642\u0629',
+                  style: TextStyle(
+                    color: _ccMuted,
+                    fontSize: 8,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
                 Text(
                   _formatDateTime(snapshot.generatedAt),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: _ccText,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  snapshot.truthState,
-                  style: TextStyle(
-                    color: _statusColor(context, snapshot.truthState),
-                    fontSize: 9,
+                    fontSize: 10,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
+                const SizedBox(height: 4),
+                Row(
+                  children: <Widget>[
+                    Container(
+                      width: 7,
+                      height: 7,
+                      decoration: BoxDecoration(
+                        color: truthColor,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Expanded(
+                      child: Text(
+                        snapshot.truthState,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: truthColor,
+                          fontSize: 8,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
                 Text(
-                  '$healthy/${snapshot.sourceHealth.length} sources',
+                  '$healthy/${snapshot.sourceHealth.length} '
+                  '\u0645\u0635\u0627\u062f\u0631 \u0635\u062d\u064a\u0629',
                   style: const TextStyle(
                     color: _ccMuted,
                     fontSize: 8,
@@ -811,7 +854,9 @@ class _ExecutiveLowerDeck extends StatelessWidget {
       ...snapshot.skills,
     ];
 
-    final timeline = _ExecutiveTimelinePanel(snapshot: snapshot);
+    final timeline = _ExecutiveTimelinePanel(
+      snapshot: snapshot,
+    );
 
     final skills = _ExecutiveRegistryPanel(
       title:
@@ -837,7 +882,9 @@ class _ExecutiveLowerDeck extends StatelessWidget {
       ],
     );
 
-    final activity = _ExecutiveActivityPanel(snapshot: snapshot);
+    final activity = _ExecutiveActivityPanel(
+      snapshot: snapshot,
+    );
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -858,22 +905,38 @@ class _ExecutiveLowerDeck extends StatelessWidget {
         }
 
         return Column(
-          key: const ValueKey<String>('executive-lower-deck-v4'),
+          key: const ValueKey<String>(
+            'executive-lower-deck-v5',
+          ),
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             timeline,
             const SizedBox(height: 10),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Expanded(flex: 23, child: skills),
-                const SizedBox(width: 8),
-                Expanded(flex: 17, child: tools),
-                const SizedBox(width: 8),
-                Expanded(flex: 22, child: agents),
-                const SizedBox(width: 8),
-                Expanded(flex: 38, child: activity),
-              ],
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  Expanded(
+                    flex: 23,
+                    child: skills,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 17,
+                    child: tools,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 22,
+                    child: agents,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 38,
+                    child: activity,
+                  ),
+                ],
+              ),
             ),
           ],
         );
@@ -893,36 +956,74 @@ class _ExecutiveTimelinePanel extends StatelessWidget {
       title:
           '\u0627\u0644\u0645\u062e\u0637\u0637 \u0627\u0644\u0632\u0645\u0646\u064a \u0644\u0644\u0645\u062d\u0641\u0638\u0629',
       subtitle:
-          '\u064a\u0639\u0631\u0636 \u0641\u0642\u0637 \u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u062a\u0642\u062f\u0645 \u0627\u0644\u0645\u062b\u0628\u062a\u0629\u061b \u0644\u0627 \u062a\u064f\u062e\u062a\u0644\u0642 \u062a\u0648\u0627\u0631\u064a\u062e \u0623\u0648 \u0646\u0633\u0628.',
+          '\u064a\u0639\u0631\u0636 \u0641\u0642\u0637 \u0627\u0644\u062a\u0642\u062f\u0645 \u0627\u0644\u0645\u062b\u0628\u062a\u061b \u0648\u0639\u0646\u062f \u063a\u064a\u0627\u0628 \u0627\u0644\u0646\u0633\u0628\u0629 \u062a\u0638\u0647\u0631 \u062d\u0627\u0644\u0629 \u0627\u0644\u062c\u0627\u0647\u0632\u064a\u0629 \u0628\u062f\u0644\u064b\u0627 \u0645\u0646 \u0627\u062e\u062a\u0644\u0627\u0642 \u062a\u0642\u062f\u0645.',
       child: Container(
-        key: const ValueKey<String>('portfolio-executive-timeline'),
+        key: const ValueKey<String>(
+          'portfolio-executive-timeline',
+        ),
         child: Column(
           children: <Widget>[
             const Padding(
-              padding: EdgeInsetsDirectional.only(start: 146, end: 68),
+              padding: EdgeInsetsDirectional.only(
+                start: 154,
+                end: 82,
+              ),
               child: Row(
                 textDirection: TextDirection.ltr,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: <Widget>[
-                  Text('0%', style: TextStyle(color: _ccMuted, fontSize: 7)),
-                  Text('25%', style: TextStyle(color: _ccMuted, fontSize: 7)),
-                  Text('50%', style: TextStyle(color: _ccMuted, fontSize: 7)),
-                  Text('75%', style: TextStyle(color: _ccMuted, fontSize: 7)),
-                  Text('100%', style: TextStyle(color: _ccMuted, fontSize: 7)),
+                  Text(
+                    '0%',
+                    style: TextStyle(
+                      color: _ccMuted,
+                      fontSize: 7,
+                    ),
+                  ),
+                  Text(
+                    '25%',
+                    style: TextStyle(
+                      color: _ccMuted,
+                      fontSize: 7,
+                    ),
+                  ),
+                  Text(
+                    '50%',
+                    style: TextStyle(
+                      color: _ccMuted,
+                      fontSize: 7,
+                    ),
+                  ),
+                  Text(
+                    '75%',
+                    style: TextStyle(
+                      color: _ccMuted,
+                      fontSize: 7,
+                    ),
+                  ),
+                  Text(
+                    '100%',
+                    style: TextStyle(
+                      color: _ccMuted,
+                      fontSize: 7,
+                    ),
+                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 5),
+            const SizedBox(height: 6),
             ...snapshot.projects.take(8).map((project) {
               final progress = project.scopeProgressPercent;
-              final color = _statusColor(context, project.readiness);
+              final color = _statusColor(
+                context,
+                project.readiness,
+              );
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 7),
                 child: Row(
                   children: <Widget>[
                     SizedBox(
-                      width: 138,
+                      width: 145,
                       child: Text(
                         project.displayName,
                         maxLines: 1,
@@ -930,45 +1031,73 @@ class _ExecutiveTimelinePanel extends StatelessWidget {
                         style: const TextStyle(
                           color: _ccText,
                           fontSize: 8,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 7),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: progress == null
                           ? Container(
-                              height: 18,
+                              height: 22,
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
-                                color: _ccPanelHigh,
                                 borderRadius: BorderRadius.circular(5),
+                                gradient: LinearGradient(
+                                  colors: <Color>[
+                                    color.withValues(
+                                      alpha: .15,
+                                    ),
+                                    _ccPanelHigh,
+                                  ],
+                                ),
                                 border: Border.all(
-                                  color: _ccBorder,
+                                  color: color.withValues(
+                                    alpha: .42,
+                                  ),
                                 ),
                               ),
-                              child: const Text(
-                                '\u063a\u064a\u0631 \u0645\u062a\u0627\u062d',
+                              child: Text(
+                                '${project.readiness} ? '
+                                '\u0627\u0644\u062a\u0642\u062f\u0645 \u063a\u064a\u0631 \u0645\u062a\u0627\u062d',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  color: _ccMuted,
+                                  color: color,
                                   fontSize: 7,
+                                  fontWeight: FontWeight.w800,
                                 ),
                               ),
                             )
                           : ClipRRect(
                               borderRadius: BorderRadius.circular(5),
-                              child: LinearProgressIndicator(
-                                minHeight: 18,
-                                value: progress.clamp(0, 100).toDouble() / 100,
-                                backgroundColor: _ccPanelHigh,
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(color),
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: <Widget>[
+                                  LinearProgressIndicator(
+                                    minHeight: 22,
+                                    value:
+                                        progress.clamp(0, 100).toDouble() / 100,
+                                    backgroundColor: _ccPanelHigh,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      color,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${progress.round()}%',
+                                    style: const TextStyle(
+                                      color: _ccText,
+                                      fontSize: 7,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                     ),
-                    const SizedBox(width: 7),
+                    const SizedBox(width: 8),
                     SizedBox(
-                      width: 58,
+                      width: 72,
                       child: Text(
                         project.readiness,
                         maxLines: 1,
@@ -977,7 +1106,7 @@ class _ExecutiveTimelinePanel extends StatelessWidget {
                         style: TextStyle(
                           color: color,
                           fontSize: 7,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
                     ),
@@ -1039,7 +1168,7 @@ class _ExecutiveRegistryPanel extends StatelessWidget {
           if (items.isEmpty)
             const _EmptyState(message: 'No observed entries.')
           else
-            ...items.take(7).map(
+            ...items.take(6).map(
                   (item) => Padding(
                     padding: const EdgeInsets.only(bottom: 6),
                     child: Row(
@@ -1132,7 +1261,7 @@ class _ExecutiveActivityPanel extends StatelessWidget {
                   '\u0644\u0627 \u062a\u0648\u062c\u062f \u0623\u0646\u0634\u0637\u0629 \u0623\u0648 \u0642\u0631\u0627\u0631\u0627\u062a \u0645\u0631\u0635\u0648\u062f\u0629.',
             )
           else ...<Widget>[
-            ...snapshot.recentChanges.take(5).map(
+            ...snapshot.recentChanges.take(4).map(
                   (item) => Padding(
                     padding: const EdgeInsets.only(bottom: 6),
                     child: Row(
@@ -1169,7 +1298,7 @@ class _ExecutiveActivityPanel extends StatelessWidget {
             if (snapshot.recentChanges.isNotEmpty &&
                 snapshot.decisions.isNotEmpty)
               const Divider(height: 12),
-            ...snapshot.decisions.take(3).map(
+            ...snapshot.decisions.take(2).map(
                   (item) => Padding(
                     padding: const EdgeInsets.only(bottom: 6),
                     child: Row(
@@ -1290,7 +1419,7 @@ class _ExecutiveSummaryStrip extends StatelessWidget {
                   (metric) => SizedBox(
                     width: itemWidth,
                     child: Container(
-                      height: 66,
+                      height: 58,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
                         vertical: 8,
@@ -1313,7 +1442,7 @@ class _ExecutiveSummaryStrip extends StatelessWidget {
                           Icon(
                             metric.$1,
                             color: metric.$4,
-                            size: 22,
+                            size: 18,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
@@ -1325,7 +1454,7 @@ class _ExecutiveSummaryStrip extends StatelessWidget {
                                   metric.$2,
                                   style: const TextStyle(
                                     color: _ccText,
-                                    fontSize: 16,
+                                    fontSize: 14,
                                     fontWeight: FontWeight.w900,
                                   ),
                                 ),
@@ -1613,31 +1742,68 @@ class _StrategicNetworkPanel extends StatelessWidget {
       ),
     ].take(7).toList(growable: false);
 
+    Widget legendItem(
+      Color color,
+      String label,
+    ) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: const TextStyle(
+              color: _ccMuted,
+              fontSize: 8,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      );
+    }
+
     return _Section(
-      title: 'الخريطة الاستراتيجية للمشاريع والقدرات',
-      subtitle: 'ترابط مرئي من العناصر المرصودة فعليًا، دون اختلاق عقد.',
+      title:
+          '\u0627\u0644\u062e\u0631\u064a\u0637\u0629 \u0627\u0644\u0627\u0633\u062a\u0631\u0627\u062a\u064a\u062c\u064a\u0629 \u0644\u0644\u0645\u0634\u0627\u0631\u064a\u0639 \u0648\u0627\u0644\u0642\u062f\u0631\u0627\u062a',
+      subtitle:
+          '\u062a\u0631\u0627\u0628\u0637 \u0645\u0631\u0626\u064a \u0645\u0646 \u0627\u0644\u0639\u0646\u0627\u0635\u0631 \u0627\u0644\u0645\u0631\u0635\u0648\u062f\u0629 \u0641\u0639\u0644\u064a\u064b\u0627 \u062f\u0648\u0646 \u0627\u062e\u062a\u0644\u0627\u0642 \u0646\u0648\u0639 \u0639\u0644\u0627\u0642\u0629.',
       child: SizedBox(
         height: 335,
         child: nodes.isEmpty
-            ? const _EmptyState(message: 'لا توجد عقد مرصودة لرسم الخريطة.')
+            ? const _EmptyState(
+                message:
+                    '\u0644\u0627 \u062a\u0648\u062c\u062f \u0639\u0642\u062f \u0645\u0631\u0635\u0648\u062f\u0629 \u0644\u0631\u0633\u0645 \u0627\u0644\u062e\u0631\u064a\u0637\u0629.',
+              )
             : LayoutBuilder(
                 builder: (context, constraints) {
                   final positions = _networkPositions(
                     constraints.maxWidth,
-                    constraints.maxHeight - 34,
+                    constraints.maxHeight - 52,
                     nodes.length,
                   );
+
                   return Stack(
                     children: <Widget>[
                       Positioned.fill(
                         child: CustomPaint(
-                          painter: _NetworkPainter(nodeCount: nodes.length),
+                          painter: _NetworkPainter(
+                            nodeCount: nodes.length,
+                          ),
                         ),
                       ),
                       ...positions.asMap().entries.map((entry) {
                         final node = nodes[entry.key];
                         final center = entry.key == 0;
                         final size = center ? 92.0 : 72.0;
+
                         return Positioned(
                           left: entry.value.dx - size / 2,
                           top: entry.value.dy - size / 2,
@@ -1653,24 +1819,48 @@ class _StrategicNetworkPanel extends StatelessWidget {
                         bottom: 0,
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 7,
+                            horizontal: 9,
+                            vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: _ccTeal.withValues(alpha: .07),
+                            color: _ccPanelHigh.withValues(alpha: .88),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: _ccTeal.withValues(alpha: .25),
+                              color: _ccBorder,
                             ),
                           ),
-                          child: const Text(
-                            'بيانات موحّدة · قدرات مترابطة · قرار أوضح',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: _ccTeal,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w800,
-                            ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              Wrap(
+                                alignment: WrapAlignment.center,
+                                spacing: 15,
+                                runSpacing: 4,
+                                children: <Widget>[
+                                  legendItem(
+                                    _ccBlue,
+                                    '\u0645\u0634\u0631\u0648\u0639',
+                                  ),
+                                  legendItem(
+                                    _ccTeal,
+                                    '\u0642\u062f\u0631\u0629',
+                                  ),
+                                  legendItem(
+                                    _ccPurple,
+                                    '\u0623\u062f\u0627\u0629',
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 3),
+                              const Text(
+                                '\u0627\u0644\u0623\u0644\u0648\u0627\u0646 \u062a\u0645\u062b\u0644 \u0646\u0648\u0639 \u0627\u0644\u0639\u0642\u062f\u0629\u061b \u0644\u0627 \u064a\u064f\u0633\u062a\u0646\u062a\u062c \u0646\u0648\u0639 \u0631\u0627\u0628\u0637 \u063a\u064a\u0631 \u0645\u062b\u0628\u062a.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: _ccMuted,
+                                  fontSize: 7,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -2582,15 +2772,78 @@ class _AuthorityFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _Panel(
+    String localized(String note) {
+      switch (note) {
+        case 'SOURCE_FAILURE_DOES_NOT_ERASE_LAST_VERIFIED_STATE':
+          return '\u0641\u0634\u0644 \u0627\u0644\u0645\u0635\u062f\u0631 \u0644\u0627 \u064a\u0645\u062d\u0648 \u0622\u062e\u0631 \u062d\u0627\u0644\u0629 \u0645\u062a\u062d\u0642\u0642\u0629';
+        case 'UNKNOWN_IS_NOT_FALSE':
+          return '\u063a\u064a\u0631 \u0645\u0639\u0631\u0648\u0641 \u0644\u0627 \u064a\u0639\u0646\u064a \u062e\u0637\u0623';
+        case 'CAPABILITY_IS_NOT_AUTHORITY':
+          return '\u0627\u0644\u0642\u062f\u0631\u0629 \u0644\u0627 \u062a\u0639\u0646\u064a \u0627\u0644\u062a\u0641\u0648\u064a\u0636';
+        case 'RECOMMENDATIONS_DO_NOT_AUTHORIZE_EXECUTION':
+          return '\u0627\u0644\u062a\u0648\u0635\u064a\u0627\u062a \u0644\u0627 \u062a\u0645\u0646\u062d \u0633\u0644\u0637\u0629 \u0627\u0644\u062a\u0646\u0641\u064a\u0630';
+        default:
+          return note;
+      }
+    }
+
+    return Container(
+      key: const ValueKey<String>(
+        'compact-authority-footer-v5',
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 8,
+        vertical: 6,
+      ),
+      decoration: BoxDecoration(
+        color: _ccPanel.withValues(alpha: .72),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: _ccBorder,
+        ),
+      ),
       child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
+        alignment: WrapAlignment.center,
+        spacing: 7,
+        runSpacing: 5,
         children: notes
             .map(
-              (note) => Chip(
-                avatar: const Icon(Icons.shield_outlined, size: 16),
-                label: Text(note),
+              (note) => Tooltip(
+                message: note,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _ccPanelHigh.withValues(alpha: .82),
+                    borderRadius: BorderRadius.circular(7),
+                    border: Border.all(
+                      color: _ccTeal.withValues(
+                        alpha: .22,
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      const Icon(
+                        Icons.shield_outlined,
+                        size: 12,
+                        color: _ccTeal,
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        localized(note),
+                        style: const TextStyle(
+                          color: _ccMuted,
+                          fontSize: 8,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             )
             .toList(growable: false),
