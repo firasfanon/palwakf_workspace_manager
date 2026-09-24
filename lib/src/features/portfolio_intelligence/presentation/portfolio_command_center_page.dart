@@ -705,6 +705,7 @@ class _VisualCommandHeader extends StatelessWidget {
 }
 
 // FINAL_LITERAL_RTL_VISUAL_FIDELITY_V3
+// FINAL_LITERAL_RTL_VISUAL_FIDELITY_V4
 
 class _HeaderHeroTile extends StatelessWidget {
   const _HeaderHeroTile({required this.snapshot});
@@ -719,8 +720,8 @@ class _HeaderHeroTile extends StatelessWidget {
 
     return Container(
       key: const ValueKey<String>('header-hero-tile'),
-      width: 158,
-      height: 72,
+      width: 190,
+      height: 76,
       padding: const EdgeInsets.all(9),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(10),
@@ -827,7 +828,8 @@ class _ExecutiveLowerDeck extends StatelessWidget {
     );
 
     final agents = _ExecutiveRegistryPanel(
-      title: '??????? ???????? ?????? ?????????',
+      title:
+          '\u0627\u0644\u0648\u0643\u0644\u0627\u0621 \u0648\u0627\u0644\u0623\u0646\u0638\u0645\u0629 \u0627\u0644\u0630\u0643\u064a\u0629 \u0648\u0627\u0644\u0645\u0632\u0648\u062f\u0648\u0646',
       icon: Icons.smart_toy_rounded,
       items: <RegistryEntity>[
         ...snapshot.providers,
@@ -855,18 +857,24 @@ class _ExecutiveLowerDeck extends StatelessWidget {
           );
         }
 
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        return Column(
+          key: const ValueKey<String>('executive-lower-deck-v4'),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            Expanded(flex: 34, child: timeline),
-            const SizedBox(width: 8),
-            Expanded(flex: 18, child: skills),
-            const SizedBox(width: 8),
-            Expanded(flex: 16, child: tools),
-            const SizedBox(width: 8),
-            Expanded(flex: 16, child: agents),
-            const SizedBox(width: 8),
-            Expanded(flex: 24, child: activity),
+            timeline,
+            const SizedBox(height: 10),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Expanded(flex: 23, child: skills),
+                const SizedBox(width: 8),
+                Expanded(flex: 17, child: tools),
+                const SizedBox(width: 8),
+                Expanded(flex: 22, child: agents),
+                const SizedBox(width: 8),
+                Expanded(flex: 38, child: activity),
+              ],
+            ),
           ],
         );
       },
@@ -1518,12 +1526,14 @@ class _CommandCenterCore extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final recommendations = _RecommendationsPanel(
+      recommendations: snapshot.recommendations,
+    );
+
+    final risks = _RisksPanel(risks: snapshot.risks);
+
     return LayoutBuilder(
       builder: (context, constraints) {
-        final recommendations = _RecommendationsPanel(
-          recommendations: snapshot.recommendations,
-        );
-        final risks = _RisksPanel(risks: snapshot.risks);
         if (constraints.maxWidth < 1050) {
           return Column(
             children: <Widget>[
@@ -1537,27 +1547,35 @@ class _CommandCenterCore extends StatelessWidget {
             ],
           );
         }
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Expanded(flex: 43, child: _ProjectsSection(projects: projects)),
-            const SizedBox(width: 10),
-            Expanded(
-              flex: 31,
-              child: _StrategicNetworkPanel(snapshot: snapshot),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              flex: 26,
-              child: Column(
-                children: <Widget>[
-                  recommendations,
-                  const SizedBox(height: 10),
-                  risks,
-                ],
+
+        return Container(
+          key: const ValueKey<String>('executive-core-grid-v4'),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Expanded(
+                flex: 44,
+                child: _ProjectsSection(projects: projects),
               ),
-            ),
-          ],
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 34,
+                child: _StrategicNetworkPanel(snapshot: snapshot),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 22,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    recommendations,
+                    const SizedBox(height: 8),
+                    risks,
+                  ],
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -1878,7 +1896,7 @@ class _SourceHealthSection extends StatelessWidget {
               builder: (context, constraints) {
                 final width = constraints.maxWidth;
                 final columns = width >= 900
-                    ? math.max(1, math.min(6, items.length))
+                    ? math.max(1, math.min(7, items.length))
                     : width >= 560
                         ? math.max(1, math.min(3, items.length))
                         : 1;
@@ -1911,7 +1929,7 @@ class _SourceCard extends StatelessWidget {
     final color = _statusColor(context, item.state);
     return Container(
       key: ValueKey<String>('source-${item.sourceId}'),
-      constraints: const BoxConstraints(minHeight: 88),
+      constraints: const BoxConstraints(minHeight: 78),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(9),
@@ -2295,32 +2313,131 @@ class _RecommendationsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _Section(
-      title: 'التوصيات الذكية',
-      subtitle: 'استشارية فقط؛ لا تمنح تفويضًا ولا توسّع سلطة.',
-      child: recommendations.isEmpty
-          ? const _EmptyState(
-              message: 'لا توجد توصية تشغيلية ذات أولوية حاليًا.')
-          : Column(
-              children: recommendations.take(4).map((item) {
-                return ListTile(
-                  key: ValueKey<String>(item.recommendationId),
-                  contentPadding: EdgeInsets.zero,
-                  leading: CircleAvatar(
-                    child: Text('${(item.confidence * 100).round()}'),
+    final visible = recommendations.take(2).toList(growable: false);
+
+    return _Panel(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              const Icon(
+                Icons.auto_awesome_rounded,
+                size: 17,
+                color: _ccCyan,
+              ),
+              const SizedBox(width: 6),
+              const Expanded(
+                child: Text(
+                  '\u0627\u0644\u062a\u0648\u0635\u064a\u0627\u062a \u0627\u0644\u0630\u0643\u064a\u0629',
+                  style: TextStyle(
+                    color: _ccText,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
                   ),
-                  title: Text(
-                    item.type,
-                    style: const TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                  subtitle: Text(item.reasonAr),
-                  trailing: _StateChip(
-                    label: item.authority,
-                    state: item.authority,
-                  ),
-                );
-              }).toList(growable: false),
+                ),
+              ),
+              Text(
+                '${recommendations.length}',
+                style: const TextStyle(
+                  color: _ccCyan,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 3),
+          const Text(
+            '\u0627\u0633\u062a\u0634\u0627\u0631\u064a\u0629 \u0641\u0642\u0637 \u0648\u0644\u0627 \u062a\u0645\u0646\u062d \u0633\u0644\u0637\u0629 \u062a\u0646\u0641\u064a\u0630.',
+            style: TextStyle(
+              color: _ccMuted,
+              fontSize: 8,
             ),
+          ),
+          const Divider(height: 14),
+          if (visible.isEmpty)
+            const _EmptyState(
+              message:
+                  '\u0644\u0627 \u062a\u0648\u062c\u062f \u062a\u0648\u0635\u064a\u0627\u062a \u0630\u0627\u062a \u0623\u0648\u0644\u0648\u064a\u0629.',
+            )
+          else
+            ...visible.map(
+              (item) => Container(
+                key: ValueKey<String>(item.recommendationId),
+                margin: const EdgeInsets.only(bottom: 7),
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _ccPanelHigh,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: _ccCyan.withValues(alpha: .22),
+                  ),
+                ),
+                child: Row(
+                  children: <Widget>[
+                    CircleAvatar(
+                      radius: 15,
+                      backgroundColor: _ccTeal.withValues(alpha: .18),
+                      child: Text(
+                        '${(item.confidence * 100).round()}',
+                        style: const TextStyle(
+                          color: _ccTeal,
+                          fontSize: 8,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 7),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text(
+                            item.type,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: _ccText,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            item.reasonAr,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: _ccMuted,
+                              fontSize: 8,
+                              height: 1.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    _StateChip(
+                      label: item.authority,
+                      state: item.authority,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          if (recommendations.length > visible.length)
+            Text(
+              '+${recommendations.length - visible.length} '
+              '\u062a\u0648\u0635\u064a\u0627\u062a \u0625\u0636\u0627\u0641\u064a\u0629',
+              style: const TextStyle(
+                color: _ccMuted,
+                fontSize: 8,
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -2332,26 +2449,128 @@ class _RisksPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _Section(
-      title: 'المخاطر والمعيقات',
-      subtitle: 'تنبيهات مبنية على الواقع المرصود، مع الإجراء المطلوب.',
-      child: risks.isEmpty
-          ? const _EmptyState(message: 'لا توجد مخاطر تشغيلية مرصودة حاليًا.')
-          : Column(
-              children: risks.take(5).map((item) {
-                return ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(
-                    Icons.warning_amber_rounded,
-                    color: _statusColor(context, item.severity),
+    final visible = risks.take(3).toList(growable: false);
+
+    return _Panel(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              const Icon(
+                Icons.warning_amber_rounded,
+                size: 17,
+                color: _ccOrange,
+              ),
+              const SizedBox(width: 6),
+              const Expanded(
+                child: Text(
+                  '\u0627\u0644\u0645\u062e\u0627\u0637\u0631 \u0648\u0627\u0644\u0645\u0639\u0648\u0642\u0627\u062a',
+                  style: TextStyle(
+                    color: _ccText,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
                   ),
-                  title: Text(item.summaryAr),
-                  subtitle: Text(item.requiredActionAr),
-                  trailing:
-                      _StateChip(label: item.severity, state: item.severity),
-                );
-              }).toList(growable: false),
+                ),
+              ),
+              Text(
+                '${risks.length}',
+                style: const TextStyle(
+                  color: _ccOrange,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 3),
+          const Text(
+            '\u0623\u0639\u0644\u0649 \u0627\u0644\u0645\u062e\u0627\u0637\u0631 \u0627\u0644\u0645\u0631\u0635\u0648\u062f\u0629 \u0648\u0627\u0644\u0625\u062c\u0631\u0627\u0621 \u0627\u0644\u0645\u0637\u0644\u0648\u0628.',
+            style: TextStyle(
+              color: _ccMuted,
+              fontSize: 8,
             ),
+          ),
+          const Divider(height: 14),
+          if (visible.isEmpty)
+            const _EmptyState(
+              message:
+                  '\u0644\u0627 \u062a\u0648\u062c\u062f \u0645\u062e\u0627\u0637\u0631 \u062a\u0634\u063a\u064a\u0644\u064a\u0629 \u0645\u0631\u0635\u0648\u062f\u0629.',
+            )
+          else
+            ...visible.map(
+              (item) => Container(
+                margin: const EdgeInsets.only(bottom: 6),
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _ccPanelHigh,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: _statusColor(
+                      context,
+                      item.severity,
+                    ).withValues(alpha: .28),
+                  ),
+                ),
+                child: Row(
+                  children: <Widget>[
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      size: 15,
+                      color: _statusColor(
+                        context,
+                        item.severity,
+                      ),
+                    ),
+                    const SizedBox(width: 7),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text(
+                            item.summaryAr,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: _ccText,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            item.requiredActionAr,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: _ccMuted,
+                              fontSize: 8,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    _StateChip(
+                      label: item.severity,
+                      state: item.severity,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          if (risks.length > visible.length)
+            Text(
+              '+${risks.length - visible.length} '
+              '\u0645\u062e\u0627\u0637\u0631 \u0625\u0636\u0627\u0641\u064a\u0629',
+              style: const TextStyle(
+                color: _ccMuted,
+                fontSize: 8,
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
