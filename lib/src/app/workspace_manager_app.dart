@@ -14,6 +14,7 @@ import '../features/engineering_os/presentation/task_board_page.dart';
 import '../features/orchestrator/presentation/orchestrator_workspace_page.dart';
 import '../features/orchestrator/presentation/tool_health_page.dart';
 import '../features/portfolio_intelligence/presentation/portfolio_command_center_page.dart';
+import '../features/portfolio_intelligence/presentation/portfolio_section_page.dart';
 import '../features/projects/presentation/external_projects_page.dart';
 import '../features/projects/presentation/project_reality_page.dart';
 import '../features/workspace_catalog/presentation/workspace_catalog_page.dart';
@@ -54,6 +55,110 @@ final workspaceRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/dashboard',
             builder: (context, state) => const PortfolioCommandCenterPage(),
+          ),
+          GoRoute(
+            path: '/portfolio/projects',
+            builder: (context, state) => const PortfolioSectionPage(
+              section: 'projects',
+              title: 'المشاريع',
+            ),
+          ),
+          GoRoute(
+            path: '/portfolio/timeline',
+            builder: (context, state) => const PortfolioSectionPage(
+              section: 'timeline',
+              title: 'المخطط الزمني للمحفظة',
+            ),
+          ),
+          GoRoute(
+            path: '/portfolio/programs',
+            builder: (context, state) => const PortfolioSectionPage(
+              section: 'programs',
+              title: 'المحفظة والبرامج',
+            ),
+          ),
+          GoRoute(
+            path: '/portfolio/dependencies',
+            builder: (context, state) => const PortfolioSectionPage(
+              section: 'dependencies',
+              title: 'الاعتمادات والتكامل',
+            ),
+          ),
+          GoRoute(
+            path: '/portfolio/capabilities',
+            builder: (context, state) => const PortfolioSectionPage(
+              section: 'capabilities',
+              title: 'المهارات والقدرات',
+            ),
+          ),
+          GoRoute(
+            path: '/portfolio/agents',
+            builder: (context, state) => const PortfolioSectionPage(
+              section: 'agents',
+              title: 'الوكلاء والأنظمة الذكية',
+            ),
+          ),
+          GoRoute(
+            path: '/portfolio/intelligence',
+            builder: (context, state) => const PortfolioSectionPage(
+              section: 'intelligence',
+              title: 'البحث والذكاء',
+            ),
+          ),
+          GoRoute(
+            path: '/portfolio/waqf',
+            builder: (context, state) => const PortfolioSectionPage(
+              section: 'waqf',
+              title: 'الأوقاف والأنظمة',
+            ),
+          ),
+          GoRoute(
+            path: '/portfolio/hajj-umrah',
+            builder: (context, state) => const PortfolioSectionPage(
+              section: 'hajj-umrah',
+              title: 'الحج والعمرة',
+            ),
+          ),
+          GoRoute(
+            path: '/portfolio/gis',
+            builder: (context, state) => const PortfolioSectionPage(
+              section: 'gis',
+              title: 'الخرائط المكانية GIS',
+            ),
+          ),
+          GoRoute(
+            path: '/portfolio/reports',
+            builder: (context, state) => const PortfolioSectionPage(
+              section: 'reports',
+              title: 'التقارير والتحليلات',
+            ),
+          ),
+          GoRoute(
+            path: '/portfolio/recommendations',
+            builder: (context, state) => const PortfolioSectionPage(
+              section: 'recommendations',
+              title: 'التوصيات الذكية',
+            ),
+          ),
+          GoRoute(
+            path: '/portfolio/decisions',
+            builder: (context, state) => const PortfolioSectionPage(
+              section: 'decisions',
+              title: 'القرارات',
+            ),
+          ),
+          GoRoute(
+            path: '/portfolio/activity',
+            builder: (context, state) => const PortfolioSectionPage(
+              section: 'activity',
+              title: 'سجل الأحداث',
+            ),
+          ),
+          GoRoute(
+            path: '/portfolio/projects/:projectId',
+            builder: (context, state) => PortfolioProjectDetailPage(
+              projectId: state.pathParameters['projectId']!,
+            ),
           ),
           GoRoute(
             path: '/advanced/operations-dashboard',

@@ -113,6 +113,7 @@ from palwakf_orchestrator.portfolio_intelligence_contracts import (
     ProjectForecast,
     RegistryEntity,
 )
+from palwakf_orchestrator.portfolio_live_runtime import PortfolioLiveRuntimeAdapter
 from palwakf_orchestrator.project_contracts import (
     CandidateWorkItem,
     CreateProjectEngineeringTaskRequest,
@@ -243,9 +244,19 @@ def create_app(
         local_product=local_product,
         engineering_os=engineering_os,
     )
+    portfolio_live_runtime = (
+        PortfolioLiveRuntimeAdapter(
+            mind_base_url=resolved_settings.mind_base_url,
+            agentic_base_url=resolved_settings.agentic_base_url,
+            timeout_seconds=resolved_settings.portfolio_live_timeout_seconds,
+        )
+        if local_product is not None
+        else None
+    )
     portfolio_intelligence = PortfolioIntelligenceService(
         dashboard,
         resolved_store,
+        live_runtime=portfolio_live_runtime,
     )
     limiter = BoundedRateLimiter(resolved_settings.requests_per_minute)
     mcp_http_app = create_mcp_server(
@@ -278,6 +289,7 @@ def create_app(
     app.state.project_health_state_machine = project_health
     app.state.dashboard_service = dashboard
     app.state.portfolio_intelligence_service = portfolio_intelligence
+    app.state.portfolio_live_runtime_adapter = portfolio_live_runtime
     app.state.local_product_service = local_product
     app.state.engineering_os_service = engineering_os
     app.state.execution_run_adapter = execution_runs

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../orchestrator/application/orchestrator_controller.dart';
@@ -50,18 +52,75 @@ class PortfolioIntelligenceController
 
   final PortfolioIntelligenceApi _api;
 
-  Future<void> load() async {
-    state = state.copyWith(loading: true, clearError: true);
+  Timer? _refreshTimer;
+  bool _requestInFlight = false;
+  int _refreshLeaseCount = 0;
+
+  void startAutoRefresh({
+    Duration interval = const Duration(seconds: 30),
+  }) {
+    _refreshLeaseCount += 1;
+
+    _refreshTimer ??= Timer.periodic(
+      interval,
+      (_) => unawaited(load(silent: true)),
+    );
+  }
+
+  void stopAutoRefresh() {
+    if (_refreshLeaseCount > 0) {
+      _refreshLeaseCount -= 1;
+    }
+
+    if (_refreshLeaseCount > 0) {
+      return;
+    }
+
+    _refreshTimer?.cancel();
+    _refreshTimer = null;
+  }
+
+  Future<void> load({bool silent = false}) async {
+    if (_requestInFlight) return;
+
+    _requestInFlight = true;
+
+    if (!silent) {
+      state = state.copyWith(
+        loading: true,
+        clearError: true,
+      );
+    }
+
     try {
       final snapshot = await _api.overview();
-      state = state.copyWith(snapshot: snapshot, loading: false);
+
+      state = state.copyWith(
+        snapshot: snapshot,
+        loading: false,
+        clearError: true,
+      );
     } on PortfolioIntelligenceApiException catch (error) {
-      state = state.copyWith(loading: false, error: error.message);
+      // Preserve the previous verified snapshot on transient failure.
+      state = state.copyWith(
+        loading: false,
+        error: error.message,
+      );
     } on FormatException {
       state = state.copyWith(
         loading: false,
         error: 'بيانات Portfolio Intelligence لا تطابق العقد المتوقع.',
       );
+    } finally {
+      _requestInFlight = false;
     }
+  }
+
+  @override
+  void dispose() {
+    _refreshLeaseCount = 0;
+    _refreshTimer?.cancel();
+    _refreshTimer = null;
+    super.dispose();
   }
 }

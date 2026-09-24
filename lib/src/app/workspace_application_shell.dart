@@ -62,7 +62,7 @@ class WorkspaceApplicationShell extends ConsumerWidget {
     final previewMode = PreviewModeUi.isVisualPreview;
     final advanced = _isAdvancedPath(location);
 
-    if (location == '/dashboard') {
+    if (location == '/dashboard' || location.startsWith('/portfolio/')) {
       return Scaffold(
         backgroundColor: const Color(0xFF04111F),
         body: SafeArea(

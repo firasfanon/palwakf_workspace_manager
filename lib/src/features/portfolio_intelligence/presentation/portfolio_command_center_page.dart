@@ -31,14 +31,32 @@ class PortfolioCommandCenterPage extends ConsumerStatefulWidget {
 
 class _PortfolioCommandCenterPageState
     extends ConsumerState<PortfolioCommandCenterPage> {
+  late final PortfolioIntelligenceController _portfolioController;
+
   String _query = '';
 
   @override
   void initState() {
     super.initState();
-    Future<void>.microtask(
-      () => ref.read(portfolioIntelligenceControllerProvider.notifier).load(),
+
+    _portfolioController = ref.read(
+      portfolioIntelligenceControllerProvider.notifier,
     );
+
+    Future<void>.microtask(() async {
+      if (!mounted) {
+        return;
+      }
+
+      _portfolioController.startAutoRefresh();
+      await _portfolioController.load();
+    });
+  }
+
+  @override
+  void dispose() {
+    _portfolioController.stopAutoRefresh();
+    super.dispose();
   }
 
   @override
@@ -220,27 +238,27 @@ class _VisualSidebar extends StatelessWidget {
     ),
     (
       '\u0627\u0644\u0645\u0634\u0627\u0631\u064a\u0639',
-      '/projects',
+      '/portfolio/projects',
       Icons.folder_copy_rounded
     ),
     (
       '\u0627\u0644\u0645\u062e\u0637\u0637 \u0627\u0644\u0632\u0645\u0646\u064a',
-      '',
+      '/portfolio/timeline',
       Icons.calendar_month_rounded
     ),
     (
       '\u0627\u0644\u0645\u062d\u0641\u0638\u0629 \u0648\u0627\u0644\u0628\u0631\u0627\u0645\u062c',
-      '',
+      '/portfolio/programs',
       Icons.hub_rounded
     ),
     (
       '\u0627\u0644\u0627\u0639\u062a\u0645\u0627\u062f\u0627\u062a \u0648\u0627\u0644\u062a\u0643\u0627\u0645\u0644',
-      '',
+      '/portfolio/dependencies',
       Icons.account_tree_rounded
     ),
     (
       '\u0627\u0644\u0645\u0647\u0627\u0631\u0627\u062a \u0648\u0627\u0644\u0642\u062f\u0631\u0627\u062a',
-      '',
+      '/portfolio/capabilities',
       Icons.psychology_rounded
     ),
     (
@@ -248,7 +266,11 @@ class _VisualSidebar extends StatelessWidget {
       '/tools',
       Icons.build_circle_rounded
     ),
-    ('\u0627\u0644\u0648\u0643\u0644\u0627\u0621', '', Icons.smart_toy_rounded),
+    (
+      '\u0627\u0644\u0648\u0643\u0644\u0627\u0621',
+      '/portfolio/agents',
+      Icons.smart_toy_rounded
+    ),
     (
       '\u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0648\u0627\u0644\u0645\u0639\u0631\u0641\u0629',
       '/evidence',
@@ -256,32 +278,32 @@ class _VisualSidebar extends StatelessWidget {
     ),
     (
       '\u0627\u0644\u0628\u062d\u062b \u0648\u0627\u0644\u0630\u0643\u0627\u0621',
-      '',
+      '/portfolio/intelligence',
       Icons.manage_search_rounded
     ),
     (
       '\u0627\u0644\u0623\u0648\u0642\u0627\u0641 \u0648\u0627\u0644\u0623\u0646\u0638\u0645\u0629',
-      '',
+      '/portfolio/waqf',
       Icons.account_balance_rounded
     ),
     (
       '\u0627\u0644\u062d\u062c \u0648\u0627\u0644\u0639\u0645\u0631\u0629',
-      '',
+      '/portfolio/hajj-umrah',
       Icons.mosque_rounded
     ),
     (
       '\u0627\u0644\u062e\u0631\u0627\u0626\u0637 \u0627\u0644\u0645\u0643\u0627\u0646\u064a\u0629 GIS',
-      '',
+      '/portfolio/gis',
       Icons.location_on_rounded
     ),
     (
       '\u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631 \u0648\u0627\u0644\u062a\u062d\u0644\u064a\u0644\u0627\u062a',
-      '',
+      '/portfolio/reports',
       Icons.analytics_rounded
     ),
     (
       '\u0627\u0644\u062a\u0648\u0635\u064a\u0627\u062a \u0627\u0644\u0630\u0643\u064a\u0629',
-      '',
+      '/portfolio/recommendations',
       Icons.auto_awesome_rounded
     ),
     (
@@ -291,7 +313,7 @@ class _VisualSidebar extends StatelessWidget {
     ),
     (
       '\u0633\u062c\u0644 \u0627\u0644\u0623\u062d\u062f\u0627\u062b',
-      '',
+      '/portfolio/activity',
       Icons.history_rounded
     ),
     (
@@ -712,6 +734,7 @@ class _VisualCommandHeader extends StatelessWidget {
 // FINAL_LITERAL_RTL_VISUAL_FIDELITY_V3
 // FINAL_LITERAL_RTL_VISUAL_FIDELITY_V4
 // FINAL_LITERAL_RTL_VISUAL_FIDELITY_V5
+// FINAL_COMMAND_CENTER_FUNCTIONAL_CONVERGENCE_V1
 
 class _HeaderHeroTile extends StatelessWidget {
   const _HeaderHeroTile({required this.snapshot});
@@ -1330,6 +1353,18 @@ class _ExecutiveActivityPanel extends StatelessWidget {
                   ),
                 ),
           ],
+          TextButton.icon(
+            onPressed: () => context.go(
+              '/portfolio/decisions',
+            ),
+            icon: const Icon(
+              Icons.open_in_new,
+              size: 14,
+            ),
+            label: const Text(
+              'فتح جميع القرارات',
+            ),
+          ),
         ],
       ),
     );
@@ -2342,7 +2377,14 @@ class _ProjectsSection extends StatelessWidget {
                   .map(
                     (project) => Padding(
                       padding: const EdgeInsets.only(bottom: 8),
-                      child: _ProjectCard(project: project),
+                      child: InkWell(
+                        onTap: () => context.go(
+                          '/portfolio/projects/'
+                          '${Uri.encodeComponent(project.projectId)}',
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        child: _ProjectCard(project: project),
+                      ),
                     ),
                   )
                   .toList(growable: false),
@@ -2354,6 +2396,7 @@ class _ProjectsSection extends StatelessWidget {
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: DataTable(
+                showCheckboxColumn: false,
                 key: const ValueKey<String>('portfolio-projects-table'),
                 horizontalMargin: 8,
                 columnSpacing: 12,
@@ -2383,6 +2426,10 @@ class _ProjectsSection extends StatelessWidget {
                 ],
                 rows: projects.take(8).map((project) {
                   return DataRow(
+                    onSelectChanged: (_) => context.go(
+                      '/portfolio/projects/'
+                      '${Uri.encodeComponent(project.projectId)}',
+                    ),
                     cells: <DataCell>[
                       DataCell(
                         SizedBox(
@@ -2497,7 +2544,9 @@ class _ProjectCard extends StatelessWidget {
 }
 
 class _RecommendationsPanel extends StatelessWidget {
-  const _RecommendationsPanel({required this.recommendations});
+  const _RecommendationsPanel({
+    required this.recommendations,
+  });
 
   final List<PortfolioRecommendation> recommendations;
 
@@ -2520,7 +2569,7 @@ class _RecommendationsPanel extends StatelessWidget {
               const SizedBox(width: 6),
               const Expanded(
                 child: Text(
-                  '\u0627\u0644\u062a\u0648\u0635\u064a\u0627\u062a \u0627\u0644\u0630\u0643\u064a\u0629',
+                  'التوصيات الذكية',
                   style: TextStyle(
                     color: _ccText,
                     fontSize: 11,
@@ -2540,7 +2589,7 @@ class _RecommendationsPanel extends StatelessWidget {
           ),
           const SizedBox(height: 3),
           const Text(
-            '\u0627\u0633\u062a\u0634\u0627\u0631\u064a\u0629 \u0641\u0642\u0637 \u0648\u0644\u0627 \u062a\u0645\u0646\u062d \u0633\u0644\u0637\u0629 \u062a\u0646\u0641\u064a\u0630.',
+            'استشارية فقط ولا تمنح سلطة تنفيذ.',
             style: TextStyle(
               color: _ccMuted,
               fontSize: 8,
@@ -2549,81 +2598,103 @@ class _RecommendationsPanel extends StatelessWidget {
           const Divider(height: 14),
           if (visible.isEmpty)
             const _EmptyState(
-              message:
-                  '\u0644\u0627 \u062a\u0648\u062c\u062f \u062a\u0648\u0635\u064a\u0627\u062a \u0630\u0627\u062a \u0623\u0648\u0644\u0648\u064a\u0629.',
+              message: 'لا توجد توصيات ذات أولوية.',
             )
           else
             ...visible.map(
-              (item) => Container(
-                key: ValueKey<String>(item.recommendationId),
-                margin: const EdgeInsets.only(bottom: 7),
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: _ccPanelHigh,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: _ccCyan.withValues(alpha: .22),
-                  ),
+              (item) => InkWell(
+                key: ValueKey<String>(
+                  item.recommendationId,
                 ),
-                child: Row(
-                  children: <Widget>[
-                    CircleAvatar(
-                      radius: 15,
-                      backgroundColor: _ccTeal.withValues(alpha: .18),
-                      child: Text(
-                        '${(item.confidence * 100).round()}',
-                        style: const TextStyle(
-                          color: _ccTeal,
-                          fontSize: 8,
-                          fontWeight: FontWeight.w900,
+                onTap: () {
+                  if (item.affectedProjects.isNotEmpty) {
+                    context.go(
+                      '/portfolio/projects/'
+                      '${Uri.encodeComponent(item.affectedProjects.first)}',
+                    );
+                    return;
+                  }
+
+                  context.go(
+                    '/portfolio/recommendations',
+                  );
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 7),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _ccPanelHigh,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: _ccCyan.withValues(
+                        alpha: .22,
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    children: <Widget>[
+                      CircleAvatar(
+                        radius: 15,
+                        backgroundColor: _ccTeal.withValues(
+                          alpha: .18,
+                        ),
+                        child: Text(
+                          '${(item.confidence * 100).round()}',
+                          style: const TextStyle(
+                            color: _ccTeal,
+                            fontSize: 8,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 7),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text(
-                            item.type,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: _ccText,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w900,
+                      const SizedBox(width: 7),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(
+                              item.type,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: _ccText,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            item.reasonAr,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: _ccMuted,
-                              fontSize: 8,
-                              height: 1.2,
+                            const SizedBox(height: 2),
+                            Text(
+                              item.reasonAr,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: _ccMuted,
+                                fontSize: 8,
+                                height: 1.2,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 5),
-                    _StateChip(
-                      label: item.authority,
-                      state: item.authority,
-                    ),
-                  ],
+                      const SizedBox(width: 5),
+                      _StateChip(
+                        label: item.authority,
+                        state: item.authority,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           if (recommendations.length > visible.length)
-            Text(
-              '+${recommendations.length - visible.length} '
-              '\u062a\u0648\u0635\u064a\u0627\u062a \u0625\u0636\u0627\u0641\u064a\u0629',
-              style: const TextStyle(
-                color: _ccMuted,
-                fontSize: 8,
+            TextButton(
+              onPressed: () => context.go(
+                '/portfolio/recommendations',
+              ),
+              child: Text(
+                '+${recommendations.length - visible.length} '
+                'توصيات إضافية',
               ),
             ),
         ],
@@ -2633,7 +2704,9 @@ class _RecommendationsPanel extends StatelessWidget {
 }
 
 class _RisksPanel extends StatelessWidget {
-  const _RisksPanel({required this.risks});
+  const _RisksPanel({
+    required this.risks,
+  });
 
   final List<PortfolioRisk> risks;
 
@@ -2656,7 +2729,7 @@ class _RisksPanel extends StatelessWidget {
               const SizedBox(width: 6),
               const Expanded(
                 child: Text(
-                  '\u0627\u0644\u0645\u062e\u0627\u0637\u0631 \u0648\u0627\u0644\u0645\u0639\u0648\u0642\u0627\u062a',
+                  'المخاطر والمعوقات',
                   style: TextStyle(
                     color: _ccText,
                     fontSize: 11,
@@ -2674,89 +2747,90 @@ class _RisksPanel extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 3),
-          const Text(
-            '\u0623\u0639\u0644\u0649 \u0627\u0644\u0645\u062e\u0627\u0637\u0631 \u0627\u0644\u0645\u0631\u0635\u0648\u062f\u0629 \u0648\u0627\u0644\u0625\u062c\u0631\u0627\u0621 \u0627\u0644\u0645\u0637\u0644\u0648\u0628.',
-            style: TextStyle(
-              color: _ccMuted,
-              fontSize: 8,
-            ),
-          ),
           const Divider(height: 14),
           if (visible.isEmpty)
             const _EmptyState(
-              message:
-                  '\u0644\u0627 \u062a\u0648\u062c\u062f \u0645\u062e\u0627\u0637\u0631 \u062a\u0634\u063a\u064a\u0644\u064a\u0629 \u0645\u0631\u0635\u0648\u062f\u0629.',
+              message: 'لا توجد مخاطر تشغيلية مرصودة.',
             )
           else
             ...visible.map(
-              (item) => Container(
-                margin: const EdgeInsets.only(bottom: 6),
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: _ccPanelHigh,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: _statusColor(
-                      context,
-                      item.severity,
-                    ).withValues(alpha: .28),
-                  ),
+              (item) => InkWell(
+                onTap: () => context.go(
+                  Uri(
+                    path: '/alerts',
+                    queryParameters: <String, String>{
+                      'source': item.subjectId,
+                    },
+                  ).toString(),
                 ),
-                child: Row(
-                  children: <Widget>[
-                    Icon(
-                      Icons.warning_amber_rounded,
-                      size: 15,
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 6),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _ccPanelHigh,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
                       color: _statusColor(
                         context,
                         item.severity,
+                      ).withValues(alpha: .28),
+                    ),
+                  ),
+                  child: Row(
+                    children: <Widget>[
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        size: 15,
+                        color: _statusColor(
+                          context,
+                          item.severity,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 7),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text(
-                            item.summaryAr,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: _ccText,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w800,
+                      const SizedBox(width: 7),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(
+                              item.summaryAr,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: _ccText,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            item.requiredActionAr,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: _ccMuted,
-                              fontSize: 8,
+                            const SizedBox(height: 2),
+                            Text(
+                              item.requiredActionAr,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: _ccMuted,
+                                fontSize: 8,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 5),
-                    _StateChip(
-                      label: item.severity,
-                      state: item.severity,
-                    ),
-                  ],
+                      const SizedBox(width: 5),
+                      _StateChip(
+                        label: item.severity,
+                        state: item.severity,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           if (risks.length > visible.length)
-            Text(
-              '+${risks.length - visible.length} '
-              '\u0645\u062e\u0627\u0637\u0631 \u0625\u0636\u0627\u0641\u064a\u0629',
-              style: const TextStyle(
-                color: _ccMuted,
-                fontSize: 8,
+            TextButton(
+              onPressed: () => context.go('/alerts'),
+              child: Text(
+                '+${risks.length - visible.length} '
+                'مخاطر إضافية',
               ),
             ),
         ],
