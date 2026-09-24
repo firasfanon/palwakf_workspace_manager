@@ -62,6 +62,16 @@ class WorkspaceApplicationShell extends ConsumerWidget {
     final previewMode = PreviewModeUi.isVisualPreview;
     final advanced = _isAdvancedPath(location);
 
+    if (location == '/dashboard') {
+      return Scaffold(
+        backgroundColor: const Color(0xFF04111F),
+        body: SafeArea(
+          top: false,
+          child: child,
+        ),
+      );
+    }
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final desktop = constraints.maxWidth >= 1024;

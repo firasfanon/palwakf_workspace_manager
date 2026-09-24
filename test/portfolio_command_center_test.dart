@@ -209,10 +209,10 @@ void main() {
   testWidgets('command center is responsive on narrow RTL', (tester) async {
     await pumpCommandCenter(tester, const Size(390, 844));
 
-    expect(find.text('مركز قيادة وذكاء المحفظة'), findsOneWidget);
-    expect(find.text('صحة مصادر الحقيقة'), findsOneWidget);
-    expect(find.text('المؤشرات التنفيذية'), findsOneWidget);
-    expect(find.text('المشاريع وترتيب الانتباه'), findsOneWidget);
+    expect(find.text('مركز قيادة المشاريع والقدرات'), findsOneWidget);
+    expect(find.text('حالة مصادر البيانات والأنظمة'), findsOneWidget);
+    expect(find.text('المؤشرات التنفيذية للمحفظة'), findsOneWidget);
+    expect(find.text('أهم المشاريع الاستراتيجية'), findsOneWidget);
     expect(find.textContaining('غير متاح'), findsWidgets);
     expect(find.text('ADVISORY_ONLY'), findsOneWidget);
     expect(find.text('SUSPENDED_BY_POLICY'), findsOneWidget);
@@ -222,9 +222,13 @@ void main() {
   testWidgets('command center is responsive on desktop RTL', (tester) async {
     await pumpCommandCenter(tester, const Size(1440, 1000));
 
-    expect(find.byKey(const ValueKey<String>('portfolio-projects-table')),
-        findsOneWidget);
-    expect(find.text('PalWakf Workspace Manager'), findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey<String>('project-PALWAKF_WORKSPACE_MANAGER'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('PalWakf Workspace Manager'), findsWidgets);
     expect(find.text('Workspace Drive السيادي'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
