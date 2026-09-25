@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     requests_per_minute: int = Field(default=60, ge=1, le=10_000)
     stale_task_seconds: int = Field(default=3_600, ge=60, le=86_400)
     stale_project_seconds: int = Field(default=86_400, ge=300, le=2_592_000)
+    mind_base_url: str = "http://127.0.0.1:8431"
+    agentic_base_url: str = "http://127.0.0.1:8015"
+    portfolio_live_timeout_seconds: float = Field(default=0.8, ge=0.2, le=5.0)
     self_hosted_ci_timeout_seconds: int = Field(default=900, ge=60, le=3_600)
     public_base_url: str | None = None
     oauth_authorization_server: str | None = None

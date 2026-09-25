@@ -4,12 +4,14 @@ import 'package:palwakf_workspace_manager/src/core/presentation/preview_mode_ui.
 import 'package:palwakf_workspace_manager/src/core/theme/palwakf_theme.dart';
 
 void main() {
-  test('canonical workspace theme is dark and sovereign', () {
+  test('canonical workspace theme follows command center visual standard', () {
     final theme = PalWakfTheme.dark();
 
     expect(theme.brightness, Brightness.dark);
     expect(theme.scaffoldBackgroundColor, PalWakfTheme.darkCanvas);
-    expect(theme.colorScheme.primary, PalWakfTheme.waqfGold);
+    expect(theme.colorScheme.primary, PalWakfTheme.workspaceTeal);
+    expect(theme.colorScheme.secondary, PalWakfTheme.workspaceCyan);
+    expect(PalWakfTheme.darkSurface, PalWakfTheme.workspacePanel);
   });
 
   test('unavailable operational data is not represented as zero or blocked',

@@ -8,11 +8,25 @@ import '../../../core/theme/palwakf_theme.dart';
 import '../application/dashboard_controller.dart';
 import '../domain/dashboard_models.dart';
 
-class OperationalAlertsPage extends ConsumerWidget {
+class OperationalAlertsPage extends ConsumerStatefulWidget {
   const OperationalAlertsPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<OperationalAlertsPage> createState() =>
+      _OperationalAlertsPageState();
+}
+
+class _OperationalAlertsPageState extends ConsumerState<OperationalAlertsPage> {
+  @override
+  void initState() {
+    super.initState();
+    Future<void>.microtask(
+      () => ref.read(dashboardControllerProvider.notifier).load(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(dashboardControllerProvider);
     final alerts = state.alerts;
     final availability = PreviewModeUi.resolveAvailability(
@@ -51,11 +65,24 @@ class OperationalAlertsPage extends ConsumerWidget {
   }
 }
 
-class EvidenceIndexPage extends ConsumerWidget {
+class EvidenceIndexPage extends ConsumerStatefulWidget {
   const EvidenceIndexPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<EvidenceIndexPage> createState() => _EvidenceIndexPageState();
+}
+
+class _EvidenceIndexPageState extends ConsumerState<EvidenceIndexPage> {
+  @override
+  void initState() {
+    super.initState();
+    Future<void>.microtask(
+      () => ref.read(dashboardControllerProvider.notifier).load(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(dashboardControllerProvider);
     final evidence = state.evidence;
     final availability = PreviewModeUi.resolveAvailability(
@@ -114,11 +141,24 @@ class EvidenceIndexPage extends ConsumerWidget {
   }
 }
 
-class ConnectionsPage extends ConsumerWidget {
+class ConnectionsPage extends ConsumerStatefulWidget {
   const ConnectionsPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ConnectionsPage> createState() => _ConnectionsPageState();
+}
+
+class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
+  @override
+  void initState() {
+    super.initState();
+    Future<void>.microtask(
+      () => ref.read(dashboardControllerProvider.notifier).load(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(dashboardControllerProvider);
     final connection = state.summary?.connection;
     final availability = PreviewModeUi.resolveAvailability(

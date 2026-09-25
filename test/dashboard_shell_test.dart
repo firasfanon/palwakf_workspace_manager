@@ -181,7 +181,12 @@ void main() {
 
       expect(find.text('لوحة العمليات'), findsWidgets);
       expect(tester.takeException(), isNull);
-      final scrollable = find.byType(Scrollable).last;
+      final scrollable = find
+          .descendant(
+            of: find.byType(WorkspaceDashboardPage),
+            matching: find.byType(Scrollable),
+          )
+          .first;
       await tester.scrollUntilVisible(
         find.text('بعيون فلسطينية'),
         500,

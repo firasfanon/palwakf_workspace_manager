@@ -27,6 +27,10 @@ from palwakf_orchestrator.portfolio_intelligence_contracts import (
     SourceHealthState,
     TruthState,
 )
+from palwakf_orchestrator.portfolio_live_runtime import (
+    LivePortfolioRuntimeProjection,
+    PortfolioLiveRuntimeAdapter,
+)
 from palwakf_orchestrator.project_manifest_service import (
     ProjectContractManifestService,
     ProjectContractManifestV1,
@@ -44,11 +48,14 @@ class PortfolioIntelligenceService:
         self,
         dashboard: DashboardAggregationService,
         state_store: StateStore,
+        *,
+        live_runtime: PortfolioLiveRuntimeAdapter | None = None,
     ) -> None:
         self._dashboard = dashboard
         self._state_store = state_store
         self._dependency_graph = TypedDependencyGraphStore(state_store)
         self._project_manifests = ProjectContractManifestService()
+        self._live_runtime = live_runtime
 
     def snapshot(self) -> PortfolioCommandCenterSnapshot:
         summary = self._dashboard.summary()
@@ -56,13 +63,40 @@ class PortfolioIntelligenceService:
         activity = self._dashboard.activity(30)
         evidence = self._dashboard.evidence(50)
         dependencies, critical_path = self._dependencies()
+        live = (
+            self._live_runtime.snapshot()
+            if self._live_runtime is not None
+            else None
+        )
 
         source_health = self._source_health(summary, evidence)
+        if live is not None:
+            source_health = self._merge_source_health(
+                source_health,
+                live,
+            )
         truth_confidence = self._truth_confidence(source_health)
         truth_state = self._truth_state(source_health, truth_confidence)
         projects = self._projects(summary)
         recommendations = self._recommendations(summary, projects)
         capabilities, skills, tools, agents, providers = self._registries(summary)
+        if live is not None:
+            capabilities = self._merge_entities(
+                capabilities,
+                live.capabilities,
+            )
+            skills = self._merge_entities(
+                skills,
+                live.skills,
+            )
+            agents = self._merge_entities(
+                agents,
+                live.agents,
+            )
+            providers = self._merge_entities(
+                providers,
+                live.providers,
+            )
 
         payload = {
             "projects": [
@@ -154,6 +188,7 @@ class PortfolioIntelligenceService:
                 "PORTFOLIO_INTELLIGENCE_READ_ONLY_PROJECTION_V1",
                 "TYPED_DEPENDENCY_GRAPH_WHEN_IMPORTED",
                 "NO_SECOND_SOVEREIGN_STATE_STORE",
+                *(live.provenance if live is not None else []),
             ],
         )
 
@@ -193,6 +228,37 @@ class PortfolioIntelligenceService:
 
     def history(self) -> list[ChangeItem]:
         return self.snapshot().recent_changes
+
+
+    @staticmethod
+    def _merge_entities(
+        base: list[RegistryEntity],
+        live: list[RegistryEntity],
+    ) -> list[RegistryEntity]:
+        by_id = {
+            item.entity_id: item
+            for item in base
+        }
+
+        for item in live:
+            by_id[item.entity_id] = item
+
+        return list(by_id.values())
+
+    @staticmethod
+    def _merge_source_health(
+        base: list[SourceHealthItem],
+        live: LivePortfolioRuntimeProjection,
+    ) -> list[SourceHealthItem]:
+        by_id = {
+            item.source_id: item
+            for item in base
+        }
+
+        for item in live.source_health:
+            by_id[item.source_id] = item
+
+        return list(by_id.values())
 
     def _source_health(
         self,
@@ -352,6 +418,8 @@ class PortfolioIntelligenceService:
             "DECISION_AND_CHANGE_REGISTRIES": 10,
             "EVIDENCE_INDEX": 10,
             "WORKSPACE_DRIVE_SOVEREIGN": 15,
+            "MIND_RUNTIME": 10,
+            "AGENTIC_RUNTIME": 10,
         }
         total = sum(scores[item.state] * weights.get(item.source_id, 0) for item in source_health)
         return round(total / max(sum(weights.values()), 1))

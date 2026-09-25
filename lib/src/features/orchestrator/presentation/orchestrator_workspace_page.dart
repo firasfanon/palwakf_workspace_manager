@@ -899,8 +899,8 @@ class _StatusDot extends StatelessWidget {
     final color = switch (status) {
       OrchestratorTaskStatus.verified => PalWakfTheme.successGreen,
       OrchestratorTaskStatus.running => PalWakfTheme.waqfGold,
-      OrchestratorTaskStatus.pendingVerification => Colors.teal,
-      OrchestratorTaskStatus.pending => Colors.blueGrey,
+      OrchestratorTaskStatus.pendingVerification => PalWakfTheme.workspaceTeal,
+      OrchestratorTaskStatus.pending => PalWakfTheme.workspaceMuted,
       _ => PalWakfTheme.royalRed,
     };
     return Container(

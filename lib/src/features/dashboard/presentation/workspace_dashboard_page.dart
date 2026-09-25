@@ -79,7 +79,7 @@ class _WorkspaceDashboardPageState
                 const SizedBox(height: 26),
                 LayoutBuilder(
                   builder: (context, constraints) {
-                    final narrow = constraints.maxWidth < 900;
+                    final narrow = constraints.maxWidth < 1200;
                     final children = <Widget>[
                       _OperationsPanel(summary: summary),
                       _ConnectionPanel(connection: summary.connection),
@@ -627,7 +627,7 @@ class _ActivityAndCheckpoints extends StatelessWidget {
                       .toList(growable: false),
                 ),
         );
-        if (constraints.maxWidth < 900) {
+        if (constraints.maxWidth < 1200) {
           return Column(
             children: <Widget>[
               activityPanel,
