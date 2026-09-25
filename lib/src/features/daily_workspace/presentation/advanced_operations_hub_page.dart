@@ -99,6 +99,8 @@ class AdvancedOperationsHubPage extends StatelessWidget {
                       width: cardWidth,
                       child: Card(
                         child: InkWell(
+                          key: ValueKey<String>(
+                              'advanced-action-${action.route}'),
                           borderRadius: BorderRadius.circular(12),
                           onTap: () => context.go(action.route),
                           child: Padding(

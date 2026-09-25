@@ -139,9 +139,25 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('الإدارة المتقدمة'));
+    final advancedNavigation =
+        find.byKey(const ValueKey<String>('workspace-nav-/advanced'));
+    final sidebarScrollable = find.descendant(
+      of: find.byKey(const ValueKey<String>('palwakf-unified-rtl-sidebar')),
+      matching: find.byType(Scrollable),
+    );
+    await tester.scrollUntilVisible(
+      advancedNavigation,
+      200,
+      scrollable: sidebarScrollable,
+    );
+    await tester.drag(sidebarScrollable, const Offset(0, -160));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('مركز التشغيل'));
+    await tester.tap(advancedNavigation);
+    await tester.pumpAndSettle();
+    final operationsAction =
+        find.byKey(const ValueKey<String>('advanced-action-/operations'));
+    await tester.ensureVisible(operationsAction);
+    await tester.tap(operationsAction);
     await tester.pumpAndSettle();
 
     expect(find.text('صف المهام'), findsOneWidget);
@@ -172,9 +188,25 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('الإدارة المتقدمة'));
+    final advancedNavigation =
+        find.byKey(const ValueKey<String>('workspace-nav-/advanced'));
+    final sidebarScrollable = find.descendant(
+      of: find.byKey(const ValueKey<String>('palwakf-unified-rtl-sidebar')),
+      matching: find.byType(Scrollable),
+    );
+    await tester.scrollUntilVisible(
+      advancedNavigation,
+      200,
+      scrollable: sidebarScrollable,
+    );
+    await tester.drag(sidebarScrollable, const Offset(0, -160));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('الأدوات'));
+    await tester.tap(advancedNavigation);
+    await tester.pumpAndSettle();
+    final toolsAction =
+        find.byKey(const ValueKey<String>('advanced-action-/tools'));
+    await tester.ensureVisible(toolsAction);
+    await tester.tap(toolsAction);
     await tester.pumpAndSettle();
 
     expect(find.text('الأدوات'), findsWidgets);
@@ -245,9 +277,25 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('الإدارة المتقدمة'));
+    final advancedNavigation =
+        find.byKey(const ValueKey<String>('workspace-nav-/advanced'));
+    final sidebarScrollable = find.descendant(
+      of: find.byKey(const ValueKey<String>('palwakf-unified-rtl-sidebar')),
+      matching: find.byType(Scrollable),
+    );
+    await tester.scrollUntilVisible(
+      advancedNavigation,
+      200,
+      scrollable: sidebarScrollable,
+    );
+    await tester.drag(sidebarScrollable, const Offset(0, -160));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('الأدوات'));
+    await tester.tap(advancedNavigation);
+    await tester.pumpAndSettle();
+    final toolsAction =
+        find.byKey(const ValueKey<String>('advanced-action-/tools'));
+    await tester.ensureVisible(toolsAction);
+    await tester.tap(toolsAction);
     await tester.pumpAndSettle();
 
     expect(find.text('نقل Git/patch محكوم · التطوير المستقل موقوف'),

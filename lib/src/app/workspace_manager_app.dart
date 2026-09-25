@@ -54,7 +54,8 @@ final workspaceRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/dashboard',
-            builder: (context, state) => const PortfolioCommandCenterPage(),
+            builder: (context, state) =>
+                const PortfolioCommandCenterPage(embedded: true),
           ),
           GoRoute(
             path: '/portfolio/projects',

@@ -319,6 +319,14 @@ def create_app(
             return await call_next(request)
         if request.method == "GET" and request.url.path.startswith("/local/session/"):
             return await call_next(request)
+        if _is_local_ui_static_asset_request(
+            request.url.path,
+            resolved_settings.workspace_root,
+        ):
+            response = await call_next(request)
+            response.headers["X-Content-Type-Options"] = "nosniff"
+            response.headers["Cache-Control"] = "no-store"
+            return response
         scope = _scope_for(request)
         try:
             principal = local_sessions.require(request, scope)
@@ -617,6 +625,11 @@ def create_app(
         candidate = (build_root / ui_path).resolve()
         if ui_path and candidate.is_file() and build_root in candidate.parents:
             return FileResponse(candidate)
+        if _is_local_ui_static_asset_request(
+            f"/{ui_path}",
+            resolved_settings.workspace_root,
+        ):
+            raise HTTPException(status_code=404, detail="local Flutter asset is not available")
         index = build_root / "index.html"
         if index.is_file():
             return FileResponse(index)
@@ -635,6 +648,51 @@ _LOCAL_UI_PATH_PREFIXES = (
     "/evidence",
     "/settings",
 )
+
+
+_LOCAL_UI_STATIC_ROOT_FILES = frozenset(
+    {
+        "favicon.ico",
+        "favicon.png",
+        "flutter.js",
+        "flutter_bootstrap.js",
+        "flutter_service_worker.js",
+        "main.dart.js",
+        "manifest.json",
+        "version.json",
+        "NOTICES",
+    }
+)
+
+_LOCAL_UI_STATIC_PATH_PREFIXES = (
+    "assets/",
+    "canvaskit/",
+    "icons/",
+)
+
+
+def _is_local_ui_static_asset_request(path: str, workspace_root) -> bool:
+    normalized = path.split("?", 1)[0].split("#", 1)[0].lstrip("/")
+    if not normalized or normalized.endswith(".html"):
+        return False
+
+    # Never let API/auth/system routes become public merely because a segment
+    # happens to end in a static-looking suffix such as .json.
+    protected_prefixes = ("v1/", "local/", "mcp/", "docs", "redoc", "openapi")
+    if normalized == "openapi.json" or normalized.startswith(protected_prefixes):
+        return False
+
+    build_root = (workspace_root / "build" / "web").resolve()
+    candidate = (build_root / normalized).resolve()
+    if candidate.is_file() and build_root in candidate.parents:
+        return True
+
+    if normalized in _LOCAL_UI_STATIC_ROOT_FILES:
+        return True
+
+    return any(
+        normalized.startswith(prefix) for prefix in _LOCAL_UI_STATIC_PATH_PREFIXES
+    )
 
 
 def _is_local_ui_browser_request(request: Request) -> bool:

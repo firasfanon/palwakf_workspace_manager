@@ -4,25 +4,28 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/theme/palwakf_theme.dart';
 import '../application/portfolio_intelligence_controller.dart';
 import '../domain/portfolio_intelligence_models.dart';
 
-const _ccBg = Color(0xFF03101C);
-const _ccPanel = Color(0xFF071B2C);
-const _ccPanelHigh = Color(0xFF0A2238);
-const _ccBorder = Color(0xFF123A59);
-const _ccText = Color(0xFFF3F8FC);
-const _ccMuted = Color(0xFF8EA9C1);
-const _ccCyan = Color(0xFF00C8FF);
-const _ccTeal = Color(0xFF00E3B2);
-const _ccGreen = Color(0xFF24E59A);
-const _ccBlue = Color(0xFF2F82FF);
-const _ccPurple = Color(0xFF8E5CFF);
-const _ccOrange = Color(0xFFFFA726);
-const _ccRed = Color(0xFFFF4D67);
+const _ccBg = PalWakfTheme.workspaceBg;
+const _ccPanel = PalWakfTheme.workspacePanel;
+const _ccPanelHigh = PalWakfTheme.workspacePanelHigh;
+const _ccBorder = PalWakfTheme.workspaceBorder;
+const _ccText = PalWakfTheme.workspaceText;
+const _ccMuted = PalWakfTheme.workspaceMuted;
+const _ccCyan = PalWakfTheme.workspaceCyan;
+const _ccTeal = PalWakfTheme.workspaceTeal;
+const _ccGreen = PalWakfTheme.workspaceGreen;
+const _ccBlue = PalWakfTheme.workspaceBlue;
+const _ccPurple = PalWakfTheme.workspacePurple;
+const _ccOrange = PalWakfTheme.workspaceOrange;
+const _ccRed = PalWakfTheme.workspaceRed;
 
 class PortfolioCommandCenterPage extends ConsumerStatefulWidget {
-  const PortfolioCommandCenterPage({super.key});
+  const PortfolioCommandCenterPage({this.embedded = false, super.key});
+
+  final bool embedded;
 
   @override
   ConsumerState<PortfolioCommandCenterPage> createState() =>
@@ -97,7 +100,7 @@ class _PortfolioCommandCenterPageState
             child: Row(
               textDirection: TextDirection.rtl,
               children: <Widget>[
-                if (desktop) const _VisualSidebar(),
+                if (desktop && !widget.embedded) const _VisualSidebar(),
                 Expanded(
                   child: Directionality(
                     textDirection: TextDirection.rtl,
@@ -120,6 +123,7 @@ class _PortfolioCommandCenterPageState
                             _VisualCommandHeader(
                               snapshot: snapshot,
                               compact: !desktop,
+                              showNavigationMenu: widget.embedded && !desktop,
                               loading: state.loading,
                               query: _query,
                               onQueryChanged: (value) =>
@@ -194,38 +198,7 @@ class _PortfolioCommandCenterPageState
   }
 }
 
-ThemeData _commandCenterTheme() {
-  final scheme = ColorScheme.fromSeed(
-    seedColor: _ccTeal,
-    brightness: Brightness.dark,
-  ).copyWith(
-    primary: _ccTeal,
-    secondary: _ccCyan,
-    error: _ccRed,
-    surface: _ccPanel,
-    onSurface: _ccText,
-    onSurfaceVariant: _ccMuted,
-    outline: _ccBorder,
-    outlineVariant: _ccBorder,
-  );
-  return ThemeData(
-    useMaterial3: true,
-    brightness: Brightness.dark,
-    colorScheme: scheme,
-    scaffoldBackgroundColor: _ccBg,
-    canvasColor: _ccBg,
-    dividerColor: _ccBorder,
-    cardTheme: CardThemeData(
-      elevation: 0,
-      margin: EdgeInsets.zero,
-      color: _ccPanel,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: _ccBorder),
-      ),
-    ),
-  );
-}
+ThemeData _commandCenterTheme() => PalWakfTheme.dark();
 
 class _VisualSidebar extends StatelessWidget {
   const _VisualSidebar();
@@ -506,6 +479,7 @@ class _VisualCommandHeader extends StatelessWidget {
   const _VisualCommandHeader({
     required this.snapshot,
     required this.compact,
+    required this.showNavigationMenu,
     required this.loading,
     required this.query,
     required this.onQueryChanged,
@@ -514,6 +488,7 @@ class _VisualCommandHeader extends StatelessWidget {
 
   final PortfolioCommandCenterSnapshot snapshot;
   final bool compact;
+  final bool showNavigationMenu;
   final bool loading;
   final String query;
   final ValueChanged<String> onQueryChanged;
@@ -702,7 +677,23 @@ class _VisualCommandHeader extends StatelessWidget {
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                title,
+                if (showNavigationMenu)
+                  Row(
+                    children: <Widget>[
+                      IconButton(
+                        tooltip: 'فتح التنقل',
+                        onPressed: () => Scaffold.of(context).openDrawer(),
+                        icon: const Icon(
+                          Icons.menu_rounded,
+                          color: _ccCyan,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(child: title),
+                    ],
+                  )
+                else
+                  title,
                 const SizedBox(height: 8),
                 Align(
                   alignment: AlignmentDirectional.centerStart,
