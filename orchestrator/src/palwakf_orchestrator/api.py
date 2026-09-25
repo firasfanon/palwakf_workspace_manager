@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -671,7 +672,7 @@ _LOCAL_UI_STATIC_PATH_PREFIXES = (
 )
 
 
-def _is_local_ui_static_asset_request(path: str, workspace_root) -> bool:
+def _is_local_ui_static_asset_request(path: str, workspace_root: Path) -> bool:
     normalized = path.split("?", 1)[0].split("#", 1)[0].lstrip("/")
     if not normalized or normalized.endswith(".html"):
         return False
