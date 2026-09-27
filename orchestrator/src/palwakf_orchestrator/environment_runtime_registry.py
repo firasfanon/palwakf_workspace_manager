@@ -260,3 +260,25 @@ class EnvironmentRuntimeRegistryStore:
         }
         self._state_store.save(state)
         return snapshot
+class RuntimeComponentProjectionV1(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    component_id: str = Field(pattern=r"^[a-z0-9][a-z0-9_.-]{1,79}$")
+    version: str = Field(min_length=1, max_length=160)
+    runtime_fingerprint_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    source_authority: Literal["WORKSPACE_DRIVE_SOVEREIGN"] = "WORKSPACE_DRIVE_SOVEREIGN"
+    source_revision: str = Field(min_length=1, max_length=500)
+
+
+def project_runtime_components(
+    snapshot: EnvironmentRuntimeRegistrySnapshotV1,
+) -> tuple[RuntimeComponentProjectionV1, ...]:
+    return tuple(
+        RuntimeComponentProjectionV1(
+            component_id=component_id,
+            version=version,
+            runtime_fingerprint_sha256=snapshot.current.fingerprint_sha256,
+            source_revision=snapshot.source_revision,
+        )
+        for component_id, version in sorted(snapshot.current.components.items())
+    )
