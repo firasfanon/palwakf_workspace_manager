@@ -135,9 +135,26 @@ class ProviderRuntimeProjectionV1(BaseModel):
     created_at: datetime
     provenance: tuple[str, ...] = Field(min_length=1, max_length=64)
     provider_id: str = Field(pattern=r"^[a-z0-9][a-z0-9_.-]{1,79}$")
+    provider_kind: Literal[
+        "MODEL_RUNTIME",
+        "GENERAL_AGENT",
+        "ENGINEERING",
+        "BROWSER_UAT",
+    ] = "ENGINEERING"
+    version: str | None = Field(default=None, max_length=160)
+    endpoint: str | None = Field(default=None, max_length=500)
     lifecycle: Literal["DISCOVERED", "PROBED", "BENCHMARKED", "ADMITTED"]
     health: Literal["HEALTHY", "DEGRADED", "UNAVAILABLE", "QUARANTINED"]
     capabilities: tuple[str, ...]
+    admitted_capabilities: tuple[str, ...] = ()
+    read_write_class: Literal[
+        "MODEL_INFERENCE",
+        "READ_ONLY",
+        "BOUNDED_WRITE_CAPABLE",
+        "BROWSER_UAT",
+    ] = "READ_ONLY"
+    bounded_write_admitted: bool = False
+    admission_evidence: tuple[str, ...] = ()
     route_eligible: bool
 
     @model_validator(mode="after")
