@@ -1,0 +1,210 @@
+{
+  "contract_pack": "PALWAKF_SYSTEM_OS_CONTRACT_V1",
+  "contract_pack_version": "1.0.0",
+  "schema_version": "1.0",
+  "compatibility_version": "1",
+  "status": "FROZEN_V1",
+  "system_os_standalone_repository": false,
+
+  "authority_model": {
+    "human_governance": "ULTIMATE_AUTHORITY",
+    "workspace": "CONTROL_PLANE_AUTHORITY_POLICY_APPROVAL_EVIDENCE_ACCEPTANCE",
+    "mind": "KNOWLEDGE_PROVENANCE_CONTEXT_REVIEW_CONFLICT_SUPERSESSION_PROMOTION",
+    "agentic": "PLANNING_ROUTING_EXECUTION_EVALUATION_EXPERIENCE_LEARNING_CANDIDATES",
+    "provider_rule": "CAPABILITY_PROVIDER_NE_SOVEREIGN_AUTHORITY"
+  },
+
+  "common_envelope_required": [
+    "schema_version",
+    "compatibility_version",
+    "contract_type",
+    "project_id",
+    "task_id",
+    "correlation_id",
+    "authority_scope",
+    "producer",
+    "created_at",
+    "provenance"
+  ],
+
+  "canonical_contracts": [
+    {
+      "name": "ExecutionRequest",
+      "owner": "Workspace",
+      "consumers": ["Agentic", "Mind"],
+      "required": [
+        "request_id",
+        "intent",
+        "scope",
+        "exact_base",
+        "allowed_paths",
+        "forbidden_operations",
+        "required_gates",
+        "approval_requirements"
+      ]
+    },
+    {
+      "name": "StatePackage",
+      "owner": "Workspace",
+      "consumers": ["Agentic", "Mind"],
+      "required": [
+        "state_package_id",
+        "project_state",
+        "task_state",
+        "authority_state",
+        "baseline_refs",
+        "evidence_refs",
+        "pending_decisions"
+      ]
+    },
+    {
+      "name": "KnowledgePackage",
+      "owner": "Mind",
+      "consumers": ["Agentic", "Workspace"],
+      "required": [
+        "knowledge_package_id",
+        "items",
+        "source_ids",
+        "provenance",
+        "freshness",
+        "supersession",
+        "conflicts",
+        "unknowns",
+        "citations"
+      ]
+    },
+    {
+      "name": "AgentDescriptor",
+      "owner": "Agentic",
+      "consumers": ["Workspace"]
+    },
+    {
+      "name": "ProviderDescriptor",
+      "owner": "Agentic",
+      "consumers": ["Workspace"]
+    },
+    {
+      "name": "CapabilityDescriptor",
+      "owner": "Agentic",
+      "consumers": ["Workspace", "Mind"]
+    },
+    {
+      "name": "ModelDescriptor",
+      "owner": "Agentic",
+      "consumers": ["Workspace"]
+    },
+    {
+      "name": "ToolDescriptor",
+      "owner": "Agentic",
+      "consumers": ["Workspace"]
+    },
+    {
+      "name": "ExecutionLease",
+      "owner": "Workspace",
+      "consumers": ["Agentic"],
+      "required": [
+        "lease_id",
+        "granted_scope",
+        "expires_at",
+        "allowed_capabilities",
+        "allowed_tools",
+        "write_authority",
+        "revocation_state"
+      ]
+    },
+    {
+      "name": "ExecutionResult",
+      "owner": "Agentic",
+      "consumers": ["Workspace", "Mind"]
+    },
+    {
+      "name": "EvidenceEnvelope",
+      "owner": "Agentic",
+      "consumers": ["Workspace", "Mind"]
+    },
+    {
+      "name": "EvaluationResult",
+      "owner": "Agentic",
+      "consumers": ["Workspace", "Mind"]
+    },
+    {
+      "name": "ExperienceRecord",
+      "owner": "Agentic",
+      "consumers": ["Mind"]
+    },
+    {
+      "name": "LearningCandidate",
+      "owner": "Agentic",
+      "consumers": ["Mind", "Workspace"]
+    },
+    {
+      "name": "SkillCandidate",
+      "owner": "Mind",
+      "consumers": ["Workspace"]
+    },
+    {
+      "name": "ApprovalDecision",
+      "owner": "Workspace",
+      "consumers": ["Agentic", "Mind"]
+    },
+    {
+      "name": "RuntimeHealth",
+      "owner": "RuntimeSupervisor",
+      "consumers": ["Workspace", "Agentic"]
+    },
+    {
+      "name": "RecoveryCheckpoint",
+      "owner": "Workspace",
+      "consumers": ["Agentic", "Mind"]
+    },
+    {
+      "name": "ProviderFailure",
+      "owner": "Agentic",
+      "consumers": ["Workspace"]
+    }
+  ],
+
+  "aliases": {
+    "TaskContract": "ExecutionRequest",
+    "EvidenceReceipt": "EvidenceEnvelope",
+    "EvaluationReceipt": "EvaluationResult",
+    "AuthorizationEnvelope": "ExecutionLease",
+    "ResumeCheckpoint": "RecoveryCheckpoint",
+    "AgentCapabilityContract": "AgentDescriptor+CapabilityDescriptor",
+    "ProviderCapabilityContract": "ProviderDescriptor+CapabilityDescriptor",
+    "ToolPermissionContract": "ToolDescriptor+ExecutionLease"
+  },
+
+  "legacy_compatibility": {
+    "workspace": {
+      "docs/contracts/RESUME_PROTOCOL_V1.md": "RecoveryCheckpoint",
+      "docs/contracts/FOUR_SYSTEM_L4_OPERATIONAL_CONTRACT_V1.json": "historical_cross_system_contract"
+    },
+    "mind": {
+      "docs/GOVERNED_EXECUTION_CONTRACT.md": "execution_boundary_reference",
+      "docs/OPERABILITY_RECOVERY_PORTABILITY.md": "RecoveryCheckpoint"
+    },
+    "agentic": {
+      "task_contracts/TASK_INTAKE_SCHEMA_V1.json": "ExecutionRequest",
+      "task_contracts/TASK_RUN_SCHEMA_V1.json": "ExecutionResult",
+      "task_contracts/EVIDENCE_MANIFEST_SCHEMA_V1.json": "EvidenceEnvelope",
+      "task_contracts/evidence_register_v2.schema.json": "EvidenceEnvelope",
+      "task_contracts/learning_candidate_v2.schema.json": "LearningCandidate",
+      "task_contracts/APPROVAL_RECORD_SCHEMA_V1.json": "ApprovalDecision",
+      "task_contracts/approval_request_v2.schema.json": "ApprovalDecision"
+    }
+  },
+
+  "invariants": [
+    "NO_AGENT_SELF_AUTHORIZATION",
+    "NO_PROVIDER_AUTHORITY_EXPANSION",
+    "NO_DIRECT_MAIN_MUTATION",
+    "NO_AUTOMATIC_BASELINE_PROMOTION",
+    "NO_PRODUCTION_AUTHORITY",
+    "NO_SHARED_DB_MUTATION",
+    "NO_HERMES_BOUNDED_WRITE",
+    "MORE_RESTRICTIVE_POLICY_WINS",
+    "PROVIDER_SWITCH_WITHOUT_PROJECT_STATE_LOSS",
+    "PROVIDER_REMOVAL_WITHOUT_GOVERNANCE_STATE_LOSS"
+  ]
+}
