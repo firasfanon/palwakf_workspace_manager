@@ -1,0 +1,54 @@
+{
+  "schema_version": "1.0",
+  "compatibility_version": "1",
+  "contract_type": "ExecutionLease",
+  "project_id": "PALWAKF_AGENTIC_AI_SYSTEM",
+  "task_id": "CONTROLLED-AGENT-READ-ONLY-PILOT-V1",
+  "correlation_id": "controlled-agent-read-only-pilot-v1-model64k-r1",
+  "authority_scope": "WORKSPACE_GOVERNED_EXECUTION",
+  "producer": "Workspace",
+  "created_at": "2026-09-27T22:09:28.613477Z",
+  "provenance": [
+    "SINGLE_NEXT_ACTION:SEPARATE_CONTROLLED_AGENT_ADMISSION_AND_READ_ONLY_EXECUTION_PILOT",
+    "WORKSPACE_HEAD:68c79b2d6dbea4bd17f925aa89e2d39319ceda7e",
+    "MIND_REFERENCE_HEAD:1918f6ad4920ba361fc1897aa2b8f3e8392374f8",
+    "AGENTIC_HEAD:9fafa7a0c2585d38e649f3bfcebe2121d4e0cf25",
+    "SUPERSEDED_QWEN_32K_RUNTIME_INCOMPATIBLE",
+    "SUPERSEDED_LEASE_SHA256:d6b37cd0926d18be40daffe0be05d0975a285bf17d578bca31789fccd9ef5368",
+    "SELECTED_64K_MODEL:palwakf-llama3.2-3b-64k:ctx64k"
+  ],
+  "lease_id": "lease-controlled-agent-read-only-pilot-v1-model64k-r1",
+  "granted_scope": "READ_ONLY_EXECUTION",
+  "expires_at": "2026-09-27T23:39:28.613477Z",
+  "allowed_capabilities": [
+    "agent.headless_api",
+    "model.inference",
+    "model.health",
+    "provider.health"
+  ],
+  "allowed_tools": [],
+  "write_authority": "NONE",
+  "revocation_state": "ACTIVE",
+  "allowed_provider_ids": [
+    "hermes-headless",
+    "ollama"
+  ],
+  "allowed_agent_ids": [
+    "coordinator_agentic_v1"
+  ],
+  "allowed_model_ids": [
+    "palwakf-llama3.2-3b-64k:ctx64k"
+  ],
+  "exact_base": "9fafa7a0c2585d38e649f3bfcebe2121d4e0cf25",
+  "branch": "task/AGENTIC-AUTONOMOUS-LOCAL-AI-MEGA-BATCH-V1",
+  "allowed_paths": [],
+  "forbidden_operations": [
+    "production",
+    "shared_db_mutation",
+    "git_push",
+    "source_write",
+    "opencode_source_write",
+    "hermes_bounded_write"
+  ],
+  "approval_reference": "CHATGPT_USER_AUTHORIZATION_20260928:SEPARATE_CONTROLLED_AGENT_ADMISSION_AND_READ_ONLY_EXECUTION_PILOT"
+}
