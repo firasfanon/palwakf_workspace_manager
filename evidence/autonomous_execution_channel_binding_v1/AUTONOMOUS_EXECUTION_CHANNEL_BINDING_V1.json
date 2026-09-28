@@ -1,0 +1,81 @@
+{
+  "arbitrary_shell": false,
+  "attempt_lineage": [
+    {
+      "attempt": 1,
+      "failure": "HISTORICAL_RDC_TEST_EXPECTED_DEFAULT_R3_AFTER_INTENTIONAL_R4_SUPERSESSION",
+      "push": "NONE",
+      "result": "FAIL_CLOSED",
+      "source_commit": "NONE"
+    },
+    {
+      "attempt": 2,
+      "repair": "PIN_HISTORICAL_RDC_TEST_TO_R3",
+      "result": "RESUME_FROM_FAILED_GATE_ONLY"
+    }
+  ],
+  "authority_owner": "Workspace",
+  "authorized_anchors": {
+    "agentic": "73cca89c8928cdc688d271bb5a92053e1f785414",
+    "mind_reference": "1918f6ad4920ba361fc1897aa2b8f3e8392374f8",
+    "workspace": "c208a5e8b6de47f91d578b9b91f69c27d191edea"
+  },
+  "baseline_promotion": "NONE",
+  "break_glass_reason": {
+    "github_connector_write": "403_RESOURCE_NOT_ACCESSIBLE_BY_INTEGRATION",
+    "palwakf_remote_mcp_direct_chat_connector": "NOT_AVAILABLE",
+    "remote_desktop_commander": "DEVICE_OFFLINE"
+  },
+  "created_at": "2026-09-28T20:45:31.708886Z",
+  "delegation": false,
+  "execution_router": "Agentic",
+  "historical_rdc_channel_preserved": true,
+  "historical_rdc_test_registry": "PALWAKF_TOOL_ROLE_AND_INVOCATION_REGISTRY_R3_20260824",
+  "main_merge": "NONE",
+  "manual_terminal_class": "BREAK_GLASS",
+  "manual_terminal_interventions_per_task": 2,
+  "opencode_source_write": false,
+  "owner_project": "PALWAKF_WORKSPACE_MANAGER",
+  "p2_status": "BINDING_IMPLEMENTATION_PASS_PENDING_P3_LIVE_PROOF",
+  "p3_required": [
+    "automated_execution",
+    "restart_resume",
+    "audit_readback",
+    "recovery",
+    "manual_terminal_interventions_target_zero"
+  ],
+  "parallel_multi_agent": false,
+  "production": "NONE",
+  "registry_version": "PALWAKF_TOOL_ROLE_AND_INVOCATION_REGISTRY_R4_20260928",
+  "remote_capabilities": [
+    "mesh_device_info",
+    "mesh_hostname",
+    "file_read",
+    "temp_write",
+    "temp_delete",
+    "bounded_powershell",
+    "process_port_readback",
+    "git_readback",
+    "playwright_screenshot_uat",
+    "audit_readback"
+  ],
+  "schema": "palwakf.autonomous_execution_channel_binding.v1",
+  "shared_db_mutation": "NONE",
+  "source_manifest": {
+    "orchestrator/data/PALWAKF_TOOL_ROLE_AND_INVOCATION_REGISTRY_R4_20260928.json": "ade0decfa6125b30f35cc8a6db9e4ae223dc7aa41ffd8d59ad5378931997a5db",
+    "orchestrator/src/palwakf_orchestrator/autonomous_execution_channel_v1.py": "bae526ab16e6eab17344c36fbd76ceddfbfd307e0690f84000ed2eeed7238f25",
+    "orchestrator/src/palwakf_orchestrator/capability_router.py": "f95d9e572d359fa452eecc80007c9c3ead3e365632565b769d9a3ecef434a375",
+    "orchestrator/tests/test_autonomous_execution_channel_v1.py": "f1ea2afd0d9067ff76b08abd9448f10d4e6d3f5f1cb9677baf1765a2b456c140",
+    "orchestrator/tests/test_capability_registry_r4.py": "72f894c47d03fb3ae891a5747019b1d9a407864d1db24aa71721906fcc42965d",
+    "orchestrator/tests/test_rdc_execution_channel.py": "1f215f1ee54bbc57ff9091afbc7f517e73b6ab52ea737459d025711c6c97053d"
+  },
+  "source_write": false,
+  "system_os_contract_v1_blob": "c96f1efc382dfa7b205d030714c44c108289541f",
+  "system_os_contract_v1_mutation": "NONE",
+  "transport": [
+    "palwakf-remote-mcp",
+    "meshcentral",
+    "meshagent"
+  ],
+  "transport_sovereign_authority": "NONE"
+}

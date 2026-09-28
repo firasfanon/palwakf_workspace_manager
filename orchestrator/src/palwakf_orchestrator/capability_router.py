@@ -21,7 +21,7 @@ def default_registry_path() -> Path:
     return (
         Path(__file__).resolve().parents[2]
         / "data"
-        / "PALWAKF_TOOL_ROLE_AND_INVOCATION_REGISTRY_R3_20260824.json"
+        / "PALWAKF_TOOL_ROLE_AND_INVOCATION_REGISTRY_R4_20260928.json"
     )
 
 

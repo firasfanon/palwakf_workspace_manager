@@ -5,7 +5,9 @@ from typing import Literal
 import pytest
 
 from palwakf_orchestrator.capability_router import (
+    CapabilityRegistry,
     CapabilityRouter,
+    default_registry_path,
     workspace_manager_profile,
 )
 from palwakf_orchestrator.operator_contracts import TaskCapabilityRequest
@@ -247,7 +249,10 @@ def test_rdc_adapter_is_explicit_and_not_in_default_workspace_profile() -> None:
         data_classification="internal",
         acceptance_requirements=["rdc_preflight_receipt"],
     )
-    plan = CapabilityRouter().plan(request, profile)
+    historical_r3 = default_registry_path().with_name(
+        "PALWAKF_TOOL_ROLE_AND_INVOCATION_REGISTRY_R3_20260824.json"
+    )
+    plan = CapabilityRouter(CapabilityRegistry(historical_r3)).plan(request, profile)
     decision = next(
         item for item in plan.decisions if item.capability_id == "governed.local_execution_channel"
     )
