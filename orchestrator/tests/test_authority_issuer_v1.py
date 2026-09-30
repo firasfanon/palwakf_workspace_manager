@@ -148,3 +148,21 @@ def test_rejects_missing_sovereign_prohibitions() -> None:
         match="REQUIRED_PROHIBITED_ACTIONS_MISSING",
     ):
         _issuer().sign(SignTaskEnvelopeRequestV1(unsigned_envelope=envelope))
+
+
+def test_power_shell_utc_timestamps_are_canonicalized_like_agentic_pydantic() -> None:
+    envelope = _unsigned_envelope()
+    envelope["issued_at"] = "2026-09-30T17:00:00.1234567+00:00"
+    envelope["expires_at"] = "2099-09-30T17:20:00.0000000+00:00"
+    lease = envelope["execution_lease"]
+    assert isinstance(lease, dict)
+    lease["issued_at"] = "2026-09-30T17:00:00.7654321+00:00"
+    lease["expires_at"] = "2099-09-30T17:30:00.0000000+00:00"
+
+    canonical = WorkspaceAuthorityIssuerV1._canonical_bytes(envelope)
+    payload = json.loads(canonical)
+
+    assert payload["issued_at"] == "2026-09-30T17:00:00.123456Z"
+    assert payload["expires_at"] == "2099-09-30T17:20:00Z"
+    assert payload["execution_lease"]["issued_at"] == "2026-09-30T17:00:00.765432Z"
+    assert payload["execution_lease"]["expires_at"] == "2099-09-30T17:30:00Z"
