@@ -37,7 +37,7 @@ def main() -> None:
         print(issuer.public_descriptor().model_dump_json())
         return
 
-    raw = json.loads(args.input.read_text(encoding="utf-8"))
+    raw = json.loads(args.input.read_text(encoding="utf-8-sig"))
     if not isinstance(raw, dict):
         raise SystemExit("UNSIGNED_ENVELOPE_MUST_BE_OBJECT")
     result = issuer.sign(SignTaskEnvelopeRequestV1(unsigned_envelope=raw))
