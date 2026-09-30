@@ -13,8 +13,8 @@ from palwakf_orchestrator.auth import AuthRegistry, BoundedRateLimiter, JwtAuthC
 from palwakf_orchestrator.authority_issuer_v1 import (
     AuthorityIssuerError,
     AuthorityKeyDescriptorV1,
-    SignTaskEnvelopeRequestV1,
     SignedTaskEnvelopeResponseV1,
+    SignTaskEnvelopeRequestV1,
     WindowsDpapiAuthorityKeyStoreV1,
     WorkspaceAuthorityIssuerV1,
 )
