@@ -10,6 +10,14 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Resp
 from starlette.middleware.base import RequestResponseEndpoint
 
 from palwakf_orchestrator.auth import AuthRegistry, BoundedRateLimiter, JwtAuthConfig
+from palwakf_orchestrator.authority_issuer_v1 import (
+    AuthorityIssuerError,
+    AuthorityKeyDescriptorV1,
+    SignTaskEnvelopeRequestV1,
+    SignedTaskEnvelopeResponseV1,
+    WindowsDpapiAuthorityKeyStoreV1,
+    WorkspaceAuthorityIssuerV1,
+)
 from palwakf_orchestrator.config import Settings, get_settings
 from palwakf_orchestrator.connected_contracts import (
     ConnectedDispatchRequest,
@@ -83,6 +91,7 @@ def create_app(
     project_service: ExternalProjectService | None = None,
     local_session_manager: LocalSessionManager | None = None,
     local_product_service: LocalProductService | None = None,
+    authority_issuer: WorkspaceAuthorityIssuerV1 | None = None,
 ) -> FastAPI:
     resolved_settings = settings or get_settings()
     resolved_settings.assert_safe_binding()
@@ -127,6 +136,15 @@ def create_app(
         resolved_store,
     )
     local_sessions = local_session_manager or LocalSessionManager()
+    resolved_authority_issuer = authority_issuer or WorkspaceAuthorityIssuerV1(
+        key_store=WindowsDpapiAuthorityKeyStoreV1(
+            resolved_settings.resolved_authority_key_path
+        ),
+        key_id=resolved_settings.authority_key_id,
+        allowed_repositories=("firasfanon/palwakf_agenticAi_system",),
+        allowed_executor_ids=("DESKTOP-S5A0JSB",),
+        allowed_capability_ids=("c7r.phase_a",),
+    )
     local_product = local_product_service
     if local_product is None and (resolved_settings.workspace_root / ".git").is_dir():
         local_product = LocalProductService(
@@ -173,6 +191,7 @@ def create_app(
     app.state.project_service = resolved_projects
     app.state.dashboard_service = dashboard
     app.state.local_product_service = local_product
+    app.state.authority_issuer = resolved_authority_issuer
     app.add_middleware(
         CORSMiddleware,
         allow_origin_regex=r"^https?://(127\.0\.0\.1|localhost)(:\d+)?$",
@@ -260,6 +279,25 @@ def create_app(
         try:
             return local_product.create_proof_task()
         except GovernanceError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    @app.get("/v1/authority/trust-key", response_model=AuthorityKeyDescriptorV1)
+    async def authority_trust_key() -> AuthorityKeyDescriptorV1:
+        try:
+            return resolved_authority_issuer.public_descriptor()
+        except AuthorityIssuerError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    @app.post(
+        "/v1/authority/sign-task",
+        response_model=SignedTaskEnvelopeResponseV1,
+    )
+    async def authority_sign_task(
+        command: SignTaskEnvelopeRequestV1,
+    ) -> SignedTaskEnvelopeResponseV1:
+        try:
+            return resolved_authority_issuer.sign(command)
+        except AuthorityIssuerError as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
 
     @app.get("/v1/metrics", response_model=OperationalMetrics)
