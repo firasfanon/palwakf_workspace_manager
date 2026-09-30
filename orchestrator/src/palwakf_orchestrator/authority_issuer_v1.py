@@ -20,6 +20,13 @@ class AuthorityIssuerError(RuntimeError):
     pass
 
 
+class _DataBlob(ctypes.Structure):
+    _fields_ = [
+        ("cbData", ctypes.c_ulong),
+        ("pbData", ctypes.POINTER(ctypes.c_ubyte)),
+    ]
+
+
 class AuthorityKeyDescriptorV1(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -92,15 +99,9 @@ class WindowsDpapiAuthorityKeyStoreV1:
         return raw
 
     @staticmethod
-    def _make_blob(data: bytes) -> tuple[Any, Any]:
-        class DataBlob(ctypes.Structure):
-            _fields_ = [
-                ("cbData", ctypes.c_ulong),
-                ("pbData", ctypes.POINTER(ctypes.c_ubyte)),
-            ]
-
+    def _make_blob(data: bytes) -> tuple[_DataBlob, Any]:
         buffer = (ctypes.c_ubyte * len(data)).from_buffer_copy(data)
-        blob = DataBlob(
+        blob = _DataBlob(
             len(data),
             ctypes.cast(buffer, ctypes.POINTER(ctypes.c_ubyte)),
         )
@@ -111,10 +112,13 @@ class WindowsDpapiAuthorityKeyStoreV1:
         if os.name != "nt":
             raise AuthorityIssuerError("WINDOWS_DPAPI_REQUIRES_WINDOWS")
         in_blob, keepalive = cls._make_blob(plain)
-        out_blob, out_keepalive = cls._make_blob(b"")
-        _ = keepalive, out_keepalive
-        crypt32 = ctypes.windll.crypt32
-        kernel32 = ctypes.windll.kernel32
+        out_blob = _DataBlob()
+        _ = keepalive
+        windll = getattr(ctypes, "windll", None)
+        if windll is None:
+            raise AuthorityIssuerError("WINDOWS_DPAPI_LIBRARY_UNAVAILABLE")
+        crypt32 = windll.crypt32
+        kernel32 = windll.kernel32
         ok = crypt32.CryptProtectData(
             ctypes.byref(in_blob),
             "PalWakf Workspace Authority Issuer",
@@ -136,10 +140,13 @@ class WindowsDpapiAuthorityKeyStoreV1:
         if os.name != "nt":
             raise AuthorityIssuerError("WINDOWS_DPAPI_REQUIRES_WINDOWS")
         in_blob, keepalive = cls._make_blob(protected)
-        out_blob, out_keepalive = cls._make_blob(b"")
-        _ = keepalive, out_keepalive
-        crypt32 = ctypes.windll.crypt32
-        kernel32 = ctypes.windll.kernel32
+        out_blob = _DataBlob()
+        _ = keepalive
+        windll = getattr(ctypes, "windll", None)
+        if windll is None:
+            raise AuthorityIssuerError("WINDOWS_DPAPI_LIBRARY_UNAVAILABLE")
+        crypt32 = windll.crypt32
+        kernel32 = windll.kernel32
         ok = crypt32.CryptUnprotectData(
             ctypes.byref(in_blob),
             None,
