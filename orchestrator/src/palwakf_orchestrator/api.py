@@ -142,7 +142,7 @@ def create_app(
         ),
         key_id=resolved_settings.authority_key_id,
         allowed_repositories=("firasfanon/palwakf_agenticAi_system",),
-        allowed_executor_ids=("DESKTOP-S5A0JSB",),
+        allowed_executor_ids=("Futuer-IT",),
         allowed_capability_ids=("c7r.phase_a",),
     )
     local_product = local_product_service
