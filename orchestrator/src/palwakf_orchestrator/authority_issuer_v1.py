@@ -31,7 +31,7 @@ class _DataBlob(ctypes.Structure):
 class AuthorityKeyDescriptorV1(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    schema: str = "palwakf.workspace_authority_key.v1"
+    schema_id: str = "palwakf.workspace_authority_key.v1"
     key_id: str
     algorithm: str = "ED25519"
     public_key_b64: str
