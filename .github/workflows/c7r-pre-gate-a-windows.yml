@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - task/WORKSPACE-C7R-PRE-GATE-A-AUTHORITY-ISSUER-V1
+      - task/WORKSPACE-C7R-EXECUTOR-ID-FUTUER-IT-V1
   workflow_dispatch:
 
 permissions:
