@@ -166,3 +166,23 @@ def test_power_shell_utc_timestamps_are_canonicalized_like_agentic_pydantic() ->
     assert payload["expires_at"] == "2099-09-30T17:20:00Z"
     assert payload["execution_lease"]["issued_at"] == "2026-09-30T17:00:00.765432Z"
     assert payload["execution_lease"]["expires_at"] == "2099-09-30T17:30:00Z"
+
+
+def test_cross_repo_c7r_signature_vector_is_stable() -> None:
+    envelope = json.loads("{\"contract_version\":\"1.0\",\"task_id\":\"C7R-CROSS-CONTRACT-VECTOR-001\",\"project_id\":\"PALWAKF_AGENTIC_AI_SYSTEM\",\"project_aliases\":[],\"repository_id\":\"firasfanon/palwakf_agenticAi_system\",\"executor_id\":\"DESKTOP-S5A0JSB\",\"task_type\":\"C7R_PHASE_A\",\"mutation_class\":\"SERVICE_MUTATION\",\"requested_capability_id\":\"c7r.phase_a\",\"arguments\":{\"operation\":\"preflight\"},\"authority_ref\":\"workspace://c7r/pre-gate-a-vector\",\"execution_lease\":{\"lease_id\":\"lease-C7R-CROSS-CONTRACT-VECTOR-001\",\"task_id\":\"C7R-CROSS-CONTRACT-VECTOR-001\",\"project_id\":\"PALWAKF_AGENTIC_AI_SYSTEM\",\"issuer_ref\":\"workspace://c7r/pre-gate-a-vector\",\"approval_class\":\"PRE_GATE_A_BOOTSTRAP\",\"allowed_capability_ids\":[\"c7r.phase_a\"],\"allowed_mutation_classes\":[\"SERVICE_MUTATION\"],\"scope_paths\":[\"C:\\\\ProgramData\\\\PalWakf\\\\c7r_phase_a_v1\"],\"base_sha\":\"1111111111111111111111111111111111111111\",\"branch\":\"task/AGENTIC-C7R-PRE-GATE-A-PHASE-A-CAPABILITY-V1\",\"issued_at\":\"2026-09-30T17:00:00.7654321+00:00\",\"expires_at\":\"2099-09-30T17:30:00.0000000+00:00\",\"revocation_state\":\"ACTIVE\"},\"expected_remote_head\":\"1111111111111111111111111111111111111111\",\"expected_base_sha\":\"1111111111111111111111111111111111111111\",\"task_branch\":\"task/AGENTIC-C7R-PRE-GATE-A-PHASE-A-CAPABILITY-V1\",\"scope_paths\":[\"C:\\\\ProgramData\\\\PalWakf\\\\c7r_phase_a_v1\"],\"prohibited_actions\":[\"main_merge\",\"baseline_promotion\",\"production_mutation\",\"shared_db_mutation\",\"arbitrary_shell\"],\"idempotency_key\":\"c7r-cross-contract-vector-001\",\"nonce\":\"c7r-cross-contract-vector-nonce-001\",\"issued_at\":\"2026-09-30T17:00:00.1234567+00:00\",\"expires_at\":\"2099-09-30T17:20:00.0000000+00:00\",\"max_duration_seconds\":1800,\"evidence_requirements\":[\"authority\",\"runtime_admission\",\"zero_manual_terminal\",\"no_normal_api_key_fallback\"],\"transport_metadata\":{},\"correlation_id\":\"c7r-cross-contract-vector-001\",\"checkpoint_id\":null,\"depends_on_task_ids\":[],\"model_provider_metadata\":{}}")
+    issuer = WorkspaceAuthorityIssuerV1(
+        key_store=InMemoryAuthorityKeyStoreV1(bytes.fromhex("01" * 32)),
+        key_id="workspace-c7r-vector-v1",
+        allowed_repositories=("firasfanon/palwakf_agenticAi_system",),
+        allowed_executor_ids=("DESKTOP-S5A0JSB",),
+        allowed_capability_ids=("c7r.phase_a",),
+    )
+
+    result = issuer.sign(SignTaskEnvelopeRequestV1(unsigned_envelope=envelope))
+
+    assert result.key.public_key_b64 == "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w="
+    assert result.envelope_hash == "a530d2ac3013298beada3cbcd7850b25f91b098db95cd4d215179f32695b6e04"
+    assert result.signed_envelope["authority_proof"]["signature_b64"] == (
+        "NLzye7JdRiApOTP4Oj0H0f2A0jxJGSgHwjf+gtVbjFAJpwCeuE3cDheXbpD3wPFP"
+        "nxOX1S2O10Dr++0leJi2Bg=="
+    )
