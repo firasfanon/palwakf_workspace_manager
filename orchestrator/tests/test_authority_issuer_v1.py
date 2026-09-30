@@ -96,12 +96,7 @@ def test_signs_agentic_compatible_canonical_payload() -> None:
     payload.pop("authority_proof")
     payload.pop("transport_metadata")
     payload.pop("model_provider_metadata")
-    canonical = json.dumps(
-        payload,
-        ensure_ascii=False,
-        separators=(",", ":"),
-        sort_keys=True,
-    ).encode("utf-8")
+    canonical = WorkspaceAuthorityIssuerV1._canonical_bytes(payload)
 
     public.verify(
         base64.b64decode(str(proof["signature_b64"]), validate=True),
