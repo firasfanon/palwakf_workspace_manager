@@ -16,7 +16,7 @@ def _issuer(key_path: Path, key_id: str) -> WorkspaceAuthorityIssuerV1:
         key_store=WindowsDpapiAuthorityKeyStoreV1(key_path),
         key_id=key_id,
         allowed_repositories=("firasfanon/palwakf_agenticAi_system",),
-        allowed_executor_ids=("DESKTOP-S5A0JSB",),
+        allowed_executor_ids=("Futuer-IT",),
         allowed_capability_ids=("c7r.phase_a",),
     )
 
