@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     oauth_authorization_server: str | None = None
     oauth_jwks_url: str | None = None
     oauth_audience: str | None = None
-    local_project_allowlist_json: str = "[]"
+    local_project_allowlist_json: str = "[]"\n    authority_key_id: str = "workspace-c7r-pre-gate-a-v1"\n    authority_key_path: Path | None = None
 
     @property
     def resolved_state_db_path(self) -> Path:
