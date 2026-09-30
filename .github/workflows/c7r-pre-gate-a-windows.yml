@@ -1,0 +1,52 @@
+name: C7R Pre-Gate A Windows Validation
+
+on:
+  push:
+    branches:
+      - task/WORKSPACE-C7R-PRE-GATE-A-AUTHORITY-ISSUER-V1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  authority-issuer-windows:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: orchestrator/pyproject.toml
+      - name: Install orchestrator
+        shell: pwsh
+        run: python -m pip install -e "./orchestrator[dev]"
+      - name: Focused authority issuer tests
+        shell: pwsh
+        run: python -m pytest -q orchestrator/tests/test_authority_issuer_v1.py
+      - name: Windows DPAPI authority-key smoke
+        shell: pwsh
+        run: |
+          $env:PYTHONPATH = (Resolve-Path "orchestrator/src").Path
+          @'
+          import tempfile
+          from pathlib import Path
+          from palwakf_orchestrator.authority_issuer_v1 import WindowsDpapiAuthorityKeyStoreV1
+
+          with tempfile.TemporaryDirectory() as tmp:
+              path = Path(tmp) / "workspace-ed25519.dpapi"
+              store = WindowsDpapiAuthorityKeyStoreV1(path)
+              first = store.load_or_create_private_key()
+              second = store.load_or_create_private_key()
+              assert len(first) == 32
+              assert first == second
+              protected = path.read_bytes()
+              assert protected != first
+              assert first not in protected
+              print("WORKSPACE_AUTHORITY_DPAPI=PASS")
+          '@ | python -
+      - name: Compile authority issuer
+        shell: pwsh
+        run: python -m compileall -q orchestrator/src/palwakf_orchestrator/authority_issuer_v1.py orchestrator/scripts/c7r_authority_cli.py
