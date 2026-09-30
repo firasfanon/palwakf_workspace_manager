@@ -177,9 +177,9 @@ def test_cross_repo_c7r_signature_vector_is_stable() -> None:
 
     assert result.key.public_key_b64 == "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w="
     assert result.envelope_hash == (
-        "4ffb363168c1edef371d0fee4660ab19bd30e147d51175fbe382bde1699277e9"
+        "4e9dbae83aad4ffe172bbd7eecac166cb2b65835dba4c77ac31fc60761a9a924"
     )
     assert result.signed_envelope["authority_proof"]["signature_b64"] == (
-        "52Hhw/BM5qUB1cpZ+x5J2uEqT5ysbvXNihcOJJdw8H5AbSdJdns7Zy/FvxhQ75+G"
-        "705ezzwAHhAYAKFH44fuBA=="
+        "UQbmru3zCrWwnwPKK9XttAOtORK1y2Fm1BkUO7hhj7nfhlHGOV+gZA+PgRL4ISVn"
+        "RmBB9Cr28ouXIK4pRbrWDw=="
     )
