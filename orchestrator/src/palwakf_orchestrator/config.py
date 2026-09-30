@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from functools import lru_cache
 from pathlib import Path
 from socket import gethostname
@@ -46,11 +47,22 @@ class Settings(BaseSettings):
     oauth_authorization_server: str | None = None
     oauth_jwks_url: str | None = None
     oauth_audience: str | None = None
-    local_project_allowlist_json: str = "[]"\n    authority_key_id: str = "workspace-c7r-pre-gate-a-v1"\n    authority_key_path: Path | None = None
+    local_project_allowlist_json: str = "[]"
+    authority_key_id: str = "workspace-c7r-pre-gate-a-v1"
+    authority_key_path: Path | None = None
 
     @property
     def resolved_state_db_path(self) -> Path:
         return self.state_db_path or self.workspace_root / ".palwakf" / "orchestrator.sqlite3"
+
+    @property
+    def resolved_authority_key_path(self) -> Path:
+        if self.authority_key_path is not None:
+            return self.authority_key_path
+        local_app_data = os.environ.get("LOCALAPPDATA")
+        if local_app_data:
+            return Path(local_app_data) / "PalWakf" / "authority" / "workspace-ed25519.dpapi"
+        return Path.home() / ".palwakf" / "authority" / "workspace-ed25519.dpapi"
 
     def assert_safe_binding(self) -> None:
         loopback = self.bind_host in {"127.0.0.1", "localhost", "::1"}
