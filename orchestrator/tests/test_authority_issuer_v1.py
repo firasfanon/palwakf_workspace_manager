@@ -108,7 +108,19 @@ def test_signs_agentic_compatible_canonical_payload() -> None:
         canonical,
     )
     assert descriptor.private_key_exportable is False
-    assert "private" not in result.model_dump_json().lower()
+    serialized = result.model_dump(mode="json")
+    assert "private_key_b64" not in serialized["key"]
+    assert "private_key" not in serialized["key"]
+    assert "raw_private_key" not in serialized["key"]
+    assert set(serialized["key"]) == {
+        "schema_id",
+        "key_id",
+        "algorithm",
+        "public_key_b64",
+        "public_key_sha256",
+        "private_key_exportable",
+        "owner",
+    }
 
 
 def test_rejects_capability_outside_pre_gate_scope() -> None:
