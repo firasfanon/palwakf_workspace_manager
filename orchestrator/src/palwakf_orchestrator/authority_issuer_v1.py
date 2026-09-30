@@ -277,11 +277,43 @@ class WorkspaceAuthorityIssuerV1:
             raise AuthorityIssuerError(f"{prefix}_EXPIRED")
 
     @staticmethod
-    def _canonical_bytes(envelope: Mapping[str, Any]) -> bytes:
+    def _canonical_datetime(value: Any, field: str) -> str:
+        if not isinstance(value, str):
+            raise AuthorityIssuerError(f"{field}_MUST_BE_STRING")
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise AuthorityIssuerError(f"{field}_INVALID") from exc
+        if parsed.tzinfo is None:
+            raise AuthorityIssuerError(f"{field}_MUST_BE_TIMEZONE_AWARE")
+        rendered = parsed.isoformat(
+            timespec="microseconds" if parsed.microsecond else "seconds"
+        )
+        if rendered.endswith("+00:00"):
+            rendered = rendered[:-6] + "Z"
+        return rendered
+
+    @classmethod
+    def _canonical_bytes(cls, envelope: Mapping[str, Any]) -> bytes:
         data = deepcopy(dict(envelope))
         data.pop("authority_proof", None)
         data.pop("transport_metadata", None)
         data.pop("model_provider_metadata", None)
+
+        data["issued_at"] = cls._canonical_datetime(data.get("issued_at"), "TASK_ISSUED_AT")
+        data["expires_at"] = cls._canonical_datetime(data.get("expires_at"), "TASK_EXPIRES_AT")
+        lease = data.get("execution_lease")
+        if not isinstance(lease, dict):
+            raise AuthorityIssuerError("EXECUTION_LEASE_REQUIRED")
+        lease["issued_at"] = cls._canonical_datetime(
+            lease.get("issued_at"),
+            "LEASE_ISSUED_AT",
+        )
+        lease["expires_at"] = cls._canonical_datetime(
+            lease.get("expires_at"),
+            "LEASE_EXPIRES_AT",
+        )
+
         return json.dumps(
             data,
             ensure_ascii=False,
