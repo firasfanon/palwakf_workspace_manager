@@ -59,9 +59,15 @@ class Settings(BaseSettings):
     def resolved_authority_key_path(self) -> Path:
         if self.authority_key_path is not None:
             return self.authority_key_path
-        local_app_data = os.environ.get("LOCALAPPDATA")
-        if local_app_data:
-            return Path(local_app_data) / "PalWakf" / "authority" / "workspace-ed25519.dpapi"
+        program_data = os.environ.get("PROGRAMDATA")
+        if program_data:
+            return (
+                Path(program_data)
+                / "PalWakf"
+                / "workspace_authority_v1"
+                / "secrets"
+                / "workspace-ed25519.dpapi"
+            )
         return Path.home() / ".palwakf" / "authority" / "workspace-ed25519.dpapi"
 
     def assert_safe_binding(self) -> None:
