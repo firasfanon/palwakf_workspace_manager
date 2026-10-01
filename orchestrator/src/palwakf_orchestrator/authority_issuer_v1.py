@@ -87,9 +87,11 @@ class WindowsDpapiAuthorityKeyStoreV1:
     """Persist one Ed25519 private key encrypted with Windows DPAPI."""
 
     _CRYPTPROTECT_UI_FORBIDDEN = 0x1
+    _CRYPTPROTECT_LOCAL_MACHINE = 0x4
 
-    def __init__(self, path: Path) -> None:
+    def __init__(self, path: Path, *, machine_scope: bool = False) -> None:
         self.path = path
+        self.machine_scope = machine_scope
 
     def load_or_create_private_key(self) -> bytes:
         if self.path.exists():
@@ -119,11 +121,10 @@ class WindowsDpapiAuthorityKeyStoreV1:
         )
         return blob, buffer
 
-    @classmethod
-    def _protect(cls, plain: bytes) -> bytes:
+    def _protect(self, plain: bytes) -> bytes:
         if os.name != "nt":
             raise AuthorityIssuerError("WINDOWS_DPAPI_REQUIRES_WINDOWS")
-        in_blob, keepalive = cls._make_blob(plain)
+        in_blob, keepalive = self._make_blob(plain)
         out_blob = _DataBlob()
         _ = keepalive
         windll = getattr(ctypes, "windll", None)
@@ -131,13 +132,16 @@ class WindowsDpapiAuthorityKeyStoreV1:
             raise AuthorityIssuerError("WINDOWS_DPAPI_LIBRARY_UNAVAILABLE")
         crypt32 = windll.crypt32
         kernel32 = windll.kernel32
+        flags = self._CRYPTPROTECT_UI_FORBIDDEN
+        if self.machine_scope:
+            flags |= self._CRYPTPROTECT_LOCAL_MACHINE
         ok = crypt32.CryptProtectData(
             ctypes.byref(in_blob),
             "PalWakf Workspace Authority Issuer",
             None,
             None,
             None,
-            cls._CRYPTPROTECT_UI_FORBIDDEN,
+            flags,
             ctypes.byref(out_blob),
         )
         if not ok:

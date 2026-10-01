@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import json
+import os
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -13,6 +14,7 @@ from palwakf_orchestrator.authority_issuer_v1 import (
     InMemoryAuthorityKeyStoreV1,
     RemoteIntentV1,
     SignTaskEnvelopeRequestV1,
+    WindowsDpapiAuthorityKeyStoreV1,
     WorkspaceAuthorityIssuerV1,
 )
 
@@ -330,3 +332,19 @@ def test_remote_intent_requires_channel_prohibitions() -> None:
         _channel_issuer().authorize_remote_intent(
             RemoteIntentV1(client_id="chatgpt", payload=envelope)
         )
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows DPAPI test")
+def test_windows_dpapi_machine_scope_roundtrip(tmp_path: Path) -> None:
+    key_path = tmp_path / "workspace-machine.dpapi"
+    store = WindowsDpapiAuthorityKeyStoreV1(
+        key_path,
+        machine_scope=True,
+    )
+    first = store.load_or_create_private_key()
+    second = store.load_or_create_private_key()
+
+    assert len(first) == 32
+    assert first == second
+    assert key_path.is_file()
+    assert key_path.read_bytes() != first

@@ -41,9 +41,17 @@ ALLOWED_CAPABILITIES = (
 )
 
 
-def _issuer(key_path: Path, key_id: str) -> WorkspaceAuthorityIssuerV1:
+def _issuer(
+    key_path: Path,
+    key_id: str,
+    *,
+    machine_scope_key: bool = False,
+) -> WorkspaceAuthorityIssuerV1:
     return WorkspaceAuthorityIssuerV1(
-        key_store=WindowsDpapiAuthorityKeyStoreV1(key_path),
+        key_store=WindowsDpapiAuthorityKeyStoreV1(
+            key_path,
+            machine_scope=machine_scope_key,
+        ),
         key_id=key_id,
         allowed_repositories=ALLOWED_REPOSITORIES,
         allowed_executor_ids=("Futuer-IT",),
@@ -75,6 +83,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(prog="palwakf-workspace-authority")
     parser.add_argument("--key-path", type=Path, required=True)
     parser.add_argument("--key-id", required=True)
+    parser.add_argument("--machine-scope-key", action="store_true")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("public")
     for name in ("sign", "authorize-intent"):
@@ -83,7 +92,11 @@ def main() -> None:
         command.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
-    issuer = _issuer(args.key_path, args.key_id)
+    issuer = _issuer(
+        args.key_path,
+        args.key_id,
+        machine_scope_key=args.machine_scope_key,
+    )
     if args.command == "public":
         print(issuer.public_descriptor().model_dump_json())
         return
