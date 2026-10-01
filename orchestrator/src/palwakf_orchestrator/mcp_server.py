@@ -25,6 +25,10 @@ from palwakf_orchestrator.operator_contracts import (
     TaskAuthorizationRequest,
     TaskCapabilityRequest,
 )
+from palwakf_orchestrator.sovereign_remote_authority_v1 import (
+    RemoteIntentV1,
+    SovereignRemoteChannelServiceV1,
+)
 
 
 class RegistryTokenVerifier:
@@ -61,6 +65,7 @@ def create_mcp_server(
     *,
     engineering_os: EngineeringOsService | None = None,
     execution_runs: ExecutionRunAdapter | None = None,
+    sovereign_channel: SovereignRemoteChannelServiceV1 | None = None,
 ) -> FastMCP:
     settings = application.settings
     issuer_url = settings.oauth_authorization_server or "http://localhost:8421"
