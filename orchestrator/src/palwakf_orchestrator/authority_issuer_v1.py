@@ -211,8 +211,8 @@ class WorkspaceAuthorityIssuerV1:
                 "mind": (
                     "knowledge/**",
                     "docs/knowledge/**",
-                    "drive://knowledge/**",
-                    "drive://projects/**",
+                    "drive://PalWakf/Knowledge/**",
+                    "drive://PalWakf/Projects/**",
                 ),
                 "agentic": (
                     "orchestrator/**",

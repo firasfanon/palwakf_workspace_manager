@@ -348,3 +348,18 @@ def test_windows_dpapi_machine_scope_roundtrip(tmp_path: Path) -> None:
     assert first == second
     assert key_path.is_file()
     assert key_path.read_bytes() != first
+
+
+def test_mind_remote_intent_accepts_palwakf_knowledge_candidate_scope() -> None:
+    envelope = _channel_envelope(
+        capability="workspace_drive.write_learning_candidate",
+        mutation_class="SOURCE_WRITE",
+        scope_paths=["drive://PalWakf/Knowledge/Candidates"],
+    )
+    result = _channel_issuer().authorize_remote_intent(
+        RemoteIntentV1(client_id="mind", payload=envelope)
+    )
+    assert (
+        result.signed_envelope["requested_capability_id"]
+        == "workspace_drive.write_learning_candidate"
+    )
